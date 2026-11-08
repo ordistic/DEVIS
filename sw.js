@@ -1,9 +1,9 @@
 /**
- * DARI LUXE ERP — Service Worker v21
+ * DARI LUXE ERP — Service Worker v22
  * Network-First for dynamic code & assets to prevent stale caching
  */
 
-const CACHE_NAME = 'dariluxe-erp-v21';
+const CACHE_NAME = 'dariluxe-erp-v22';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Precaching fresh assets v21...');
+      console.log('[SW] Precaching fresh assets v22...');
       return cache.addAll(STATIC_ASSETS).catch(e => console.warn(e));
     }).then(() => self.skipWaiting())
   );

@@ -53,32 +53,7 @@ const DB = {
   ],
 
   async init() {
-    // 1. Try to initialize Supabase from stored credentials
-    this.loadSupabaseCredentials();
-
-    if (this.supabaseUrl && this.supabaseAnonKey && typeof window !== 'undefined' && window.supabase) {
-      try {
-        this.supabaseClient = window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
-        
-        // Test connectivity
-        const { data, error } = await this.supabaseClient.from('company_settings').select('id').limit(1);
-        if (!error) {
-          this.isSupabaseConnected = true;
-          console.log('✓ Successfully connected to Supabase Cloud PostgreSQL!');
-          
-          // Hydrate cache from Supabase
-          await this.loadAllFromSupabase();
-          return this;
-        } else {
-          console.warn('Supabase credentials found but query failed (schema not imported yet?):', error.message);
-        }
-      } catch (err) {
-        console.warn('Failed to connect to Supabase:', err.message);
-        this.isSupabaseConnected = false;
-      }
-    }
-
-    // 2. LocalStorage cache with automatic clean initialization
+    // 1. Instantly load local cache so UI renders with ZERO latency (Offline-First / PWA Architecture)
     let localData = null;
     if (typeof localStorage !== 'undefined') {
       // Purge legacy demo keys
@@ -98,7 +73,7 @@ const DB = {
       this.saveLocalCache();
     }
 
-        // Set DARI LUXE branding defaults only if fields are empty/missing (never overwrite user edits)
+    // Set DARI LUXE branding defaults only if fields are empty/missing (never overwrite user edits)
     if (this._cache && this._cache.company_settings && this._cache.company_settings[0]) {
       const cur = this._cache.company_settings[0];
       let changed = false;
@@ -111,7 +86,41 @@ const DB = {
       if (changed) this.saveLocalCache();
     }
 
+    // 2. Connect to Supabase Cloud in the background WITHOUT BLOCKING the UI
+    this.loadSupabaseCredentials();
+    if (this.supabaseUrl && this.supabaseAnonKey && typeof window !== 'undefined' && window.supabase) {
+      this.initSupabaseBackground();
+    }
+
     return this;
+  },
+
+  async initSupabaseBackground() {
+    try {
+      this.supabaseClient = window.supabase.createClient(this.supabaseUrl, this.supabaseAnonKey);
+      const { data, error } = await this.supabaseClient.from('company_settings').select('id').limit(1);
+      if (!error) {
+        this.isSupabaseConnected = true;
+        console.log('✓ Successfully connected to Supabase Cloud PostgreSQL!');
+        if (typeof App !== 'undefined' && App.updateSupabaseUIState) {
+          App.updateSupabaseUIState();
+        }
+        await this.loadAllFromSupabase();
+        this.saveLocalCache();
+        // Soft refresh current view if user is still on dashboard
+        if (typeof App !== 'undefined' && App.currentView === 'dashboard') {
+          const mainContainer = document.getElementById('main-content-view');
+          if (mainContainer && App.renderDashboardView) {
+            App.renderDashboardView(mainContainer);
+          }
+        }
+      } else {
+        console.warn('Supabase credentials found but query failed:', error.message);
+      }
+    } catch (err) {
+      console.warn('Failed to connect to Supabase:', err.message);
+      this.isSupabaseConnected = false;
+    }
   },
 
   loadSupabaseCredentials() {
@@ -171,25 +180,30 @@ const DB = {
     const loadedTables = [];
     const failedTables = [];
 
-    for (const table of this.tables) {
-      try {
-        const { data, error } = await this.supabaseClient.from(table).select('*');
-        if (!error && Array.isArray(data)) {
-          // If remote table has data, hydrate cache
-          if (data.length > 0) {
-            this._cache[table] = data;
-          } else if (!this._cache[table] || this._cache[table].length === 0) {
-            this._cache[table] = [];
+    // Parallel fetch in batches of 6 for lightning-fast cloud sync
+    const BATCH_SIZE = 6;
+    for (let i = 0; i < this.tables.length; i += BATCH_SIZE) {
+      const batch = this.tables.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (table) => {
+        try {
+          const { data, error } = await this.supabaseClient.from(table).select('*');
+          if (!error && Array.isArray(data)) {
+            // If remote table has data, hydrate cache
+            if (data.length > 0) {
+              this._cache[table] = data;
+            } else if (!this._cache[table] || this._cache[table].length === 0) {
+              this._cache[table] = [];
+            }
+            loadedTables.push(table);
+          } else {
+            failedTables.push({ table, error: error ? error.message : 'Unknown query failure' });
+            if (!this._cache[table]) this._cache[table] = [];
           }
-          loadedTables.push(table);
-        } else {
-          failedTables.push({ table, error: error ? error.message : 'Unknown query failure' });
+        } catch (e) {
+          failedTables.push({ table, error: e.message });
           if (!this._cache[table]) this._cache[table] = [];
         }
-      } catch (e) {
-        failedTables.push({ table, error: e.message });
-        if (!this._cache[table]) this._cache[table] = [];
-      }
+      }));
     }
 
     // Ensure structural foundation is always available

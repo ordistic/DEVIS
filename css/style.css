@@ -81,16 +81,16 @@ html[dir="ltr"] body {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   APP LAYOUT WRAPPER — Always LTR flex, sidebar on LEFT
+   APP LAYOUT WRAPPER & RESPONSIVE ARCHITECTURE
    ═══════════════════════════════════════════════════════════ */
 
 #app-layout {
   display: flex;
-  flex-direction: row; /* sidebar LEFT, content RIGHT — always */
   min-height: 100vh;
   width: 100%;
-  overflow: hidden;
+  max-width: 100vw;
   background-color: var(--bg-main);
+  position: relative;
 }
 
 /* Sidebar Styling & Modern Collapsible Behavior */

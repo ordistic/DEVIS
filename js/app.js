@@ -1049,11 +1049,10 @@ const App = {
     window.addEventListener('hashchange', () => this.handleHashChange());
 
     // Resolve initial view from URL hash or default to dashboard
-    if (window.location.hash && window.location.hash !== '#' && window.location.hash !== '#/') {
-      this.handleHashChange();
-    } else {
+    if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#/') {
       window.location.hash = '#/dashboard';
     }
+    this.handleHashChange();
 
     this.updateGlobalHeaderStats();
     console.log('ERP Application initialized successfully with Hash Routing.');

@@ -12,6 +12,13 @@ const I18N = {
     // ARABIC (العربية) — RTL
     // ═════════════════════════════════════════════════════════
     ar: {
+      // Mobile Navigation
+      'mob_nav_home': 'الرئيسية',
+      'mob_nav_projects': 'الورشات',
+      'mob_nav_checkin': 'التحضير',
+      'mob_nav_expenses': 'المصاريف',
+      'mob_nav_menu': 'القائمة',
+
       // Common & Actions
       'app_name': 'داري لوكس',
       'app_tagline': 'تجديد، ديكور وتشطيب عقاري راقٍ',
@@ -181,6 +188,13 @@ const I18N = {
     // FRENCH (Français) — LTR
     // ═════════════════════════════════════════════════════════
     fr: {
+      // Mobile Navigation
+      'mob_nav_home': 'Accueil',
+      'mob_nav_projects': 'Chantiers',
+      'mob_nav_checkin': 'Pointage',
+      'mob_nav_expenses': 'Dépenses',
+      'mob_nav_menu': 'Menu',
+
       // Common & Actions
       'app_name': 'DARI LUXE',
       'app_tagline': 'Rénovation, Décoration & Aménagement Haut de Gamme',

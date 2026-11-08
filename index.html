@@ -63,7 +63,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- App Custom Stylesheet (Dark Cockpit Locked) -->
-  <link rel="stylesheet" href="css/style.css?v=21">
+  <link rel="stylesheet" href="css/style.css?v=22">
 
   <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
   <script>
@@ -76,7 +76,7 @@
       if ('caches' in window) {
         caches.keys().then(keys => {
           keys.forEach(k => {
-            if (k !== 'dariluxe-erp-v21') {
+            if (k !== 'dariluxe-erp-v22') {
               console.log('Purging old cache on phone:', k);
               caches.delete(k);
             }
@@ -89,8 +89,8 @@
 </head>
 <body class="bg-[#0A0A0C] text-slate-100 overflow-x-hidden antialiased selection:bg-[#FF3B30] selection:text-white">
 
-  <!-- Main Layout Wrapper (always LTR flex so sidebar stays LEFT) -->
-  <div id="app-layout" style="display:flex;flex-direction:row;min-height:100vh;width:100%;overflow:hidden;">
+  <!-- Main Layout Wrapper -->
+  <div id="app-layout" class="flex min-h-screen w-full bg-[#0A0A0C]">
 
   <!-- Mobile Sidebar Backdrop -->
   <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-md z-40 hidden lg:hidden"></div>
@@ -543,12 +543,12 @@
   </script>
 
   <!-- Core Scripts -->
-  <script src="js/i18n.js?v=21"></script>
-  <script src="js/calculations.js?v=21"></script>
-  <script src="js/db.js?v=21"></script>
+  <script src="js/i18n.js?v=22"></script>
+  <script src="js/calculations.js?v=22"></script>
+  <script src="js/db.js?v=22"></script>
   <script src="js/charts.js"></script>
-  <script src="js/daily_checkin.js?v=21"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/daily_checkin.js?v=22"></script>
+  <script src="js/app.js?v=22"></script>
 
   <!-- =====================================================
        MOBILE BOTTOM NAVIGATION BAR (Field Workers)
