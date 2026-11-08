@@ -80,10 +80,33 @@ html[dir="ltr"] body {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   APP LAYOUT WRAPPER — Always LTR flex, sidebar on LEFT
+   ═══════════════════════════════════════════════════════════ */
+
+#app-layout {
+  display: flex;
+  flex-direction: row; /* sidebar LEFT, content RIGHT — always */
+  min-height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--bg-main);
+}
+
 /* Sidebar Styling & Modern Collapsible Behavior */
 #main-sidebar {
   background-color: var(--bg-sidebar);
   border-color: rgba(255, 255, 255, 0.06);
+  /* Desktop default: in flow, fixed width */
+  flex-shrink: 0;
+  width: 288px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -515,7 +538,7 @@ body {
 
 /* --- SIDEBAR RESPONSIVE BEHAVIOR --- */
 
-/* Desktop (>= 1024px): Relative in normal layout flow */
+/* Desktop (>= 1024px): Sidebar in normal layout flow, left side */
 @media (min-width: 1024px) {
   #main-sidebar {
     position: relative !important;
@@ -523,19 +546,20 @@ body {
     visibility: visible !important;
     pointer-events: auto !important;
     height: 100vh !important;
+    width: 288px !important;
     display: flex !important;
+    flex-shrink: 0 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-left: none !important;
   }
 
+  /* RTL: sidebar is on the left, border on its right side (same) */
   html[dir="rtl"] #main-sidebar {
-    right: auto !important;
-    left: auto !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-right: none !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-left: none !important;
   }
 
   html[dir="ltr"] #main-sidebar {
-    right: auto !important;
-    left: auto !important;
     border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
     border-left: none !important;
   }
@@ -548,11 +572,13 @@ body {
   }
 }
 
-/* Mobile (< 1024px): Fixed off-canvas drawer (IMMUNE TO LAYOUT SQUISHING) */
+/* Mobile (< 1024px): Fixed off-canvas drawer from LEFT (IMMUNE TO LAYOUT SQUISHING) */
 @media (max-width: 1023px) {
   #main-sidebar {
     position: fixed !important;
     top: 0 !important;
+    left: 0 !important;
+    right: auto !important;
     bottom: 0 !important;
     height: 100% !important;
     height: 100dvh !important;
@@ -561,24 +587,13 @@ body {
     z-index: 75 !important;
     visibility: hidden !important;
     pointer-events: none !important;
+    transform: translateX(-100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-left: none !important;
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s !important;
   }
 
-  /* Closed: completely off screen */
-  html[dir="rtl"] #main-sidebar {
-    right: 0 !important;
-    left: auto !important;
-    transform: translateX(100%) !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-  html[dir="ltr"] #main-sidebar {
-    left: 0 !important;
-    right: auto !important;
-    transform: translateX(-100%) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-  }
-
-  /* Open: slides smoothly in */
+  /* Open: slides in from left */
   #main-sidebar.open {
     visibility: visible !important;
     pointer-events: auto !important;
