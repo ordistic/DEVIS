@@ -1,0 +1,82 @@
+{
+  "name": "DARI LUXE ERP — إدارة وتشطيب المقاولات",
+  "short_name": "DARI LUXE",
+  "description": "نظام التسيير المتكامل والشامل لورشات البناء، التشطيب والديكور العصري",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
+  "dir": "rtl",
+  "lang": "ar",
+  "categories": [
+    "business",
+    "productivity",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/dari_luxe_logo.png",
+      "sizes": "1024x480",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "التحضير اليومي للعمال",
+      "short_name": "التحضير",
+      "description": "تسجيل حضور وتسبيقات عمال الورشات",
+      "url": "/#daily_checkin",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "صندوق الشركة وتقاسم الأرباح",
+      "short_name": "الصندوق",
+      "description": "متابعة سيولة الصندوق ومصاريف الورشات",
+      "url": "/#wallets",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "قائمة الورشات والمشاريع",
+      "short_name": "الورشات",
+      "description": "إدارة ومتابعة الورشات قيد الإنجاز",
+      "url": "/#projects",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

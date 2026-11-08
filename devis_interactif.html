@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف الحساب الذكي - إدارة وتعديل الأشغال والأسعار</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background: white !important; color: black !important; font-size: 11pt; }
+      .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; border: 1px solid #ddd !important; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; page-break-after: auto; }
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 text-white p-2 rounded-xl shadow">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 leading-tight">كشف الحساب التفاعلي الذكي (Devis Interactif)</h1>
+            <p class="text-xs text-slate-500 font-medium">حساب تلقائي دقيق، إضافة وحذف الغرف والطوابق وتعديل الأسعار</p>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="saveToStorage()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+            <span>حفظ التعديلات</span>
+          </button>
+
+          <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            <span>طباعة Devis</span>
+          </button>
+
+          <button onclick="resetDefaults()" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-medium rounded-lg transition" title="استعادة الملف الأصلي">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex space-x-6 space-x-reverse border-t border-slate-200 text-sm font-semibold pt-1">
+        <button onclick="switchTab('tab-summary')" id="nav-summary" class="tab-btn py-3 px-2 border-b-2 border-blue-600 text-blue-600 flex items-center gap-2">
+          <span>📊 ملخص المشروع والأسعار</span>
+        </button>
+        <button onclick="switchTab('tab-floors')" id="nav-floors" class="tab-btn py-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <span>🏢 الأشغال الداخلية (البلاكو والصبيغة والكهرباء)</span>
+          <span id="badge-floors-count" class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-bold">5 طوابق</span>
+        </button>
+        <button onclick="switchTab('tab-guardex')" id="nav-guardex" class="tab-btn py-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <span>🛡️ الأشغال الخارجية والرطبة (Guardex والشرفات)</span>
+        </button>
+        <button onclick="switchTab('tab-prices')" id="nav-prices" class="tab-btn py-3 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2">
+          <span>⚙️ ضبط الأسعار الأحادية (Prix Unitaires)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- DARI LUXE Official Branding Header -->
+    <div class="bg-gradient-to-r from-slate-900 via-[#111C44] to-slate-900 text-white rounded-2xl p-5 border border-amber-500/40 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 bg-[#0B132B] rounded-2xl p-2 flex items-center justify-center border border-amber-400/40 shadow-inner flex-shrink-0">
+          <img src="dari_luxe_logo.png" alt="DARI LUXE Logo" class="max-w-full max-h-full object-contain filter drop-shadow">
+        </div>
+        <div>
+          <h2 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 tracking-wider">DARI LUXE</h2>
+          <p class="text-xs font-bold text-amber-300 uppercase tracking-widest">RÉNOVATION, DÉCORATION ET AMÉNAGEMENT</p>
+          <p class="text-xs text-slate-300 font-semibold mt-0.5">مؤسسة داري لوكس للتشطيب والديكور العصري</p>
+        </div>
+      </div>
+      <div class="flex flex-col text-xs text-slate-300 space-y-1 md:text-left bg-black/40 p-3 rounded-xl border border-white/10">
+        <div class="flex items-center gap-2 text-amber-300 font-bold">
+          <span>📞</span>
+          <span dir="ltr">0550 60 09 09</span>
+        </div>
+        <div class="flex items-center gap-2 font-mono text-slate-300 text-[11px]">
+          <span>✉️</span>
+          <span>DARILUXE.NET@GMAIL.COM</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-300 text-[11px]">
+          <span>📍</span>
+          <span>حي 17 أكتوبر، سيدي لخضر - عين الدفلى</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Summary Bar (Always Visible) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total Placo & Elec -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">البلاكو والكهرباء (F1)</span>
+          <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-placo" class="text-2xl font-black text-slate-900">0</span>
+          <span class="text-xs font-bold text-slate-500">دج</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1" id="kpi-placo-centimes">0 مليون سنتيم</div>
+      </div>
+
+      <!-- Total Peinture -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">أشغال الصبيغة (Peinture)</span>
+          <span class="p-2 rounded-xl bg-amber-50 text-amber-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+          </span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-peinture" class="text-2xl font-black text-amber-600">0</span>
+          <span class="text-xs font-bold text-amber-700">دج</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1" id="kpi-peinture-area">0 م² إجمالي المساحة</div>
+      </div>
+
+      <!-- Total Guardex & Ext -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">غارداكس وشرفات (F2)</span>
+          <span class="p-2 rounded-xl bg-sky-50 text-sky-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+          </span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-guardex" class="text-2xl font-black text-slate-900">0</span>
+          <span class="text-xs font-bold text-slate-500">دج</span>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-1" id="kpi-guardex-centimes">يشمل المصاريف الإضافية</div>
+      </div>
+
+      <!-- Grand Total Combined -->
+      <div class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-4 rounded-2xl shadow-md relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-blue-200 uppercase tracking-wider">المجموع الإجمالي الكلي</span>
+          <span class="p-1.5 rounded-lg bg-white/20 text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpi-total" class="text-2xl font-black tracking-tight">0</span>
+          <span class="text-xs font-bold text-blue-200">دج</span>
+        </div>
+        <div class="text-xs text-blue-100 font-bold mt-1" id="kpi-total-centimes">0 مليون سنتيم</div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 1: SUMMARY / GENERAL RECAP ==================== -->
+    <div id="tab-summary" class="tab-content space-y-6">
+      
+      <!-- General Overview Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-100 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">تفاصيل الكشف المالي الشامل (Récapitulatif Général)</h2>
+            <p class="text-sm text-slate-500">مقارنة وتجميع الأشغال الداخلية والخارجية بعد التصحيحات الدقيقة للمعادلات</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+              ✓ تم إصلاح معادلة الصبيغة
+            </span>
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+              ✓ تم جمع كافة الأوراق
+            </span>
+          </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="overflow-x-auto mt-4">
+          <table class="w-full text-sm text-right">
+            <thead>
+              <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                <th class="py-3 px-4 font-bold">القسم / نوع الأشغال</th>
+                <th class="py-3 px-4 font-bold">الكمية المقاسة</th>
+                <th class="py-3 px-4 font-bold">السعر الوحدوي</th>
+                <th class="py-3 px-4 font-bold">المجموع (دج)</th>
+                <th class="py-3 px-4 font-bold">المجموع (سنتيم)</th>
+                <th class="py-3 px-4 font-bold">النسبة</th>
+              </tr>
+            </thead>
+            <tbody id="summary-table-body" class="divide-y divide-slate-100 font-medium">
+              <!-- Rendered via JS -->
+            </tbody>
+            <tfoot class="bg-slate-50 font-bold text-slate-900 text-base border-t-2 border-slate-300">
+              <tr>
+                <td class="py-4 px-4 text-blue-700" colspan="3">المجموع العام الصافي للـ Devis:</td>
+                <td class="py-4 px-4 text-blue-700" id="summary-total-dzd">0 دج</td>
+                <td class="py-4 px-4 text-blue-700" id="summary-total-centimes">0 سنتيم</td>
+                <td class="py-4 px-4 text-blue-700">100%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Add / Actions Section -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="text-blue-800 font-bold text-base mb-1">إضافة طابق جديد</div>
+            <p class="text-xs text-blue-600 mb-4">أضف طابقاً كاملاً بسهولة مع ربط تلقائي لجميع حسابات البلاكو والدهان والكهرباء.</p>
+          </div>
+          <button onclick="addNewFloorPrompt()" class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>+ إضافة طابق جديد</span>
+          </button>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="text-amber-900 font-bold text-base mb-1">إضافة غرفة أو مساحة</div>
+            <p class="text-xs text-amber-700 mb-4">أدخل أبعاد غرفة جديدة (X1, X2, Y1, Y2, H) وستُحسب المساحة والمحيط والصبيغة لحظياً.</p>
+          </div>
+          <button onclick="switchTab('tab-floors'); openAddRoomModal();" class="w-full py-2 px-4 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>+ إضافة غرفة جديدة</span>
+          </button>
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="text-emerald-900 font-bold text-base mb-1">تحديث وتعديل الأسعار</div>
+            <p class="text-xs text-emerald-700 mb-4">تغيير سعر المتر المربع للبلاكو أو الصبيغة أو أسعار السبوتات وملاحظة التكلفة الإجمالية مباشرة.</p>
+          </div>
+          <button onclick="switchTab('tab-prices')" class="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <span>إدارة وضبط الأسعار</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: FLOORS & ROOMS (FEUILLE 1) ==================== -->
+    <div id="tab-floors" class="tab-content hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">الأشغال الداخلية: تفصيل الطوابق والغرف (Placo, Peinture, Électricité)</h2>
+          <p class="text-xs text-slate-500">انقر على أي رقم أو قيمة لتعديلها مباشرة أو استخدم أزرار الإضافة والتعديل</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openAddRoomModal()" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>+ إضافة غرفة</span>
+          </button>
+          <button onclick="addNewFloorPrompt()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span>+ إضافة طابق</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Floors Container -->
+      <div id="floors-container" class="space-y-6">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: GUARDEX & BALCONS (FEUILLE 2) ==================== -->
+    <div id="tab-guardex" class="tab-content hidden space-y-6">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">الأشغال الخارجية والشرفات (Guardex, Balcons, SDB) والمصاريف</h2>
+          <p class="text-xs text-slate-500">حسابات مقاومة الرطوبة، تلبيس PVC، وتكاليف نقل وتوريد السلع</p>
+        </div>
+        <button onclick="openAddGuardexItemModal()" class="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span>+ إضافة شرفة / مساحة غارداكس</span>
+        </button>
+      </div>
+
+      <!-- Guardex Table Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+          <span class="font-bold text-slate-800 text-sm">تفاصيل الشرفات والأماكن الرطبة (Feuille 2)</span>
+          <span class="text-xs text-slate-500 font-semibold" id="f2-items-count">0 عناصر</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-right">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                <th class="py-2.5 px-3">المكان / الغرفة</th>
+                <th class="py-2.5 px-3">الطابق</th>
+                <th class="py-2.5 px-3">X1</th>
+                <th class="py-2.5 px-3">X2</th>
+                <th class="py-2.5 px-3">Y1</th>
+                <th class="py-2.5 px-3">Y2</th>
+                <th class="py-2.5 px-3">H</th>
+                <th class="py-2.5 px-3 bg-blue-50/50">المساحة (م²)</th>
+                <th class="py-2.5 px-3 bg-blue-50/50">المحيط (م)</th>
+                <th class="py-2.5 px-3">غارداكس بسيط</th>
+                <th class="py-2.5 px-3">كايسون</th>
+                <th class="py-2.5 px-3">كاش PVC</th>
+                <th class="py-2.5 px-3">إيزولا PVC</th>
+                <th class="py-2.5 px-3">سبوت</th>
+                <th class="py-2.5 px-3">شفاط</th>
+                <th class="py-2.5 px-3">تراك</th>
+                <th class="py-2.5 px-3 no-print">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="guardex-table-body" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+            <tfoot class="bg-slate-100 font-bold text-slate-900 border-t border-slate-300">
+              <tr id="guardex-totals-row">
+                <!-- Rendered via JS -->
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Extra Costs Card (Frais annexes) -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm">المصاريف الإضافية والسلعة (Frais Divers & Matériaux)</h3>
+            <p class="text-xs text-slate-500">مصاريف نقل الكونتوار، شراء السلعة ومصاريف التواليت الخاصة</p>
+          </div>
+          <button onclick="addExtraCostPrompt()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1 no-print">
+            + إضافة بند مصاريف
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-right">
+            <thead>
+              <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                <th class="py-2 px-3">البيان / الوصف</th>
+                <th class="py-2 px-3">العدد / الكمية</th>
+                <th class="py-2 px-3">السعر الفردي (دج)</th>
+                <th class="py-2 px-3">المجموع (دج)</th>
+                <th class="py-2 px-3 no-print">حذف</th>
+              </tr>
+            </thead>
+            <tbody id="extras-table-body" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+            <tfoot class="bg-slate-50 font-bold text-slate-900">
+              <tr>
+                <td class="py-2.5 px-3" colspan="3">مجموع المصاريف الإضافية:</td>
+                <td class="py-2.5 px-3 text-emerald-700 font-black text-sm" id="extras-total-val">0 دج</td>
+                <td class="no-print"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: PRICES SETTINGS ==================== -->
+    <div id="tab-prices" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">ضبط الأسعار الوحدوية (Grille des Prix Unitaires)</h2>
+            <p class="text-xs text-slate-500">يمكنك هنا تعديل أسعار المتر المربع أو القطعة وسيقوم البرنامج بإعادة حساب كل شيء فوراً</p>
+          </div>
+          <button onclick="savePricesAndNotify()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+            حفظ الأسعار وتطبيقها
+          </button>
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <!-- Prices F1 Placo & Peinture -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-bold text-blue-700 pb-1 border-b border-blue-200">أسعار البلاكو والدهان (F1)</h3>
+            
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">بلاكو سيمبل (Placo Simple / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-placo_sim" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">صبيغة (Peinture / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-peinture" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-amber-700 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">كايسون عادي (Caisson / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-cisson" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">كاش ريدو (Cache Rideau / م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-cash_rd" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">صوف صخري (Laine de roche / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-lain_rosh" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">بوليستير (Polystyrène / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-polister" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prices F1 Électricité -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-bold text-indigo-700 pb-1 border-b border-indigo-200">أسعار الإنارة والكهرباء (F1)</h3>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">لاد بروفيليه (LED Profilé / م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-led_prf" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">سبوت (Spot / حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-spot" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">سكة مغناطيسية (Rail Magnétique / م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-ray_magn" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">قاطع / إنتربتور (Switch / حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-switch" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">ثريا (Lustre / حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-lustre" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">ليد كايسون / كاش ريدو (حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-led_cais" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">غورج فنتيلي / GV (م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-gv" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prices F2 Guardex -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-bold text-sky-700 pb-1 border-b border-sky-200">أسعار الغارداكس والخارجي (F2)</h3>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">غارداكس بسيط (Guardex / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-guardex" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">كايسون غارداكس (Caisson Guardex / م²):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-f2-cisson" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">كاش PVC 5 (م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-cash_pvc" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">إيزولا PVC (م.ط):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-isola_pvc" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">مروحة شفاط (Extracteur / حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-extracteur" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs">
+              <label class="text-slate-700 font-medium">تراك (Track / حبة):</label>
+              <div class="flex items-center gap-1">
+                <input type="number" id="price-track" class="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-900 text-xs">
+                <span class="text-slate-500">دج</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODAL: ADD / EDIT ROOM ==================== -->
+  <div id="room-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 id="modal-room-title" class="font-bold text-slate-900 text-base">إضافة غرفة / مساحة جديدة</h3>
+        <button onclick="closeRoomModal()" class="text-slate-400 hover:text-slate-700">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">الطابق المستهدف:</label>
+            <select id="modal-room-floor" class="w-full p-2 border border-slate-300 rounded-lg text-slate-800 font-semibold"></select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">اسم الغرفة / المكان:</label>
+            <input type="text" id="modal-room-name" placeholder="مثال: CHAMBRE 1, SALON, SDB..." class="w-full p-2 border border-slate-300 rounded-lg">
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
+          <span class="font-bold text-slate-800 block">أبعاد الغرفة (بالأمتار):</span>
+          <div class="grid grid-cols-5 gap-2 text-center">
+            <div>
+              <span class="text-slate-500 block mb-1">X1</span>
+              <input type="number" step="0.01" id="modal-room-x1" oninput="calcModalLivePreview()" class="w-full p-1.5 border border-slate-300 rounded text-center font-bold">
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">X2</span>
+              <input type="number" step="0.01" id="modal-room-x2" oninput="calcModalLivePreview()" class="w-full p-1.5 border border-slate-300 rounded text-center font-bold">
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Y1</span>
+              <input type="number" step="0.01" id="modal-room-y1" oninput="calcModalLivePreview()" class="w-full p-1.5 border border-slate-300 rounded text-center font-bold">
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">Y2</span>
+              <input type="number" step="0.01" id="modal-room-y2" oninput="calcModalLivePreview()" class="w-full p-1.5 border border-slate-300 rounded text-center font-bold">
+            </div>
+            <div>
+              <span class="text-slate-500 block mb-1">H (الارتفاع)</span>
+              <input type="number" step="0.01" id="modal-room-h" value="2.58" oninput="calcModalLivePreview()" class="w-full p-1.5 border border-slate-300 rounded text-center font-bold">
+            </div>
+          </div>
+
+          <!-- Live Preview of Computed Metrics -->
+          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 text-center font-bold text-slate-700">
+            <div>المساحة: <span id="modal-preview-surface" class="text-blue-600">0</span> م²</div>
+            <div>المحيط: <span id="modal-preview-perim" class="text-indigo-600">0</span> م</div>
+            <div>الصبيغة: <span id="modal-preview-paint" class="text-amber-600">0</span> م²</div>
+          </div>
+        </div>
+
+        <!-- Placo & Elements Quantities -->
+        <div>
+          <span class="font-bold text-slate-800 block mb-2">كميات الأشغال والعناصر (اختياري / يمكن ملؤها تلقائياً):</span>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-slate-600 block">كايسون (م²):</label>
+              <input type="number" step="0.1" id="modal-elem-cisson" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+            <div>
+              <label class="text-slate-600 block">كاش ريدو (م.ط):</label>
+              <input type="number" step="0.1" id="modal-elem-cash_rd" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+            <div>
+              <label class="text-slate-600 block">سبوت (عدد):</label>
+              <input type="number" id="modal-elem-spot" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+            <div>
+              <label class="text-slate-600 block">لاد بروفيليه (م.ط):</label>
+              <input type="number" step="0.1" id="modal-elem-led_prf" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+            <div>
+              <label class="text-slate-600 block">صوف صخري (م²):</label>
+              <input type="number" step="0.1" id="modal-elem-lain_rosh" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+            <div>
+              <label class="text-slate-600 block">بوليستير (م²):</label>
+              <input type="number" step="0.1" id="modal-elem-polister" class="w-full p-1.5 border border-slate-300 rounded">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+        <button onclick="closeRoomModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">إلغاء</button>
+        <button onclick="saveRoomFromModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow">حفظ الغرفة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Core JavaScript Logic -->
+  <script>
+    // Initial State loaded from Excel
+    const defaultData = {"floors": [{"id": "etage_1", "name": "الطابق الأول (Étage 1)", "rooms": [{"row": 2, "name": "CHAMBRE 1/1", "x1": 3.74, "x2": 3.77, "y1": 4.45, "y2": 4.3, "h": 2.58, "surface": 16.428125, "perimetre": 16.26, "sur_paint": 55.386125, "lain_rosh": 16.428125, "polister": 16.428125, "placo_sim": 16.428125, "cisson": 16.26, "cash_rd": 4.3, "led_prf": 4.06, "spot": 4.0, "ray_magn": 2.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 3, "name": "CHAMBRE 2/1", "x1": 3.5, "x2": 3.68, "y1": 3.86, "y2": 3.8, "h": 2.58, "surface": 13.7497, "perimetre": 14.84, "sur_paint": 49.6633, "lain_rosh": 13.7497, "polister": 13.7497, "placo_sim": 13.7497, "cisson": 14.84, "cash_rd": 0.0, "led_prf": 14.0, "spot": 6.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 4, "name": "CHAMBRE 3/1", "x1": 3.28, "x2": 3.26, "y1": 4.65, "y2": 4.5, "h": 2.1, "surface": 14.96025, "perimetre": 15.69, "sur_paint": 45.43125, "lain_rosh": 14.96025, "polister": 14.96025, "placo_sim": 14.96025, "cisson": 38.73, "cash_rd": 4.5, "led_prf": 13.59, "spot": 6.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 5, "name": "CHAMBRE 4/1", "x1": 2.43, "x2": 2.51, "y1": 3.31, "y2": 3.35, "h": 2.58, "surface": 8.2251, "perimetre": 11.6, "sur_paint": 38.5401, "lain_rosh": 8.2251, "polister": 0.0, "placo_sim": 8.2251, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 19.5, "spot": 7.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 6, "name": "CHAMBRE 5/1", "x1": 3.4, "x2": 3.4, "y1": 4.66, "y2": 4.58, "h": 2.58, "surface": 15.708, "perimetre": 16.04, "sur_paint": 54.9756, "lain_rosh": 15.708, "polister": 0.0, "placo_sim": 15.708, "cisson": 16.04, "cash_rd": 0.0, "led_prf": 0.0, "spot": 5.0, "ray_magn": 3.8, "switch": 1.0, "lustre": 1.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}]}, {"id": "etage_2", "name": "الطابق الثاني (Étage 2)", "rooms": [{"row": 7, "name": "CHAMBRE 1/2", "x1": 4.85, "x2": 4.84, "y1": 4.41, "y2": 4.27, "h": 2.58, "surface": 21.0273, "perimetre": 18.37, "sur_paint": 62.5653, "lain_rosh": 21.0273, "polister": 21.0273, "placo_sim": 21.0273, "cisson": 28.62, "cash_rd": 4.27, "led_prf": 10.0, "spot": 9.0, "ray_magn": 2.9, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 3.0}, {"row": 8, "name": "CHAMBRE 2/2", "x1": 4.5, "x2": 4.62, "y1": 4.5, "y2": 4.5, "h": 2.58, "surface": 20.52, "perimetre": 18.12, "sur_paint": 62.316, "lain_rosh": 20.52, "polister": 20.52, "placo_sim": 20.52, "cisson": 15.4, "cash_rd": 4.5, "led_prf": 11.88, "spot": 12.0, "ray_magn": 2.9, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 3.0}, {"row": 9, "name": "DRISSING", "x1": 3.81, "x2": 3.81, "y1": 1.22, "y2": 1.22, "h": 2.58, "surface": 4.6482, "perimetre": 10.06, "sur_paint": 27.4296, "lain_rosh": 4.6482, "polister": 4.6482, "placo_sim": 4.6482, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 5.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 10, "name": "CHAMBRE 3/2", "x1": 4.5, "x2": 4.4, "y1": 3.71, "y2": 3.71, "h": 2.58, "surface": 16.5095, "perimetre": 16.32, "sur_paint": 53.6615, "lain_rosh": 16.5095, "polister": 16.5095, "placo_sim": 16.5095, "cisson": 16.32, "cash_rd": 5.64, "led_prf": 9.04, "spot": 16.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 7.76}, {"row": 11, "name": "HALL", "x1": 3.35, "x2": 3.35, "y1": 2.85, "y2": 2.85, "h": 2.58, "surface": 9.5475, "perimetre": 12.4, "sur_paint": 39.5529, "lain_rosh": 9.5475, "polister": 9.5475, "placo_sim": 9.5475, "cisson": 12.4, "cash_rd": 2.85, "led_prf": 9.64, "spot": 8.0, "ray_magn": 1.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 12, "name": "Espace 12", "x1": 0.48, "x2": 0.48, "y1": 0.9, "y2": 0.9, "h": 2.58, "surface": 0.432, "perimetre": 2.76, "sur_paint": 12.9708, "lain_rosh": 0.432, "polister": 0.432, "placo_sim": 0.432, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 13, "name": "Espace 13", "x1": 1.22, "x2": 1.22, "y1": 0.7, "y2": 0.7, "h": 2.58, "surface": 0.854, "perimetre": 3.84, "sur_paint": 14.27, "lain_rosh": 0.854, "polister": 0.854, "placo_sim": 0.854, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 1.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 14, "name": "Espace 14", "x1": 1.8, "x2": 1.8, "y1": 1.88, "y2": 1.88, "h": 2.58, "surface": 3.384, "perimetre": 7.36, "sur_paint": 24.3852, "lain_rosh": 3.384, "polister": 3.384, "placo_sim": 3.384, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 2.4, "spot": 0.0, "ray_magn": 1.0, "switch": 0.0, "lustre": 1.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 15, "name": "SDB", "x1": 1.1, "x2": 1.1, "y1": 1.76, "y2": 1.76, "h": 2.58, "surface": 1.936, "perimetre": 5.72, "sur_paint": 1.936, "lain_rosh": 1.936, "polister": 0.0, "placo_sim": 1.936, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 2.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}]}, {"id": "etage_3", "name": "الطابق الثالث (Étage 3)", "rooms": [{"row": 16, "name": "CHAMBRE 1/3", "x1": 5.88, "x2": 5.88, "y1": 3.26, "y2": 3.47, "h": 2.58, "surface": 19.7862, "perimetre": 18.49, "sur_paint": 58.9764, "lain_rosh": 19.7862, "polister": 19.7862, "placo_sim": 19.7862, "cisson": 18.49, "cash_rd": 3.47, "led_prf": 160.0, "spot": 12.0, "ray_magn": 0.0, "switch": 2.0, "lustre": 2.0, "led_cais": 2.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 17, "name": "CHAMBRE 2/3", "x1": 4.21, "x2": 4.21, "y1": 4.54, "y2": 4.4, "h": 2.58, "surface": 18.8187, "perimetre": 17.36, "sur_paint": 59.4021, "lain_rosh": 18.8187, "polister": 18.8187, "placo_sim": 18.8187, "cisson": 27.84, "cash_rd": 4.4, "led_prf": 0.0, "spot": 12.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 2.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 18, "name": "CHAMBRE 3/3", "x1": 4.33, "x2": 4.29, "y1": 4.53, "y2": 4.59, "h": 2.58, "surface": 19.6536, "perimetre": 17.74, "sur_paint": 60.9078, "lain_rosh": 19.6536, "polister": 19.6536, "placo_sim": 19.6536, "cisson": 17.74, "cash_rd": 4.59, "led_prf": 0.0, "spot": 16.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 8.72}, {"row": 19, "name": "CHAMBRE 4/3", "x1": 4.1, "x2": 4.63, "y1": 2.83, "y2": 2.82, "h": 2.58, "surface": 12.331125, "perimetre": 14.38, "sur_paint": 45.509925, "lain_rosh": 12.331125, "polister": 12.331125, "placo_sim": 12.331125, "cisson": 14.38, "cash_rd": 0.0, "led_prf": 0.0, "spot": 8.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 20, "name": "Espace 20", "x1": 0.35, "x2": 0.35, "y1": 0.97, "y2": 0.97, "h": 2.58, "surface": 0.3395, "perimetre": 2.64, "sur_paint": 12.9041, "lain_rosh": 0.3395, "polister": 0.0, "placo_sim": 0.3395, "cisson": 0.97, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 21, "name": "Espace 21", "x1": 0.62, "x2": 0.62, "y1": 1.55, "y2": 1.55, "h": 2.58, "surface": 0.961, "perimetre": 4.34, "sur_paint": 17.215, "lain_rosh": 0.961, "polister": 0.961, "placo_sim": 0.961, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 22, "name": "Espace 22", "x1": 1.58, "x2": 1.58, "y1": 0.61, "y2": 0.61, "h": 2.58, "surface": 0.9638, "perimetre": 4.38, "sur_paint": 14.8442, "lain_rosh": 0.9638, "polister": 0.9638, "placo_sim": 0.9638, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 23, "name": "CUISSIN", "x1": 2.87, "x2": 2.87, "y1": 5.3, "y2": 5.3, "h": 2.58, "surface": 15.211, "perimetre": 16.34, "sur_paint": 15.211, "lain_rosh": 15.211, "polister": 15.211, "placo_sim": 15.211, "cisson": 5.2, "cash_rd": 0.0, "led_prf": 0.0, "spot": 8.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 24, "name": "TWLLET", "x1": 0.8, "x2": 0.8, "y1": 1.8, "y2": 1.8, "h": 2.58, "surface": 1.44, "perimetre": 5.2, "sur_paint": 1.44, "lain_rosh": 1.44, "polister": 0.0, "placo_sim": 1.44, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 2.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}]}, {"id": "etage_4", "name": "الطابق الرابع (Étage 4)", "rooms": [{"row": 25, "name": "CHAMBRE 1/4", "x1": 5.88, "x2": 5.88, "y1": 3.26, "y2": 3.47, "h": 2.58, "surface": 19.7862, "perimetre": 18.49, "sur_paint": 58.9764, "lain_rosh": 19.7862, "polister": 19.7862, "placo_sim": 19.7862, "cisson": 18.49, "cash_rd": 3.47, "led_prf": 0.0, "spot": 12.0, "ray_magn": 0.0, "switch": 2.0, "lustre": 2.0, "led_cais": 2.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 26, "name": "CHAMBRE 2/4", "x1": 4.21, "x2": 4.21, "y1": 4.54, "y2": 4.4, "h": 2.58, "surface": 18.8187, "perimetre": 17.36, "sur_paint": 59.4021, "lain_rosh": 18.8187, "polister": 18.8187, "placo_sim": 18.8187, "cisson": 27.84, "cash_rd": 4.4, "led_prf": 0.0, "spot": 12.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 2.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 27, "name": "CHAMBRE 3/4", "x1": 4.33, "x2": 4.29, "y1": 4.53, "y2": 4.59, "h": 2.58, "surface": 19.6536, "perimetre": 17.74, "sur_paint": 60.9078, "lain_rosh": 19.6536, "polister": 19.6536, "placo_sim": 19.6536, "cisson": 17.74, "cash_rd": 4.59, "led_prf": 0.0, "spot": 16.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 1.0, "gv": 8.72}, {"row": 28, "name": "CHAMBRE 4/4", "x1": 4.1, "x2": 4.63, "y1": 2.83, "y2": 2.82, "h": 2.58, "surface": 12.331125, "perimetre": 14.38, "sur_paint": 45.509925, "lain_rosh": 12.331125, "polister": 12.331125, "placo_sim": 12.331125, "cisson": 14.38, "cash_rd": 0.0, "led_prf": 0.0, "spot": 8.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 1.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 29, "name": "Espace 29", "x1": 0.35, "x2": 0.35, "y1": 0.97, "y2": 0.97, "h": 2.58, "surface": 0.3395, "perimetre": 2.64, "sur_paint": 12.9041, "lain_rosh": 0.3395, "polister": 0.0, "placo_sim": 0.3395, "cisson": 0.97, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 30, "name": "Espace 30", "x1": 0.62, "x2": 0.62, "y1": 1.55, "y2": 1.55, "h": 2.58, "surface": 0.961, "perimetre": 4.34, "sur_paint": 17.215, "lain_rosh": 0.961, "polister": 0.961, "placo_sim": 0.961, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 31, "name": "Espace 31", "x1": 1.58, "x2": 1.58, "y1": 0.61, "y2": 0.61, "h": 2.58, "surface": 0.9638, "perimetre": 4.38, "sur_paint": 14.8442, "lain_rosh": 0.9638, "polister": 0.9638, "placo_sim": 0.9638, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 32, "name": "CUISSIN", "x1": 2.87, "x2": 2.87, "y1": 5.3, "y2": 5.3, "h": 2.58, "surface": 15.211, "perimetre": 16.34, "sur_paint": 15.211, "lain_rosh": 15.211, "polister": 15.211, "placo_sim": 15.211, "cisson": 5.2, "cash_rd": 0.0, "led_prf": 0.0, "spot": 8.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 33, "name": "TWLLET", "x1": 0.8, "x2": 0.8, "y1": 1.8, "y2": 1.8, "h": 2.58, "surface": 1.44, "perimetre": 5.2, "sur_paint": 1.44, "lain_rosh": 1.44, "polister": 0.0, "placo_sim": 1.44, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 2.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}]}, {"id": "etage_5", "name": "الطابق الخامس والسطح (Étage 5 & Terrasse)", "rooms": [{"row": 34, "name": "CHAMBRE 1/5", "x1": 3.54, "x2": 3.55, "y1": 2.25, "y2": 2.31, "h": 2.58, "surface": 8.0826, "perimetre": 11.65, "sur_paint": 8.0826, "lain_rosh": 8.0826, "polister": 8.0826, "placo_sim": 8.0826, "cisson": 2.33, "cash_rd": 2.31, "led_prf": 0.0, "spot": 9.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 0.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 35, "name": "CHAMBRE 2/5", "x1": 4.51, "x2": 4.51, "y1": 2.38, "y2": 2.33, "h": 2.58, "surface": 10.62105, "perimetre": 13.73, "sur_paint": 10.62105, "lain_rosh": 10.62105, "polister": 10.62105, "placo_sim": 10.62105, "cisson": 2.33, "cash_rd": 3.33, "led_prf": 0.0, "spot": 9.0, "ray_magn": 0.0, "switch": 1.0, "lustre": 1.0, "led_cais": 0.0, "led_cash_rd": 1.0, "gv": 0.0}, {"row": 36, "name": "SDB", "x1": 2.18, "x2": 2.18, "y1": 2.78, "y2": 2.78, "h": 2.58, "surface": 6.0604, "perimetre": 9.92, "sur_paint": 6.0604, "lain_rosh": 6.0604, "polister": 6.0604, "placo_sim": 6.0604, "cisson": 0.0, "cash_rd": 0.0, "led_prf": 0.0, "spot": 4.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}, {"row": 37, "name": "CAGE DES  EC", "x1": 0.0, "x2": 0.0, "y1": 0.0, "y2": 0.0, "h": 2.58, "surface": 0.0, "perimetre": 0.0, "sur_paint": 0.0, "lain_rosh": 0.0, "polister": 0.0, "placo_sim": 0.0, "cisson": 15.8, "cash_rd": 0.0, "led_prf": 0.0, "spot": 0.0, "ray_magn": 0.0, "switch": 0.0, "lustre": 0.0, "led_cais": 0.0, "led_cash_rd": 0.0, "gv": 0.0}]}], "f1_prices": {"lain_rosh": 600, "polister": 600, "placo_sim": 900, "cisson": 1100, "cash_rd": 2000, "led_prf": 1200, "spot": 450, "ray_magn": 2000, "switch": 1500, "lustre": 1200, "led_cais": 1200, "led_cash_rd": 1200, "gv": 2200, "peinture": 900}, "f2_items": [{"row": 2, "etage": "RDC", "name": "LA COUR 1/1", "x1": 5.2, "x2": 5.2, "y1": 1.28, "y2": 1.28, "h": 2.58, "surface": 6.656, "perimetre": 12.96, "lain_rosh": 0.0, "guardex": 6.656, "cisson": 6.48, "spot": 2.0, "cash_pvc": 5.1, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 3, "etage": "RDC", "name": "ENTREE 2/1", "x1": 1.56, "x2": 1.56, "y1": 3.7, "y2": 3.7, "h": 2.58, "surface": 5.772, "perimetre": 10.52, "lain_rosh": 0.0, "guardex": 5.772, "cisson": 3.9, "spot": 3.0, "cash_pvc": 2.6, "isola_pvc": 3.5, "extracteur": 0.0, "track": 2.0}, {"row": 4, "etage": "RDC", "name": "SANITARE", "x1": 1.6, "x2": 1.6, "y1": 2.1, "y2": 2.2, "h": null, "surface": 3.44, "perimetre": 7.5, "lain_rosh": 3.44, "guardex": 3.44, "cisson": 0.0, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 2.6, "extracteur": 1.0, "track": 0.0}, {"row": 5, "etage": "RDC", "name": "BALCON ENT", "x1": 5.31, "x2": 5.35, "y1": 1.45, "y2": 1.75, "h": 2.58, "surface": 8.528, "perimetre": 13.86, "lain_rosh": 0.0, "guardex": 8.528, "cisson": 1.45, "spot": 3.0, "cash_pvc": 4.0, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 6, "etage": "1 ERE", "name": "BALCON COUR", "x1": 5.2, "x2": 5.2, "y1": 1.28, "y2": 1.28, "h": 2.58, "surface": 6.656, "perimetre": 6.48, "lain_rosh": 0.0, "guardex": 6.656, "cisson": 6.48, "spot": 2.0, "cash_pvc": 5.2, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 7, "etage": "1 ERE", "name": "BALCON FACADE", "x1": 5.14, "x2": 5.17, "y1": 1.33, "y2": 1.73, "h": 2.58, "surface": 7.88715, "perimetre": 13.37, "lain_rosh": 0.0, "guardex": 7.88715, "cisson": 1.3, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 8, "etage": "1 ERE", "name": "SDB", "x1": 2.26, "x2": 2.26, "y1": 1.7, "y2": 1.7, "h": null, "surface": 3.842, "perimetre": 7.92, "lain_rosh": 3.842, "guardex": 3.842, "cisson": 0.0, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 2.6, "extracteur": 1.0, "track": 0.0}, {"row": 9, "etage": "1 ERE", "name": "SDB", "x1": 1.77, "x2": 1.77, "y1": 1.97, "y2": 1.97, "h": null, "surface": 3.4869, "perimetre": 7.48, "lain_rosh": 3.4869, "guardex": 3.4869, "cisson": 0.0, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 2.6, "extracteur": 1.0, "track": 0.0}, {"row": 10, "etage": "2 EME", "name": "BALCON COUR", "x1": 5.2, "x2": 5.2, "y1": 1.28, "y2": 1.28, "h": 2.58, "surface": 6.656, "perimetre": 12.96, "lain_rosh": 0.0, "guardex": 6.656, "cisson": 6.48, "spot": 2.0, "cash_pvc": 5.2, "isola_pvc": 0.0, "extracteur": 1.0, "track": 0.0}, {"row": 11, "etage": "2 EME", "name": "BALCON FACADE", "x1": 3.66, "x2": 3.66, "y1": 1.43, "y2": 1.73, "h": 2.58, "surface": 5.7828, "perimetre": 10.48, "lain_rosh": 0.0, "guardex": 5.7828, "cisson": 0.0, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 12, "etage": "2 EME", "name": "SDB", "x1": 2.0, "x2": 2.0, "y1": 1.8, "y2": 1.8, "h": null, "surface": 3.6, "perimetre": 7.6, "lain_rosh": 3.6, "guardex": 3.6, "cisson": 0.0, "spot": 2.0, "cash_pvc": 5.2, "isola_pvc": 5.2, "extracteur": 2.0, "track": 0.0}, {"row": 13, "etage": "3 EME", "name": "BALCON COUR", "x1": 5.2, "x2": 5.2, "y1": 1.28, "y2": 1.28, "h": 2.58, "surface": 6.656, "perimetre": 12.96, "lain_rosh": 0.0, "guardex": 6.656, "cisson": 6.48, "spot": 2.0, "cash_pvc": 5.2, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 14, "etage": "3 EME", "name": "BALCON FACADE", "x1": 3.66, "x2": 3.66, "y1": 1.43, "y2": 1.73, "h": 2.58, "surface": 5.7828, "perimetre": 10.48, "lain_rosh": 0.0, "guardex": 5.7828, "cisson": 0.0, "spot": 2.0, "cash_pvc": 2.6, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 15, "etage": "3 EME", "name": "SDB", "x1": 2.0, "x2": 2.0, "y1": 1.8, "y2": 1.8, "h": null, "surface": 3.6, "perimetre": 7.6, "lain_rosh": 3.6, "guardex": 3.6, "cisson": 0.0, "spot": 2.0, "cash_pvc": 5.2, "isola_pvc": 5.2, "extracteur": 0.0, "track": 0.0}, {"row": 16, "etage": "TERRASE", "name": "CAGE DES ESC", "x1": 2.8, "x2": 2.8, "y1": 2.0, "y2": 2.0, "h": 2.58, "surface": 5.6, "perimetre": 9.6, "lain_rosh": 0.0, "guardex": 5.6, "cisson": 2.4, "spot": 4.0, "cash_pvc": 0.0, "isola_pvc": 0.0, "extracteur": 0.0, "track": 0.0}, {"row": 17, "etage": "TERRASE", "name": "TERASSE", "x1": 3.55, "x2": 3.55, "y1": 1.87, "y2": 1.87, "h": 2.58, "surface": 6.6385, "perimetre": 10.84, "lain_rosh": 0.0, "guardex": 6.6385, "cisson": 5.0, "spot": 3.0, "cash_pvc": 9.2, "isola_pvc": 2.6, "extracteur": 0.0, "track": 0.0}], "f2_prices": {"lain_rosh": 600, "guardex": 3000, "cisson": 3000, "spot": 450, "cash_pvc": 3000, "isola_pvc": 600, "extracteur": 2500, "track": 2000}, "f2_extras": [{"name": "TWALLET", "qty": 5, "unit_price": 5000, "total": 25000}, {"name": "SEL3A (سلعة)", "qty": 1, "unit_price": 50000, "total": 50000}, {"name": "TA7WEL CNT (تحويل كونتوار)", "qty": 1, "unit_price": 10000, "total": 10000}], "client": {"title": "كشف كمي وتقديري للأشغال (Devis Quantitatif & Estimatif)", "clientName": "السيد المحترم", "date": "2026-11-06", "location": "الجزائر"}};
+    let appData = JSON.parse(localStorage.getItem('devis_app_data_v1')) || defaultData;
+
+    // Save state
+    function saveToStorage() {
+      localStorage.setItem('devis_app_data_v1', JSON.stringify(appData));
+      showToast('✓ تم حفظ جميع التعديلات بنجاح في متصفحك!');
+      renderAll();
+    }
+
+    function resetDefaults() {
+      if (confirm('هل أنت متأكد من رغبتك في استعادة البيانات الأصلية كما كانت في ملف الإكسل؟')) {
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveToStorage();
+      }
+    }
+
+    // Tab Switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-blue-600', 'text-blue-600');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+      
+      const target = document.getElementById(tabId);
+      if (target) target.classList.remove('hidden');
+
+      const btnMap = {
+        'tab-summary': 'nav-summary',
+        'tab-floors': 'nav-floors',
+        'tab-guardex': 'nav-guardex',
+        'tab-prices': 'nav-prices'
+      };
+      const activeBtn = document.getElementById(btnMap[tabId]);
+      if (activeBtn) {
+        activeBtn.classList.add('border-blue-600', 'text-blue-600');
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      }
+    }
+
+    // Calculation Helper Functions
+    function computeRoomMetrics(room) {
+      const x1 = parseFloat(room.x1) || 0;
+      const x2 = parseFloat(room.x2) || 0;
+      const y1 = parseFloat(room.y1) || 0;
+      const y2 = parseFloat(room.y2) || 0;
+      const h = parseFloat(room.h) || 0;
+
+      const surface = ((x1 + x2) / 2) * ((y1 + y2) / 2);
+      const perimetre = x1 + x2 + y1 + y2;
+      // Correct Painting Area Formula: (Perimeter * Height) + Surface
+      const sur_paint = (perimetre * h) + surface;
+
+      return { surface, perimetre, sur_paint };
+    }
+
+    function formatNumber(num) {
+      return (Number(num) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatCurrency(num) {
+      return (Number(num) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    // Render All Views
+    function renderAll() {
+      renderKPIs();
+      renderSummaryTable();
+      renderFloors();
+      renderGuardexTable();
+      renderExtrasTable();
+      populatePricesForm();
+    }
+
+    // 1. Render KPIs & Global Totals
+    function renderKPIs() {
+      let totalPlacoElec = 0;
+      let totalPeintureArea = 0;
+
+      // Loop through all rooms in F1
+      appData.floors.forEach(fl => {
+        fl.rooms.forEach(rm => {
+          const { surface, perimetre, sur_paint } = computeRoomMetrics(rm);
+          totalPeintureArea += sur_paint;
+
+          // Elements cost
+          totalPlacoElec += (parseFloat(rm.lain_rosh) || 0) * (appData.f1_prices.lain_rosh || 600);
+          totalPlacoElec += (parseFloat(rm.polister) || 0) * (appData.f1_prices.polister || 600);
+          totalPlacoElec += (parseFloat(rm.placo_sim || surface) || 0) * (appData.f1_prices.placo_sim || 900);
+          totalPlacoElec += (parseFloat(rm.cisson) || 0) * (appData.f1_prices.cisson || 1100);
+          totalPlacoElec += (parseFloat(rm.cash_rd) || 0) * (appData.f1_prices.cash_rd || 2000);
+          totalPlacoElec += (parseFloat(rm.led_prf) || 0) * (appData.f1_prices.led_prf || 1200);
+          totalPlacoElec += (parseFloat(rm.spot) || 0) * (appData.f1_prices.spot || 450);
+          totalPlacoElec += (parseFloat(rm.ray_magn) || 0) * (appData.f1_prices.ray_magn || 2000);
+          totalPlacoElec += (parseFloat(rm.switch) || 0) * (appData.f1_prices.switch || 1500);
+          totalPlacoElec += (parseFloat(rm.lustre) || 0) * (appData.f1_prices.lustre || 1200);
+          totalPlacoElec += (parseFloat(rm.led_cais) || 0) * (appData.f1_prices.led_cais || 1200);
+          totalPlacoElec += (parseFloat(rm.led_cash_rd) || 0) * (appData.f1_prices.led_cash_rd || 1200);
+          totalPlacoElec += (parseFloat(rm.gv) || 0) * (appData.f1_prices.gv || 2200);
+        });
+      });
+
+      const totalPeintureCost = totalPeintureArea * (appData.f1_prices.peinture || 900);
+
+      // Loop through F2
+      let totalGuardexCost = 0;
+      appData.f2_items.forEach(it => {
+        totalGuardexCost += (parseFloat(it.lain_rosh) || 0) * (appData.f2_prices.lain_rosh || 600);
+        totalGuardexCost += (parseFloat(it.guardex) || 0) * (appData.f2_prices.guardex || 3000);
+        totalGuardexCost += (parseFloat(it.cisson) || 0) * (appData.f2_prices.cisson || 3000);
+        totalGuardexCost += (parseFloat(it.spot) || 0) * (appData.f2_prices.spot || 450);
+        totalGuardexCost += (parseFloat(it.cash_pvc) || 0) * (appData.f2_prices.cash_pvc || 3000);
+        totalGuardexCost += (parseFloat(it.isola_pvc) || 0) * (appData.f2_prices.isola_pvc || 600);
+        totalGuardexCost += (parseFloat(it.extracteur) || 0) * (appData.f2_prices.extracteur || 2500);
+        totalGuardexCost += (parseFloat(it.track) || 0) * (appData.f2_prices.track || 2000);
+      });
+
+      let totalExtras = 0;
+      appData.f2_extras.forEach(ex => {
+        totalExtras += (parseFloat(ex.qty) || 1) * (parseFloat(ex.unit_price) || 0);
+      });
+
+      const f2GrandTotal = totalGuardexCost + totalExtras;
+      const grandTotal = totalPlacoElec + totalPeintureCost + f2GrandTotal;
+
+      // Update KPIs
+      document.getElementById('kpi-placo').textContent = formatCurrency(totalPlacoElec);
+      document.getElementById('kpi-placo-centimes').textContent = (totalPlacoElec / 10000).toFixed(1) + ' مليون سنتيم';
+
+      document.getElementById('kpi-peinture').textContent = formatCurrency(totalPeintureCost);
+      document.getElementById('kpi-peinture-area').textContent = formatNumber(totalPeintureArea) + ' م² (بسعر ' + (appData.f1_prices.peinture || 900) + ' دج/م²)';
+
+      document.getElementById('kpi-guardex').textContent = formatCurrency(f2GrandTotal);
+      document.getElementById('kpi-guardex-centimes').textContent = (f2GrandTotal / 10000).toFixed(1) + ' مليون سنتيم';
+
+      document.getElementById('kpi-total').textContent = formatCurrency(grandTotal);
+      document.getElementById('kpi-total-centimes').textContent = (grandTotal / 10000).toFixed(1) + ' مليون سنتيم';
+
+      document.getElementById('badge-floors-count').textContent = appData.floors.length + ' طوابق';
+
+      return { totalPlacoElec, totalPeintureArea, totalPeintureCost, totalGuardexCost, totalExtras, f2GrandTotal, grandTotal };
+    }
+
+    // 2. Render Summary Table
+    function renderSummaryTable() {
+      const totals = renderKPIs();
+      const tbody = document.getElementById('summary-table-body');
+      
+      const rows = [
+        { label: 'أشغال البلاكو بلاتر العادي (Placo BA13)', qty: '-', unit: (appData.f1_prices.placo_sim || 900) + ' دج/م²', cost: totals.totalPlacoElec, note: 'يشمل العزل، الكايسون والكهرباء' },
+        { label: 'أشغال الصبيغة الكاملة (Peinture جدران + أسقف)', qty: formatNumber(totals.totalPeintureArea) + ' م²', unit: (appData.f1_prices.peinture || 900) + ' دج/م²', cost: totals.totalPeintureCost, note: 'تصحيح المساحة الكاملة' },
+        { label: 'أشغال الغارداكس والشرفات (Guardex & Balcons)', qty: '-', unit: 'متنوع', cost: totals.totalGuardexCost, note: 'Feuille 2' },
+        { label: 'المصاريف الإضافية والسلعة (Frais Divers)', qty: appData.f2_extras.length + ' بنود', unit: 'مقطوع', cost: totals.totalExtras, note: 'سلعة، كونتوار، تواليت' }
+      ];
+
+      tbody.innerHTML = rows.map(r => `
+        <tr class="hover:bg-slate-50/80 transition">
+          <td class="py-3 px-4 font-bold text-slate-800">
+            ${r.label}
+            <span class="block text-[11px] text-slate-400 font-normal">${r.note}</span>
+          </td>
+          <td class="py-3 px-4 font-semibold text-slate-700">${r.qty}</td>
+          <td class="py-3 px-4 text-slate-600">${r.unit}</td>
+          <td class="py-3 px-4 font-bold text-slate-900">${formatCurrency(r.cost)} دج</td>
+          <td class="py-3 px-4 text-slate-600 font-semibold">${(r.cost / 10000).toFixed(1)} م.س</td>
+          <td class="py-3 px-4 font-bold text-blue-600">${totals.grandTotal > 0 ? ((r.cost / totals.grandTotal) * 100).toFixed(1) : 0}%</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('summary-total-dzd').textContent = formatCurrency(totals.grandTotal) + ' دج';
+      document.getElementById('summary-total-centimes').textContent = (totals.grandTotal / 10000).toFixed(1) + ' مليون سنتيم';
+    }
+
+    // 3. Render Floors (Feuille 1)
+    function renderFloors() {
+      const container = document.getElementById('floors-container');
+      container.innerHTML = appData.floors.map((fl, fIdx) => {
+        
+        // Compute floor totals
+        let floorSurface = 0;
+        let floorPaint = 0;
+        let floorCost = 0;
+
+        fl.rooms.forEach(rm => {
+          const { surface, sur_paint } = computeRoomMetrics(rm);
+          floorSurface += surface;
+          floorPaint += sur_paint;
+          floorCost += sur_paint * (appData.f1_prices.peinture || 900);
+          floorCost += (parseFloat(rm.placo_sim || surface) || 0) * (appData.f1_prices.placo_sim || 900);
+          floorCost += (parseFloat(rm.cisson) || 0) * (appData.f1_prices.cisson || 1100);
+          floorCost += (parseFloat(rm.cash_rd) || 0) * (appData.f1_prices.cash_rd || 2000);
+          floorCost += (parseFloat(rm.led_prf) || 0) * (appData.f1_prices.led_prf || 1200);
+          floorCost += (parseFloat(rm.spot) || 0) * (appData.f1_prices.spot || 450);
+          floorCost += (parseFloat(rm.lain_rosh) || 0) * (appData.f1_prices.lain_rosh || 600);
+          floorCost += (parseFloat(rm.polister) || 0) * (appData.f1_prices.polister || 600);
+        });
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="floor-card-${fIdx}">
+            <!-- Floor Header -->
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3">
+              <div class="flex items-center gap-3">
+                <span class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-xs">${fIdx + 1}</span>
+                <div>
+                  <h3 class="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <span contenteditable="true" onblur="updateFloorName(${fIdx}, this.innerText)" class="hover:bg-amber-50 px-1 rounded cursor-text">${fl.name}</span>
+                    <span class="text-xs font-normal text-slate-500">(${fl.rooms.length} غرف ومساحات)</span>
+                  </h3>
+                  <div class="flex items-center gap-4 text-xs text-slate-600 mt-0.5">
+                    <span>المساحة: <strong class="text-slate-800">${formatNumber(floorSurface)} م²</strong></span>
+                    <span>الصبيغة: <strong class="text-amber-700">${formatNumber(floorPaint)} م²</strong></span>
+                    <span>تكلفة الطابق: <strong class="text-blue-700">${formatCurrency(floorCost)} دج</strong> (${(floorCost/10000).toFixed(1)} م.س)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Floor actions -->
+              <div class="flex items-center gap-2 no-print">
+                <button onclick="addRoomToFloor(${fIdx})" class="px-2.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                  <span>+ إضافة غرفة</span>
+                </button>
+                <button onclick="deleteFloor(${fIdx})" class="px-2 py-1.5 text-rose-500 hover:bg-rose-50 rounded-lg text-xs" title="حذف الطابق">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <!-- Rooms Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-right">
+                <thead>
+                  <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200">
+                    <th class="py-2.5 px-3">اسم الغرفة</th>
+                    <th class="py-2.5 px-2 text-center">X1 (م)</th>
+                    <th class="py-2.5 px-2 text-center">X2 (م)</th>
+                    <th class="py-2.5 px-2 text-center">Y1 (م)</th>
+                    <th class="py-2.5 px-2 text-center">Y2 (م)</th>
+                    <th class="py-2.5 px-2 text-center">H (الارتفاع)</th>
+                    <th class="py-2.5 px-3 bg-blue-50/50 text-center font-extrabold text-blue-900">المساحة (م²)</th>
+                    <th class="py-2.5 px-3 bg-slate-100 text-center">المحيط (م)</th>
+                    <th class="py-2.5 px-3 bg-amber-50/60 text-center font-extrabold text-amber-900">الصبيغة (م²)</th>
+                    <th class="py-2.5 px-2 text-center">كايسون</th>
+                    <th class="py-2.5 px-2 text-center">كاش ريدو</th>
+                    <th class="py-2.5 px-2 text-center">لاد بروفيليه</th>
+                    <th class="py-2.5 px-2 text-center">سبوت</th>
+                    <th class="py-2.5 px-2 text-center">صوف صخري</th>
+                    <th class="py-2.5 px-2 text-center">بوليستير</th>
+                    <th class="py-2.5 px-3 no-print text-center">حذف</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${fl.rooms.map((rm, rIdx) => {
+                    const { surface, perimetre, sur_paint } = computeRoomMetrics(rm);
+                    return `
+                      <tr class="hover:bg-blue-50/30 transition">
+                        <td class="py-2 px-3 font-bold text-slate-800">
+                          <input type="text" value="${rm.name}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'name', this.value)" class="bg-transparent hover:bg-white focus:bg-white border-0 hover:border focus:border border-slate-300 rounded px-1 w-28 font-bold text-slate-800">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.01" value="${rm.x1 || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'x1', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1 font-semibold text-slate-800">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.01" value="${rm.x2 || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'x2', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1 font-semibold text-slate-800">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.01" value="${rm.y1 || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'y1', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1 font-semibold text-slate-800">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.01" value="${rm.y2 || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'y2', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1 font-semibold text-slate-800">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.01" value="${rm.h || 2.58}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'h', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1 font-semibold text-amber-800">
+                        </td>
+                        <td class="py-2 px-3 text-center font-bold text-blue-700 bg-blue-50/30">
+                          ${formatNumber(surface)}
+                        </td>
+                        <td class="py-2 px-3 text-center text-slate-600 font-semibold bg-slate-50/50">
+                          ${formatNumber(perimetre)}
+                        </td>
+                        <td class="py-2 px-3 text-center font-bold text-amber-700 bg-amber-50/40">
+                          ${formatNumber(sur_paint)}
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.1" value="${rm.cisson || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'cisson', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.1" value="${rm.cash_rd || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'cash_rd', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.1" value="${rm.led_prf || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'led_prf', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" value="${rm.spot || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'spot', this.value)" class="w-12 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.1" value="${rm.lain_rosh || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'lain_rosh', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-2 text-center">
+                          <input type="number" step="0.1" value="${rm.polister || ''}" onchange="updateRoomField(${fIdx}, ${rIdx}, 'polister', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1">
+                        </td>
+                        <td class="py-2 px-3 text-center no-print">
+                          <button onclick="deleteRoom(${fIdx}, ${rIdx})" class="text-rose-400 hover:text-rose-600 p-1">🗑️</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Room update field
+    function updateRoomField(fIdx, rIdx, field, value) {
+      appData.floors[fIdx].rooms[rIdx][field] = value;
+      renderAll();
+    }
+
+    function updateFloorName(fIdx, newName) {
+      appData.floors[fIdx].name = newName.trim();
+      renderAll();
+    }
+
+    function deleteRoom(fIdx, rIdx) {
+      if (confirm('هل أنت متأكد من حذف هذه الغرفة؟')) {
+        appData.floors[fIdx].rooms.splice(rIdx, 1);
+        renderAll();
+      }
+    }
+
+    function deleteFloor(fIdx) {
+      if (confirm(`هل أنت متأكد من حذف ${appData.floors[fIdx].name} بما فيه من غرف؟`)) {
+        appData.floors.splice(fIdx, 1);
+        renderAll();
+      }
+    }
+
+    function addNewFloorPrompt() {
+      const name = prompt('أدخل اسم الطابق الجديد (مثال: الطابق السادس، الملحق، القبو...):');
+      if (name) {
+        appData.floors.push({
+          id: 'etage_' + (appData.floors.length + 1),
+          name: name.trim(),
+          rooms: []
+        });
+        renderAll();
+        switchTab('tab-floors');
+        showToast('✓ تمت إضافة ' + name + ' بنجاح!');
+      }
+    }
+
+    // Modal Room logic
+    function openAddRoomModal(preselectedFloor = 0) {
+      const select = document.getElementById('modal-room-floor');
+      select.innerHTML = appData.floors.map((fl, idx) => `<option value="${idx}" ${idx === preselectedFloor ? 'selected' : ''}>${fl.name}</option>`).join('');
+      
+      document.getElementById('modal-room-name').value = '';
+      document.getElementById('modal-room-x1').value = '';
+      document.getElementById('modal-room-x2').value = '';
+      document.getElementById('modal-room-y1').value = '';
+      document.getElementById('modal-room-y2').value = '';
+      document.getElementById('modal-room-h').value = '2.58';
+      document.getElementById('modal-elem-cisson').value = '';
+      document.getElementById('modal-elem-cash_rd').value = '';
+      document.getElementById('modal-elem-spot').value = '';
+      document.getElementById('modal-elem-led_prf').value = '';
+      document.getElementById('modal-elem-lain_rosh').value = '';
+      document.getElementById('modal-elem-polister').value = '';
+
+      calcModalLivePreview();
+      document.getElementById('room-modal').classList.remove('hidden');
+    }
+
+    function addRoomToFloor(fIdx) {
+      openAddRoomModal(fIdx);
+    }
+
+    function closeRoomModal() {
+      document.getElementById('room-modal').classList.add('hidden');
+    }
+
+    function calcModalLivePreview() {
+      const x1 = parseFloat(document.getElementById('modal-room-x1').value) || 0;
+      const x2 = parseFloat(document.getElementById('modal-room-x2').value) || x1;
+      const y1 = parseFloat(document.getElementById('modal-room-y1').value) || 0;
+      const y2 = parseFloat(document.getElementById('modal-room-y2').value) || y1;
+      const h = parseFloat(document.getElementById('modal-room-h').value) || 2.58;
+
+      const surface = ((x1 + x2) / 2) * ((y1 + y2) / 2);
+      const perim = x1 + x2 + y1 + y2;
+      const paint = (perim * h) + surface;
+
+      document.getElementById('modal-preview-surface').textContent = formatNumber(surface);
+      document.getElementById('modal-preview-perim').textContent = formatNumber(perim);
+      document.getElementById('modal-preview-paint').textContent = formatNumber(paint);
+    }
+
+    function saveRoomFromModal() {
+      const fIdx = parseInt(document.getElementById('modal-room-floor').value);
+      const name = document.getElementById('modal-room-name').value.trim() || 'غرفة جديدة';
+      const x1 = parseFloat(document.getElementById('modal-room-x1').value) || 0;
+      const x2 = parseFloat(document.getElementById('modal-room-x2').value) || x1;
+      const y1 = parseFloat(document.getElementById('modal-room-y1').value) || 0;
+      const y2 = parseFloat(document.getElementById('modal-room-y2').value) || y1;
+      const h = parseFloat(document.getElementById('modal-room-h').value) || 2.58;
+
+      const newRoom = {
+        name: name,
+        x1: x1,
+        x2: x2,
+        y1: y1,
+        y2: y2,
+        h: h,
+        cisson: parseFloat(document.getElementById('modal-elem-cisson').value) || 0,
+        cash_rd: parseFloat(document.getElementById('modal-elem-cash_rd').value) || 0,
+        spot: parseFloat(document.getElementById('modal-elem-spot').value) || 0,
+        led_prf: parseFloat(document.getElementById('modal-elem-led_prf').value) || 0,
+        lain_rosh: parseFloat(document.getElementById('modal-elem-lain_rosh').value) || 0,
+        polister: parseFloat(document.getElementById('modal-elem-polister').value) || 0,
+        placo_sim: ((x1 + x2) / 2) * ((y1 + y2) / 2)
+      };
+
+      appData.floors[fIdx].rooms.push(newRoom);
+      closeRoomModal();
+      renderAll();
+      showToast('✓ تمت إضافة ' + name + ' بنجاح!');
+    }
+
+    // 4. Render Guardex & Ext (Feuille 2)
+    function renderGuardexTable() {
+      const tbody = document.getElementById('guardex-table-body');
+      document.getElementById('f2-items-count').textContent = appData.f2_items.length + ' عناصر';
+
+      let sumSurf = 0, sumPerim = 0, sumGuardex = 0, sumCisson = 0, sumCashPvc = 0, sumIsola = 0, sumSpot = 0, sumExtract = 0, sumTrack = 0;
+
+      tbody.innerHTML = appData.f2_items.map((it, idx) => {
+        const x1 = parseFloat(it.x1) || 0;
+        const x2 = parseFloat(it.x2) || 0;
+        const y1 = parseFloat(it.y1) || 0;
+        const y2 = parseFloat(it.y2) || 0;
+        const surf = ((x1 + x2) / 2) * ((y1 + y2) / 2);
+        const perim = x1 + x2 + y1 + y2;
+
+        sumSurf += surf;
+        sumPerim += perim;
+        sumGuardex += parseFloat(it.guardex) || 0;
+        sumCisson += parseFloat(it.cisson) || 0;
+        sumCashPvc += parseFloat(it.cash_pvc) || 0;
+        sumIsola += parseFloat(it.isola_pvc) || 0;
+        sumSpot += parseFloat(it.spot) || 0;
+        sumExtract += parseFloat(it.extracteur) || 0;
+        sumTrack += parseFloat(it.track) || 0;
+
+        return `
+          <tr class="hover:bg-sky-50/30 transition">
+            <td class="py-2 px-3 font-bold text-slate-800">
+              <input type="text" value="${it.name}" onchange="updateGuardexField(${idx}, 'name', this.value)" class="bg-transparent hover:bg-white border-0 hover:border border-slate-300 rounded px-1 w-28 font-bold text-slate-800">
+            </td>
+            <td class="py-2 px-3 text-slate-600 font-semibold">${it.etage || '-'}</td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.01" value="${it.x1 || ''}" onchange="updateGuardexField(${idx}, 'x1', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.01" value="${it.x2 || ''}" onchange="updateGuardexField(${idx}, 'x2', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.01" value="${it.y1 || ''}" onchange="updateGuardexField(${idx}, 'y1', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.01" value="${it.y2 || ''}" onchange="updateGuardexField(${idx}, 'y2', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.01" value="${it.h || 2.58}" onchange="updateGuardexField(${idx}, 'h', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center font-bold text-blue-700 bg-blue-50/30">${formatNumber(surf)}</td>
+            <td class="py-2 px-3 text-center text-slate-600 bg-slate-50/50">${formatNumber(perim)}</td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.1" value="${it.guardex || ''}" onchange="updateGuardexField(${idx}, 'guardex', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.1" value="${it.cisson || ''}" onchange="updateGuardexField(${idx}, 'cisson', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.1" value="${it.cash_pvc || ''}" onchange="updateGuardexField(${idx}, 'cash_pvc', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" step="0.1" value="${it.isola_pvc || ''}" onchange="updateGuardexField(${idx}, 'isola_pvc', this.value)" class="w-14 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" value="${it.spot || ''}" onchange="updateGuardexField(${idx}, 'spot', this.value)" class="w-12 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" value="${it.extracteur || ''}" onchange="updateGuardexField(${idx}, 'extracteur', this.value)" class="w-12 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center"><input type="number" value="${it.track || ''}" onchange="updateGuardexField(${idx}, 'track', this.value)" class="w-12 text-center bg-slate-50 border border-slate-200 rounded p-1"></td>
+            <td class="py-2 px-3 text-center no-print">
+              <button onclick="deleteGuardexItem(${idx})" class="text-rose-400 hover:text-rose-600">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('guardex-totals-row').innerHTML = `
+        <td class="py-3 px-3" colspan="7">المجموع الكلي للغارداكس:</td>
+        <td class="py-3 px-3 text-center text-blue-800">${formatNumber(sumSurf)}</td>
+        <td class="py-3 px-3 text-center text-slate-800">${formatNumber(sumPerim)}</td>
+        <td class="py-3 px-3 text-center">${formatNumber(sumGuardex)}</td>
+        <td class="py-3 px-3 text-center">${formatNumber(sumCisson)}</td>
+        <td class="py-3 px-3 text-center">${formatNumber(sumCashPvc)}</td>
+        <td class="py-3 px-3 text-center">${formatNumber(sumIsola)}</td>
+        <td class="py-3 px-3 text-center">${sumSpot}</td>
+        <td class="py-3 px-3 text-center">${sumExtract}</td>
+        <td class="py-3 px-3 text-center">${sumTrack}</td>
+        <td class="no-print"></td>
+      `;
+    }
+
+    function updateGuardexField(idx, field, value) {
+      appData.f2_items[idx][field] = value;
+      renderAll();
+    }
+
+    function deleteGuardexItem(idx) {
+      if (confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
+        appData.f2_items.splice(idx, 1);
+        renderAll();
+      }
+    }
+
+    function openAddGuardexItemModal() {
+      const name = prompt('اسم المكان أو الشرفة:');
+      if (name) {
+        appData.f2_items.push({
+          name: name.trim(),
+          etage: 'عام',
+          x1: 2.0,
+          x2: 2.0,
+          y1: 1.5,
+          y2: 1.5,
+          h: 2.58,
+          guardex: 3.0,
+          cisson: 0,
+          cash_pvc: 0,
+          isola_pvc: 0,
+          spot: 2,
+          extracteur: 0,
+          track: 0
+        });
+        renderAll();
+      }
+    }
+
+    // 5. Extras Table
+    function renderExtrasTable() {
+      const tbody = document.getElementById('extras-table-body');
+      let total = 0;
+
+      tbody.innerHTML = appData.f2_extras.map((ex, idx) => {
+        const lineTotal = (parseFloat(ex.qty) || 1) * (parseFloat(ex.unit_price) || 0);
+        total += lineTotal;
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2 px-3 font-bold text-slate-800">
+              <input type="text" value="${ex.name}" onchange="appData.f2_extras[${idx}].name=this.value; renderAll();" class="bg-transparent border-0 hover:border rounded p-1 w-48">
+            </td>
+            <td class="py-2 px-3">
+              <input type="number" value="${ex.qty}" onchange="appData.f2_extras[${idx}].qty=parseFloat(this.value)||1; renderAll();" class="w-16 p-1 border rounded text-center">
+            </td>
+            <td class="py-2 px-3">
+              <input type="number" value="${ex.unit_price}" onchange="appData.f2_extras[${idx}].unit_price=parseFloat(this.value)||0; renderAll();" class="w-24 p-1 border rounded text-center font-bold">
+            </td>
+            <td class="py-2 px-3 font-bold text-slate-900">${formatCurrency(lineTotal)} دج</td>
+            <td class="py-2 px-3 no-print">
+              <button onclick="appData.f2_extras.splice(${idx}, 1); renderAll();" class="text-rose-400 hover:text-rose-600">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('extras-total-val').textContent = formatCurrency(total) + ' دج';
+    }
+
+    function addExtraCostPrompt() {
+      const name = prompt('أدخل بيان المصروف:');
+      if (name) {
+        const price = parseFloat(prompt('أدخل المبلغ بالدينار (DZD):') || 0);
+        appData.f2_extras.push({ name, qty: 1, unit_price: price });
+        renderAll();
+      }
+    }
+
+    // 6. Prices Form
+    function populatePricesForm() {
+      const f1 = appData.f1_prices;
+      const f2 = appData.f2_prices;
+
+      document.getElementById('price-placo_sim').value = f1.placo_sim || 900;
+      document.getElementById('price-peinture').value = f1.peinture || 900;
+      document.getElementById('price-cisson').value = f1.cisson || 1100;
+      document.getElementById('price-cash_rd').value = f1.cash_rd || 2000;
+      document.getElementById('price-lain_rosh').value = f1.lain_rosh || 600;
+      document.getElementById('price-polister').value = f1.polister || 600;
+      document.getElementById('price-led_prf').value = f1.led_prf || 1200;
+      document.getElementById('price-spot').value = f1.spot || 450;
+      document.getElementById('price-ray_magn').value = f1.ray_magn || 2000;
+      document.getElementById('price-switch').value = f1.switch || 1500;
+      document.getElementById('price-lustre').value = f1.lustre || 1200;
+      document.getElementById('price-led_cais').value = f1.led_cais || 1200;
+      document.getElementById('price-gv').value = f1.gv || 2200;
+
+      document.getElementById('price-guardex').value = f2.guardex || 3000;
+      document.getElementById('price-f2-cisson').value = f2.cisson || 3000;
+      document.getElementById('price-cash_pvc').value = f2.cash_pvc || 3000;
+      document.getElementById('price-isola_pvc').value = f2.isola_pvc || 600;
+      document.getElementById('price-extracteur').value = f2.extracteur || 2500;
+      document.getElementById('price-track').value = f2.track || 2000;
+    }
+
+    function savePricesAndNotify() {
+      appData.f1_prices.placo_sim = parseFloat(document.getElementById('price-placo_sim').value) || 900;
+      appData.f1_prices.peinture = parseFloat(document.getElementById('price-peinture').value) || 900;
+      appData.f1_prices.cisson = parseFloat(document.getElementById('price-cisson').value) || 1100;
+      appData.f1_prices.cash_rd = parseFloat(document.getElementById('price-cash_rd').value) || 2000;
+      appData.f1_prices.lain_rosh = parseFloat(document.getElementById('price-lain_rosh').value) || 600;
+      appData.f1_prices.polister = parseFloat(document.getElementById('price-polister').value) || 600;
+      appData.f1_prices.led_prf = parseFloat(document.getElementById('price-led_prf').value) || 1200;
+      appData.f1_prices.spot = parseFloat(document.getElementById('price-spot').value) || 450;
+      appData.f1_prices.ray_magn = parseFloat(document.getElementById('price-ray_magn').value) || 2000;
+      appData.f1_prices.switch = parseFloat(document.getElementById('price-switch').value) || 1500;
+      appData.f1_prices.lustre = parseFloat(document.getElementById('price-lustre').value) || 1200;
+      appData.f1_prices.led_cais = parseFloat(document.getElementById('price-led_cais').value) || 1200;
+      appData.f1_prices.gv = parseFloat(document.getElementById('price-gv').value) || 2200;
+
+      appData.f2_prices.guardex = parseFloat(document.getElementById('price-guardex').value) || 3000;
+      appData.f2_prices.cisson = parseFloat(document.getElementById('price-f2-cisson').value) || 3000;
+      appData.f2_prices.cash_pvc = parseFloat(document.getElementById('price-cash_pvc').value) || 3000;
+      appData.f2_prices.isola_pvc = parseFloat(document.getElementById('price-isola_pvc').value) || 600;
+      appData.f2_prices.extracteur = parseFloat(document.getElementById('price-extracteur').value) || 2500;
+      appData.f2_prices.track = parseFloat(document.getElementById('price-track').value) || 2000;
+
+      saveToStorage();
+      showToast('✓ تم تحديث قائمة الأسعار وإعادة احتساب المشروع كاملاً!');
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-5 left-5 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-bold z-50 transition-all';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Initial boot
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+    });
+  </script>
+</body>
+</html>

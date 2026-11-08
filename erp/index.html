@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DARI LUXE — Rénovation, Décoration & Aménagement | نظام إدارة المؤسسة والورشات</title>
+  
+  <!-- Favicon / Logo -->
+  <!-- PWA Manifest & Mobile Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0A0A0C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DARI LUXE">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="icon" type="image/png" href="dari_luxe_logo.png">
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: {
+              main: '#0A0A0C',
+              sidebar: '#0C0C10',
+              header: '#0C0C10',
+              card: '#121216',
+              cardHover: '#17171D',
+              border: 'rgba(255, 255, 255, 0.08)'
+            },
+            coral: {
+              DEFAULT: '#FF3B30',
+              hover: '#FF453A'
+            },
+            brand: {
+              gold: '#D4AF37',
+              emerald: '#10B981',
+              cyan: '#06B6D4',
+              amber: '#F59E0B',
+              purple: '#8B5CF6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Cairo, Tajawal, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- App Custom Stylesheet (Dark Cockpit Locked) -->
+  <link rel="stylesheet" href="css/style.css?v=20">
+
+  <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let reg of regs) {
+          reg.update();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => {
+            if (k !== 'dariluxe-erp-v20') {
+              console.log('Purging old cache on phone:', k);
+              caches.delete(k);
+            }
+          });
+        });
+      }
+    }
+  </script>
+
+</head>
+<body class="bg-[#0A0A0C] text-slate-100 flex min-h-screen overflow-x-hidden antialiased selection:bg-[#FF3B30] selection:text-white">
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-md z-40 hidden lg:hidden"></div>
+
+  <!-- Sidebar (OPDISTIC Cockpit Style with DARI LUXE Branding) -->
+  <aside id="main-sidebar" class="w-72 bg-[#0C0C10] z-50 flex flex-col justify-between transition-all duration-200 transform shadow-2xl lg:relative select-none">
+    
+    <!-- Collapsible Toggle Button right on border (as in screenshot) -->
+    <button id="sidebar-toggle-btn" onclick="App.toggleSidebarCollapse()" class="sidebar-collapse-toggle hidden lg:flex" title="طي / توسيع القائمة (Collapse / Expand)">
+      <svg class="w-3.5 h-3.5 transition-transform duration-200" id="sidebar-toggle-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <div class="p-4 flex flex-col h-full overflow-y-auto">
+      
+      <!-- Brand Logo Header (DARI LUXE) -->
+      <div class="flex flex-col pb-4 border-b border-white/5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 brand-container">
+            <div class="w-12 h-12 rounded-xl bg-[#121216] p-1 flex items-center justify-center border border-amber-500/30 shadow-lg shadow-amber-950/20">
+              <img src="dari_luxe_logo.png" alt="DARI LUXE Logo" class="max-w-full max-h-full object-contain filter drop-shadow">
+            </div>
+            <div class="sidebar-text">
+              <h1 class="font-black text-base tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 leading-tight">DARI LUXE</h1>
+              <p class="text-[9px] text-[#FF3B30] font-bold uppercase tracking-wider">RÉNOVATION & DÉCORATION</p>
+              <p class="text-[8px] text-slate-400 font-medium">داري لوكس للتشطيب العصري</p>
+            </div>
+          </div>
+          <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-white p-1 text-lg">✕</button>
+        </div>
+        
+        
+        <!-- PWA Install Banner (Desktop & Mobile) -->
+        <div id="pwa-install-container" class="mt-3 p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-red-500/10 border border-amber-500/30 text-xs text-amber-300 hidden">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">📲</span>
+              <div>
+                <div class="font-bold text-white text-[11px]">تثبيت تطبيق DARI LUXE</div>
+                <div class="text-[9px] text-slate-400">يعمل بدون إنترنت على جهازك</div>
+              </div>
+            </div>
+            <button id="pwa-install-btn" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-[11px] rounded-lg shadow-md transition whitespace-nowrap">
+              تثبيت التطبيق
+            </button>
+          </div>
+        </div>
+
+        <!-- Company Coordinates Strip -->
+        <div class="sidebar-text sidebar-company-coords mt-3 pt-2 border-t border-white/5 space-y-1 text-[10px]">
+          <div class="flex items-center gap-1.5 text-amber-400 font-bold font-mono">
+            <span>📞</span>
+            <span dir="ltr">0550 60 09 09</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-slate-400 font-mono text-[9px] truncate" title="DARILUXE.NET@GMAIL.COM">
+            <span>✉️</span>
+            <span>DARILUXE.NET@GMAIL.COM</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-slate-400 text-[9px]" title="17 Octobre, Sidi Lakhder - Ain Defla">
+            <span>📍</span>
+            <span>سيدي لخضر، عين الدفلى (17 أكتوبر)</span>
+          </div>
+        </div>
+      </div>
+
+            <!-- Main Cockpit Navigation Menu -->
+      <nav class="mt-4 space-y-4 text-xs font-semibold flex-1">
+        
+        <!-- Top Main View: Tableau de bord -->
+        <div class="space-y-1">
+          <a href="javascript:void(0)" onclick="App.navigate('dashboard')" data-view="dashboard" class="nav-link active flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Tableau de bord / لوحة التحكم والرقابة">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="7" height="9" x="3" y="3" rx="1.5"/>
+                <rect width="7" height="5" x="14" y="3" rx="1.5"/>
+                <rect width="7" height="9" x="14" y="12" rx="1.5"/>
+                <rect width="7" height="5" x="3" y="16" rx="1.5"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Tableau de bord</span>
+              <span class="text-[10px] text-slate-400">لوحة التحكم والرقابة</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Section 1: PROJETS & CHANTIERS -->
+        <div class="space-y-1">
+          <div class="sidebar-category-header">
+            <span class="sidebar-category-title">Projets & Chantiers</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
+          </div>
+          
+          <a href="javascript:void(0)" onclick="App.navigate('projects')" data-view="projects" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Tous les chantiers / سجل الورشات والمشاريع">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Tous les chantiers</span>
+              <span class="text-[10px] text-slate-400">سجل الورشات والمشاريع</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('building_structure')" data-view="building_structure" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Bâtiments & Mesures / الهيكل، الغرف، والقياسات التقنية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.3 15.3 8.7 2.7a2.4 2.4 0 0 0-3.4 0L2.7 5.3a2.4 2.4 0 0 0 0 3.4l12.6 12.6a2.4 2.4 0 0 0 3.4 0l2.6-2.6a2.4 2.4 0 0 0 0-3.4Z"/>
+                <path d="m14.5 4.5 5 5"/><path d="m7.5 11.5 2 2"/><path d="m10.5 8.5 2 2"/><path d="m13.5 5.5 2 2"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Bâtiments & Mesures</span>
+              <span class="text-[10px] text-slate-400">الهيكل، الغرف، والقياسات التقنية</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('activities')" data-view="activities" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Catalogue Travaux / دليل بنود وأنشطة الأشغال">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1"/>
+                <path d="M9 12h6"/><path d="M9 16h6"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Catalogue Travaux</span>
+              <span class="text-[10px] text-slate-400">دليل بنود وأنشطة الأشغال</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Section 2: POINTAGE & ÉQUIPE -->
+        <div class="space-y-1">
+          <div class="sidebar-category-header">
+            <span class="sidebar-category-title">Pointage & Équipe</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
+          </div>
+
+          <a href="javascript:void(0)" onclick="App.navigate('daily_checkin')" data-view="daily_checkin" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Pointage Journalier / التحضير اليومي وتسبيقات العمال">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-amber-300">Pointage Journalier</span>
+                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-black">Check</span>
+              </div>
+              <span class="text-[10px] text-slate-400">التحضير اليومي وتسبيقات العمال</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('workers')" data-view="workers" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Équipe & Salaires / سجل العمال، اليوميات والأجور">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Équipe & Salaires</span>
+              <span class="text-[10px] text-slate-400">سجل العمال، اليوميات والأجور</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Section 3: MÉTRÉ & DEVIS -->
+        <div class="space-y-1">
+          <div class="sidebar-category-header">
+            <span class="sidebar-category-title">Métré & Devis</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
+          </div>
+
+          <a href="javascript:void(0)" onclick="App.navigate('quotations_invoices')" data-view="quotations_invoices" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Devis & Factures / عروض الأسعار والفواتير الرسمية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Devis & Factures</span>
+              <span class="text-[10px] text-slate-400">عروض الأسعار والفواتير الرسمية</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('test_scenarios')" data-view="test_scenarios" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Scénarios (A, B, C, D) / اختبار النماذج التجارية والتسعير">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold text-emerald-400">Scénarios (A, B, C, D)</span>
+              <span class="text-[10px] text-emerald-300/80">اختبار النماذج التجارية والتسعير</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Section 4: FINANCES & STOCK -->
+        <div class="space-y-1">
+          <div class="sidebar-category-header">
+            <span class="sidebar-category-title">Finances & Stock</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
+          </div>
+
+          <a href="javascript:void(0)" onclick="App.navigate('wallets')" data-view="wallets" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Caisse & Partage Bénéfices / صندوق الشركة وتقاسم الأرباح">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Caisse & Partage Bénéfices</span>
+              <span class="text-[10px] text-slate-400">صندوق الشركة وتقاسم الأرباح</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('finances')" data-view="finances" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Finances & Rentabilité / المركز المالي والأرباح الحقيقية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                <polyline points="16 7 22 7 22 13"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Finances & Rentabilité</span>
+              <span class="text-[10px] text-slate-400">المركز المالي والأرباح الحقيقية</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('materials')" data-view="materials" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Matériaux & Fournisseurs / المواد والمخزون والموردين">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7.5 4.27 9 5.15"/>
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                <path d="m3.3 7 8.7 5 8.7-5"/>
+                <path d="M12 22V12"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Matériaux & Fournisseurs</span>
+              <span class="text-[10px] text-slate-400">المواد والمخزون والموردين</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('expenses')" data-view="expenses" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Dépenses & Caisses / المصاريف النثرية والعهد">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="14" x="2" y="5" rx="2"/>
+                <line x1="2" x2="22" y1="10" x2="10"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Dépenses & Caisses</span>
+              <span class="text-[10px] text-slate-400">المصاريف النثرية والعهد</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Section 5: SYSTÈME & PARAMÈTRES -->
+        <div class="space-y-1">
+          <div class="sidebar-category-header">
+            <span class="sidebar-category-title">Système & Paramètres</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
+          </div>
+
+          <a href="javascript:void(0)" onclick="App.navigate('reports')" data-view="reports" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Rapports & Impression / التقارير الشاملة والطباعة A4">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect width="12" height="8" x="6" y="14"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Rapports & Impression</span>
+              <span class="text-[10px] text-slate-400">التقارير الشاملة والطباعة A4</span>
+            </div>
+          </a>
+
+          <a href="javascript:void(0)" onclick="App.navigate('settings')" data-view="settings" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Paramètres & Entreprise / إعدادات داري لوكس والسحابة">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </span>
+            <div class="sidebar-text flex flex-col">
+              <span class="font-bold">Paramètres & Entreprise</span>
+              <span class="text-[10px] text-slate-400">إعدادات داري لوكس والسحابة</span>
+            </div>
+          </a>
+        </div>
+
+      </nav>
+
+            <!-- Bottom Supabase Cloud Connection Widget (Deep Obsidian) -->
+      <div class="sidebar-footer-info mt-6 p-3.5 rounded-2xl bg-[#121216] border border-white/5 shadow-xl space-y-2.5">
+        <div class="flex items-center gap-3">
+          <div id="sidebar-supabase-icon" class="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center font-bold text-sm border border-blue-500/20 shrink-0" title="Supabase Cloud: Connecté">
+            <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+            </svg>
+          </div>
+          <div class="footer-details flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white truncate">Supabase Cloud</span>
+              <span id="sidebar-db-status-pill" class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Connecté</span>
+              </span>
+            </div>
+            <div class="text-[9px] text-slate-500 font-mono mt-0.5 truncate" title="ileqivegtkvcaawlugsj.supabase.co">
+              ileqivegtkvcaawlugsj.supabase.co
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Application Wrapper -->
+  <div id="main-app-container" class="flex-1 flex flex-col min-h-screen w-full min-w-0 max-w-full overflow-x-hidden">
+    
+    <!-- Top Cockpit Header Bar (Exact match to reference screenshot) -->
+    <header class="h-20 bg-[#0C0C10] border-b border-white/5 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-lg">
+      
+      <!-- Left Section: Logo & Operational Subtitle -->
+      <div class="flex items-center gap-3.5">
+        <!-- Hamburger button for mobile -->
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-[#16161C] text-slate-300 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <div id="header-breadcrumbs-container" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#121216] border border-amber-500/20 p-1 hidden sm:flex items-center justify-center cursor-pointer hover:border-amber-400/50 transition shrink-0" onclick="App.navigate('dashboard')" title="لوحة التحكم الرئيسية / Accueil">
+            <img src="dari_luxe_logo.png" alt="DARI LUXE" class="max-w-full max-h-full object-contain">
+          </div>
+          <div id="header-breadcrumbs-text" class="flex flex-col justify-center">
+            <!-- Dynamically populated by App.updateHeaderBreadcrumbs() -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Center & Right Utility Actions (Clock, Status, Sound, Notifications, Avatar, CTA) -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        
+        <!-- Status Pill: Système connecté | Realtime Active -->
+        <div class="hidden xl:flex items-center gap-2 bg-[#121216] border border-white/10 px-3.5 py-1.5 rounded-full text-xs text-slate-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-bold text-white text-[11px]">Système connecté</span>
+          <span class="text-slate-600">|</span>
+          <span class="text-slate-400 text-[10px]">Realtime Active</span>
+        </div>
+
+        <!-- Live Digital Clock: 🕒 17:50:24 DZ -->
+        <div class="hidden lg:flex items-center gap-2 bg-[#121216] border border-white/10 px-3 py-1.5 rounded-full text-xs font-mono font-bold text-slate-200 shadow-inner">
+          <span class="text-[#FF3B30] text-sm">🕒</span>
+          <span id="cockpit-live-clock">17:50:24 DZ</span>
+        </div>
+
+        <!-- Audio feedback icon -->
+        <button onclick="App.toggleSound()" id="sound-toggle-btn" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-amber-400/50 hidden lg:flex items-center justify-center text-amber-400 text-xs transition" title="الصوت التفاعلي / Audio Feedback">
+          🔊
+        </button>
+
+        <!-- Notification Bell with Dot -->
+        <div class="relative">
+          <button onclick="App.showNotifications()" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-white/20 flex items-center justify-center text-slate-300 hover:text-white transition" title="الإشعارات / Notifications">
+            🔔
+          </button>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-[#0C0C10]"></span>
+        </div>
+
+        <!-- Team Shortcut Button -->
+        <button onclick="App.navigate('workers')" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-white/20 flex items-center justify-center text-slate-300 hover:text-white transition hidden sm:flex" title="فريق العمل / Équipe">
+          👥
+        </button>
+
+        <!-- User Profile Avatar (Click to switch partner account) -->
+        <div onclick="App.openLoginModal()" class="w-9 h-9 rounded-full bg-[#141418] hover:bg-slate-800 border border-white/10 hover:border-white/25 flex items-center justify-center text-slate-200 hover:text-white font-extrabold text-xs shadow-inner cursor-pointer transition" title="تبديل الحساب (الشريك 1 / الشريك 2)">
+          <span id="header-user-avatar">DL</span>
+        </div>
+
+        <!-- Language toggle button -->
+        <button onclick="App.toggleLanguage()" id="lang-toggle-btn" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-blue-400/50 flex items-center justify-center text-slate-300 hover:text-white transition" title="تغيير اللغة (عربي / Français)">
+          🌐
+        </button>
+
+        <!-- Green CTA Button (Exact match: Ouvrir Inscriptions / + Nouveau Chantier) -->
+        <button onclick="App.openNewProjectModal()" class="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition hidden md:flex items-center gap-2 shadow-sm whitespace-nowrap">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span class="hidden sm:inline">+ Nouveau Chantier / Ouvrir Inscriptions</span>
+          <span class="sm:hidden">+ ورشة</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Dynamic Content Container -->
+    <main id="main-content-view" class="flex-1 p-4 sm:p-6 space-y-5">
+      <!-- Dynamic View Inserted by App.js -->
+    </main>
+
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Mobile Sidebar Toggle Helper -->
+  
+  <script>
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (!sidebar) return;
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
+      } else {
+        sidebar.classList.add('open');
+        if (backdrop) backdrop.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  </script>
+
+  <!-- Core Scripts -->
+  <script src="js/i18n.js?v=20"></script>
+  <script src="js/calculations.js?v=20"></script>
+  <script src="js/db.js?v=20"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/daily_checkin.js?v=20"></script>
+  <script src="js/app.js?v=20"></script>
+
+  <!-- =====================================================
+       MOBILE BOTTOM NAVIGATION BAR (Field Workers)
+       ===================================================== -->
+  <nav id="mobile-bottom-nav" role="navigation" aria-label="Navigation principale mobile">
+    <!-- Home / Dashboard -->
+    <button onclick="App.navigate('dashboard')" data-mobile-nav="dashboard"
+      class="mobile-nav-item" id="mob-nav-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1.5"/>
+        <rect width="7" height="5" x="14" y="3" rx="1.5"/>
+        <rect width="7" height="9" x="14" y="12" rx="1.5"/>
+        <rect width="7" height="5" x="3" y="16" rx="1.5"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_home">الرئيسية</span>
+    </button>
+
+    <!-- Chantiers / Projects -->
+    <button onclick="App.navigate('projects')" data-mobile-nav="projects"
+      class="mobile-nav-item" id="mob-nav-projects">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+        <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+        <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+        <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_projects">الورشات</span>
+    </button>
+
+    <!-- FAB: Quick Check-in (CENTER ELEVATED) -->
+    <div class="mobile-nav-fab-wrap">
+      <button onclick="App.navigate('daily_checkin')" id="mob-nav-checkin"
+        class="mobile-nav-fab" aria-label="تسجيل الحضور / Pointage rapide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </button>
+      <span class="mobile-nav-fab-label" data-mob-i18n="mob_nav_checkin">التحضير</span>
+    </div>
+
+    <!-- Expenses / Dépenses -->
+    <button onclick="App.navigate('expenses')" data-mobile-nav="expenses"
+      class="mobile-nav-item" id="mob-nav-expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_expenses">المصاريف</span>
+    </button>
+
+    <!-- Menu / More -->
+    <button onclick="toggleMobileSidebar()" data-mobile-nav="menu"
+      class="mobile-nav-item" id="mob-nav-menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_menu">القائمة</span>
+    </button>
+  </nav>
+
+</body>
+</html>
