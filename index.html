@@ -63,7 +63,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- App Custom Stylesheet (Dark Cockpit Locked) -->
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
 
   <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
   <script>
@@ -76,7 +76,7 @@
       if ('caches' in window) {
         caches.keys().then(keys => {
           keys.forEach(k => {
-            if (k !== 'dariluxe-erp-v22') {
+            if (k !== 'dariluxe-erp-v23') {
               console.log('Purging old cache on phone:', k);
               caches.delete(k);
             }

@@ -1745,67 +1745,262 @@ const App = {
   async openNewProjectActivityModal(projectId) {
     const proj = await DB.getById('projects', projectId);
     if (!proj) return;
-
     const catalog = await DB.getAll('activity_catalog');
-    const catalogOptions = catalog.map(c => `[${c.name} - ${c.unit} - ${c.default_price} دج]`).slice(0, 5).join('\n');
+    const categories = await DB.getAll('work_categories');
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = c.name_ar || c.name || c.id; });
 
-    const name = prompt(`اسم بند العمل أو النشاط للورشة:\n(أمثلة شائعة من الكتالوج:\n${catalogOptions})`);
-    if (!name) return;
+    const existing = document.getElementById('new-activity-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'new-activity-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
 
-    const matched = catalog.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
-    const unit = prompt('وحدة القياس (m², ml, u, ens, forfait):', matched ? matched.unit : 'm²') || 'm²';
-    const price = parseFloat(prompt('سعر الوحدة المتفق عليه مع الزبون (دج DZD):', matched ? matched.default_price : '1500')) || 0;
-    const plannedQty = parseFloat(prompt('الكمية المخططة الإجمالية للعمل:', '50')) || 1;
-    const responsibility = prompt('مسؤولية توفير السلعة (company=على الشركة، customer=على الزبون):', 'company') || 'company';
-
-    await DB.add('project_activities', {
-      project_id: projectId,
-      name: name.trim(),
-      unit: unit.trim(),
-      unit_price: price,
-      planned_qty: plannedQty,
-      executed_qty: 0,
-      material_responsibility: responsibility.trim() === 'customer' ? 'customer' : 'company',
-      status: 'planned'
+    const catalogByCategory = {};
+    catalog.forEach(item => {
+      const cat = catMap[item.category_id] || 'أخرى';
+      if (!catalogByCategory[cat]) catalogByCategory[cat] = [];
+      catalogByCategory[cat].push(item);
     });
 
+    const catalogOptions = Object.entries(catalogByCategory).map(([catName, items]) => `
+      <optgroup label="${catName}">
+        ${items.map(item => `<option value="${this.escapeHtml(item.name)}" data-unit="${item.unit||'m²'}" data-price="${item.default_price||1500}">${this.escapeHtml(item.name)} — ${item.unit||'m²'} — ${(item.default_price||1500).toLocaleString('fr-FR')} دج</option>`).join('')}
+      </optgroup>
+    `).join('');
+
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">🔨</span><div><div style="font-weight:900;color:#fff;font-size:0.95rem;">إضافة بند عمل جديد</div><div style="font-size:0.7rem;color:#64748b;">ورشة: ${this.escapeHtml(proj.name)}</div></div></div>
+          <button onclick="document.getElementById('new-activity-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اختر من دليل الأنشطة (أو اكتب يدوياً أدناه)</label>
+            <select id="na-catalog-sel" onchange="App._onActivityCatalogSelect(this)" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.82rem;box-sizing:border-box;outline:none;">
+              <option value="">— اختر من الدليل —</option>
+              ${catalogOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم بند العمل *</label>
+            <input id="na-name" type="text" placeholder="مثال: أسقف جبسية BA13، دهان جدران، كهرباء عامة..." style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">وحدة القياس</label>
+              <select id="na-unit" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+                <option value="m²">م² (m²)</option>
+                <option value="ml">م طولي (ml)</option>
+                <option value="u">وحدة (u)</option>
+                <option value="ens">طقم (ens)</option>
+                <option value="forfait">جملة (forfait)</option>
+                <option value="kg">كيلو (kg)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الوحدة (دج)</label>
+              <input id="na-price" type="number" value="1500" min="0" step="100" oninput="App._calcActTotal()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المخططة الإجمالية</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+              ${[10,20,50,100,150,200].map(q=>`<button type="button" onclick="document.getElementById('na-qty').value=${q};App._calcActTotal()" style="padding:6px 11px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:#0f0f17;color:#94a3b8;font-size:0.75rem;cursor:pointer;">${q}</button>`).join('')}
+            </div>
+            <input id="na-qty" type="number" value="50" min="0" step="1" oninput="App._calcActTotal()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+          </div>
+          <div id="na-total-preview" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:12px;padding:10px 14px;color:#fca5a5;font-weight:700;font-size:0.85rem;text-align:center;display:none;"></div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مسؤولية توفير السلعة</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="na-resp" value="company" checked style="display:none;" onchange="this.closest('label').querySelector('.na-resp-btn').style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.na-resp-btn').forEach((b,i)=>i>0&&(b.style.borderColor='rgba(255,255,255,0.1)'))">
+                <div class="na-resp-btn" style="background:#0f0f17;border:2px solid rgba(255,59,48,0.6);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🏢</div><div style="color:#fca5a5;font-weight:700;font-size:0.75rem;">على الشركة</div><div style="color:#64748b;font-size:0.65rem;">Fourni par nous</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="na-resp" value="customer" style="display:none;" onchange="this.closest('label').querySelector('.na-resp-btn').style.borderColor='rgba(59,130,246,0.6)';document.querySelectorAll('.na-resp-btn').forEach((b,i)=>i===0&&(b.style.borderColor='rgba(255,255,255,0.1)'))">
+                <div class="na-resp-btn" style="background:#0f0f17;border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">👤</div><div style="color:#93c5fd;font-weight:700;font-size:0.75rem;">على الزبون</div><div style="color:#64748b;font-size:0.65rem;">Fourni par client</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <button onclick="App._saveNewActivity('${projectId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            ➕ إضافة بند العمل للورشة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('na-catalog-sel')?.focus(), 100);
+  },
+
+  _onActivityCatalogSelect(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    document.getElementById('na-name').value = opt.value;
+    const unit = opt.getAttribute('data-unit') || 'm²';
+    const price = opt.getAttribute('data-price') || '1500';
+    const unitSel = document.getElementById('na-unit');
+    if (unitSel) {
+      for (let o of unitSel.options) { if (o.value === unit) { o.selected = true; break; } }
+    }
+    document.getElementById('na-price').value = price;
+    this._calcActTotal();
+  },
+
+  _calcActTotal() {
+    const price = parseFloat(document.getElementById('na-price')?.value) || 0;
+    const qty = parseFloat(document.getElementById('na-qty')?.value) || 0;
+    const total = price * qty;
+    const preview = document.getElementById('na-total-preview');
+    if (preview) {
+      if (total > 0) {
+        preview.style.display = 'block';
+        preview.textContent = `💰 المبلغ التقديري: ${total.toLocaleString('fr-FR')} دج`;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+  },
+
+  async _saveNewActivity(projectId) {
+    const name = document.getElementById('na-name')?.value?.trim();
+    if (!name) { this.showToast('اسم بند العمل مطلوب', 'error'); return; }
+    const unit = document.getElementById('na-unit')?.value || 'm²';
+    const price = parseFloat(document.getElementById('na-price')?.value) || 0;
+    const qty = parseFloat(document.getElementById('na-qty')?.value) || 1;
+    const resp = document.querySelector('input[name="na-resp"]:checked')?.value || 'company';
+    await DB.add('project_activities', {
+      project_id: projectId,
+      name, unit,
+      unit_price: price,
+      planned_qty: qty,
+      executed_qty: 0,
+      material_responsibility: resp,
+      status: 'planned'
+    });
+    document.getElementById('new-activity-sheet')?.remove();
     this.playClickSound();
-    alert(`✓ تم إضافة بند العمل "${name}" للمشروع بنجاح!`);
+    this.showToast(`✓ تم إضافة "${name}" للورشة`, 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
-      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
     }
   },
 
   async editProjectActivity(activityId) {
     const act = await DB.getById('project_activities', activityId);
     if (!act) return;
+    const catalog = await DB.getAll('activity_catalog');
+    const existing = document.getElementById('edit-activity-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-activity-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
 
-    const newName = prompt('تعديل اسم بند العمل:', act.name);
-    if (!newName) return;
-    const newUnit = prompt('وحدة القياس (m², ml, u, ens, forfait):', act.unit || 'm²') || act.unit;
-    const newPrice = parseFloat(prompt('سعر الوحدة (دج DZD):', act.unit_price || 0)) || 0;
-    const newPlanned = parseFloat(prompt('الكمية المخططة الإجمالية:', act.planned_qty || 0)) || 0;
-    const newExec = parseFloat(prompt('الكمية المنجزة حتى الآن:', act.executed_qty || 0)) || 0;
-    const newResp = prompt('مسؤولية توفير المواد (company=الشركة / customer=الزبون):', act.material_responsibility || 'company') || 'company';
+    const pct = act.planned_qty > 0 ? Math.min(100, Math.round((act.executed_qty / act.planned_qty) * 100)) : 0;
+    const pctColor = pct >= 100 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#3b82f6';
 
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">✏️</span><span style="font-weight:900;color:#fff;font-size:0.95rem;">تعديل بند العمل</span></div>
+          <button onclick="document.getElementById('edit-activity-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:4px;">نسبة الإنجاز الحالية</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${pctColor};border-radius:3px;transition:width 0.5s;"></div>
+              </div>
+              <span style="color:${pctColor};font-weight:900;font-size:0.85rem;">${pct}%</span>
+            </div>
+            <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">${(act.executed_qty||0).toLocaleString('fr-FR')} / ${(act.planned_qty||0).toLocaleString('fr-FR')} ${act.unit||'م²'}</div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم بند العمل *</label>
+            <input id="ea-name" type="text" value="${this.escapeHtml(act.name||'')}" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">وحدة القياس</label>
+              <select id="ea-unit" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+                ${['m²','ml','u','ens','forfait','kg'].map(u=>`<option value="${u}" ${(act.unit||'m²')===u?'selected':''}>${u}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الوحدة (دج)</label>
+              <input id="ea-price" type="number" value="${act.unit_price||0}" min="0" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المخططة الإجمالية</label>
+              <input id="ea-planned" type="number" value="${act.planned_qty||0}" min="0" step="1" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المنجزة حتى الآن</label>
+              <input id="ea-exec" type="number" value="${act.executed_qty||0}" min="0" step="1" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مسؤولية توفير المواد</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="ea-resp" value="company" ${(act.material_responsibility||'company')==='company'?'checked':''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${(act.material_responsibility||'company')==='company'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:10px;text-align:center;cursor:pointer;" onclick="document.querySelectorAll('input[name=ea-resp]')[0].checked=true;this.style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.ea-resp-box')[1].style.borderColor='rgba(255,255,255,0.1)'" class="ea-resp-box">
+                  <div style="font-size:1.1rem;">🏢</div><div style="color:#fca5a5;font-weight:700;font-size:0.75rem;">على الشركة</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="ea-resp" value="customer" ${act.material_responsibility==='customer'?'checked':''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${act.material_responsibility==='customer'?'rgba(59,130,246,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:10px;text-align:center;cursor:pointer;" onclick="document.querySelectorAll('input[name=ea-resp]')[1].checked=true;this.style.borderColor='rgba(59,130,246,0.6)';document.querySelectorAll('.ea-resp-box')[0].style.borderColor='rgba(255,255,255,0.1)'" class="ea-resp-box">
+                  <div style="font-size:1.1rem;">👤</div><div style="color:#93c5fd;font-weight:700;font-size:0.75rem;">على الزبون</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <button onclick="App._saveEditActivity('${activityId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ تعديلات بند العمل
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
+
+  async _saveEditActivity(activityId) {
+    const name = document.getElementById('ea-name')?.value?.trim();
+    if (!name) { this.showToast('اسم بند العمل مطلوب', 'error'); return; }
+    const unit = document.getElementById('ea-unit')?.value || 'm²';
+    const price = parseFloat(document.getElementById('ea-price')?.value) || 0;
+    const planned = parseFloat(document.getElementById('ea-planned')?.value) || 0;
+    const exec = parseFloat(document.getElementById('ea-exec')?.value) || 0;
+    const resp = document.querySelector('input[name="ea-resp"]:checked')?.value || 'company';
     await DB.update('project_activities', activityId, {
-      name: newName.trim(),
-      unit: newUnit.trim(),
-      unit_price: newPrice,
-      planned_qty: newPlanned,
-      executed_qty: newExec,
-      material_responsibility: newResp.trim() === 'customer' ? 'customer' : 'company',
-      status: newExec >= newPlanned && newPlanned > 0 ? 'completed' : (newExec > 0 ? 'in_progress' : 'planned')
+      name, unit,
+      unit_price: price,
+      planned_qty: planned,
+      executed_qty: exec,
+      material_responsibility: resp,
+      status: exec >= planned && planned > 0 ? 'completed' : (exec > 0 ? 'in_progress' : 'planned')
     });
-
+    document.getElementById('edit-activity-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تعديل بيانات العمل بنجاح!');
+    this.showToast('✓ تم تعديل بند العمل بنجاح!', 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
-      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
     }
   },
 
@@ -2437,49 +2632,228 @@ const App = {
 
   async openPartnerWithdrawalModal() {
     const active = await this.getActivePartner();
-    const whoPrompt = prompt(`تسجيل سحب أرباح شخصية:\n1. الشريك 1 (أنا)\n2. الشريك 2 (الشريك)\n(الافتراضي: ${active.id === 'USR-001' ? '1' : '2'})`, active.id === 'USR-001' ? '1' : '2');
-    const partnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
+    const existing = document.getElementById('withdrawal-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'withdrawal-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">💰</span><span style="font-weight:900;color:#fff;font-size:1rem;">تسجيل سحب أرباح</span></div>
+          <button onclick="document.getElementById('withdrawal-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الشريك المستفيد من السحب</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="wd-partner" value="USR-001" ${active.id === 'USR-001' ? 'checked' : ''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${active.id==='USR-001'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;" class="wd-p-box" onclick="document.querySelectorAll('input[name=wd-partner]')[0].checked=true;document.querySelectorAll('.wd-p-box')[0].style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.wd-p-box')[1].style.borderColor='rgba(255,255,255,0.1)'">
+                  <div style="font-size:1.3rem;">👤</div><div style="color:#fca5a5;font-weight:800;font-size:0.85rem;margin-top:4px;">الشريك 1</div><div style="color:#64748b;font-size:0.65rem;">Associé 1 (Moi)</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="wd-partner" value="USR-002" ${active.id === 'USR-002' ? 'checked' : ''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${active.id==='USR-002'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;" class="wd-p-box" onclick="document.querySelectorAll('input[name=wd-partner]')[1].checked=true;document.querySelectorAll('.wd-p-box')[1].style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.wd-p-box')[0].style.borderColor='rgba(255,255,255,0.1)'">
+                  <div style="font-size:1.3rem;">🤝</div><div style="color:#93c5fd;font-weight:800;font-size:0.85rem;margin-top:4px;">الشريك 2</div><div style="color:#64748b;font-size:0.65rem;">Associé 2</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مبلغ السحب (دج)</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;">
+              ${[10000,20000,30000,50000,100000,150000].map(a=>`<button type="button" onclick="document.querySelectorAll('.wd-amt-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(59,130,246,0.25)';document.getElementById('wd-amount').value=${a}" class="wd-amt-chip" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(59,130,246,0.2);background:#0f0f17;color:#93c5fd;font-size:0.75rem;cursor:pointer;">${(a/1000).toLocaleString('fr-FR')}k دج</button>`).join('')}
+            </div>
+            <input id="wd-amount" type="number" value="50000" min="1000" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">ملاحظات</label>
+            <input id="wd-notes" type="text" value="سحب أرباح شخصية / Retrait de dividende" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <button onclick="App._saveWithdrawal()" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(37,99,235,0.35);">
+            💰 تسجيل السحب
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
+
+  async _saveWithdrawal() {
+    const partnerId = document.querySelector('input[name="wd-partner"]:checked')?.value || 'USR-001';
+    const amount = parseFloat(document.getElementById('wd-amount')?.value) || 0;
+    if (!amount || amount <= 0) { this.showToast('أدخل مبلغاً صحيحاً', 'error'); return; }
+    const notes = document.getElementById('wd-notes')?.value?.trim() || '';
     const partnerName = partnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-
-    const amountStr = prompt(`أدخل مبلغ سحب الأرباح لحساب ${partnerName} (دج DZD):`, '50000');
-    const amount = parseFloat(amountStr) || 0;
-    if (!amount || amount <= 0) return;
-
-    const notes = prompt('ملاحظات (مثال: سحب دفعة من أرباح ورشة فيلا الأندلس):', 'سحب أرباح شخصية / Retrait de dividende') || '';
-
-    await DB.add('partner_withdrawals', {
-      partner_id: partnerId,
-      amount,
-      date: App.getLocalDateString(),
-      notes: notes.trim()
-    });
-
-    alert(`✓ تم تسجيل سحب أرباح بقيمة ${amount.toLocaleString('fr-FR')} دج لـ ${partnerName} بنجاح!`);
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    }
+    await DB.add('partner_withdrawals', { partner_id: partnerId, amount, date: App.getLocalDateString(), notes });
+    document.getElementById('withdrawal-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ سحب ${amount.toLocaleString('fr-FR')} دج لـ ${partnerName}`, 'success');
+    if (this.currentView === 'wallets') await this.renderWalletsView();
   },
 
   async openEditProfitSharingModal() {
     const settings = (await DB.getAll('company_settings'))[0] || {};
     const curP1 = settings.partner1_share || 50;
-    const curP2 = settings.partner2_share || 50;
+    const curP2 = 100 - curP1;
+    const existing = document.getElementById('profit-share-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'profit-share-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">⚙️</span><span style="font-weight:900;color:#fff;font-size:1rem;">تعديل نسب تقاسم الأرباح</span></div>
+          <button onclick="document.getElementById('profit-share-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${[[50,50],[60,40],[70,30],[40,60],[30,70]].map(([p1,p2])=>`
+              <button type="button" onclick="document.getElementById('ps-p1').value=${p1};App._updateProfitPreview()" style="flex:1;min-width:80px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:${curP1===p1?'rgba(245,158,11,0.2)':'#0f0f17'};color:${curP1===p1?'#fbbf24':'#94a3b8'};font-weight:700;font-size:0.85rem;cursor:pointer;">
+                ${p1}% / ${p2}%
+              </button>
+            `).join('')}
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">حصة الشريك 1 (%) — سيُحسب حصة الشريك 2 تلقائياً</label>
+            <input id="ps-p1" type="number" value="${curP1}" min="1" max="99" step="1" oninput="App._updateProfitPreview()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:1.1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div id="ps-preview" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:14px;display:flex;justify-content:space-around;text-align:center;">
+            <div><div style="font-size:1.8rem;font-weight:900;color:#fbbf24;">${curP1}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 1</div></div>
+            <div style="color:#334155;font-size:1.5rem;font-weight:300;align-self:center;">|</div>
+            <div><div style="font-size:1.8rem;font-weight:900;color:#60a5fa;">${curP2}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 2</div></div>
+          </div>
+          <button onclick="App._saveProfitSharing('${settings.id||''}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(245,158,11,0.3);">
+            💾 حفظ نسب التقاسم الجديدة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
 
-    const p1Input = prompt(`أدخل النسبة المئوية لأرباح الشريك 1 (%):\n(الحالية: ${curP1}%)`, curP1);
-    if (p1Input === null) return;
-    const p1 = parseFloat(p1Input) || 50;
+  _updateProfitPreview() {
+    const p1 = Math.min(99, Math.max(1, parseFloat(document.getElementById('ps-p1')?.value) || 50));
     const p2 = 100 - p1;
+    const preview = document.getElementById('ps-preview');
+    if (preview) {
+      preview.innerHTML = `
+        <div><div style="font-size:1.8rem;font-weight:900;color:#fbbf24;">${p1}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 1</div></div>
+        <div style="color:#334155;font-size:1.5rem;font-weight:300;align-self:center;">|</div>
+        <div><div style="font-size:1.8rem;font-weight:900;color:#60a5fa;">${p2}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 2</div></div>
+      `;
+    }
+  },
 
-    settings.partner1_share = p1;
-    settings.partner2_share = p2;
-    await DB.update('company_settings', settings.id, {
-      partner1_share: p1,
-      partner2_share: p2
+  async _saveProfitSharing(settingsId) {
+    const p1 = Math.min(99, Math.max(1, parseFloat(document.getElementById('ps-p1')?.value) || 50));
+    const p2 = 100 - p1;
+    if (settingsId) {
+      await DB.update('company_settings', settingsId, { partner1_share: p1, partner2_share: p2 });
+    } else {
+      await DB.add('company_settings', { partner1_share: p1, partner2_share: p2 });
+    }
+    document.getElementById('profit-share-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ نسب التقاسم: ${p1}% / ${p2}%`, 'success');
+    if (this.currentView === 'wallets') await this.renderWalletsView();
+  },
+
+  // ============================================================
+  // CUSTOMER PAYMENT MODAL — قبض دفعة من زبون
+  // ============================================================
+  async openNewCustomerPaymentModal(projectId = null) {
+    const projects = await DB.getAll('projects');
+    const activeProjects = projects.filter(p => p.status !== 'completed');
+
+    const existing = document.getElementById('customer-payment-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'customer-payment-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+
+    const projectOptions = activeProjects.map(p =>
+      `<option value="${p.id}" ${String(p.id) === String(projectId) ? 'selected' : ''}>${this.escapeHtml(p.name)} — ${this.escapeHtml(p.client_name || '—')}</option>`
+    ).join('');
+
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">📥</span><span style="font-weight:900;color:#fff;font-size:1rem;">تسجيل دفعة واردة من زبون</span></div>
+          <button onclick="document.getElementById('customer-payment-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الورشة / المشروع *</label>
+            <select id="cp-project" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              <option value="">— اختر الورشة —</option>
+              ${projectOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مبلغ الدفعة (دج) *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;">
+              ${[10000,20000,30000,50000,100000,150000,200000,250000].map(a=>
+                `<button type="button" onclick="document.querySelectorAll('.cp-amt-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(16,185,129,0.25)';document.getElementById('cp-amount').value=${a}" class="cp-amt-chip" style="padding:6px 11px;border-radius:20px;border:1px solid rgba(16,185,129,0.2);background:#0f0f17;color:#34d399;font-size:0.75rem;cursor:pointer;">${(a>=1000?a/1000+'k':a).toLocaleString('fr-FR')} دج</button>`
+              ).join('')}
+            </div>
+            <input id="cp-amount" type="number" value="" min="0" step="1000" placeholder="أدخل المبلغ بالدينار الجزائري" style="width:100%;background:#0f0f17;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">طريقة الدفع</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+              ${[
+                {v:'cash',l:'💵 نقداً',c:'rgba(16,185,129,0.25)'},
+                {v:'check',l:'🏦 شيك',c:'rgba(59,130,246,0.25)'},
+                {v:'transfer',l:'📱 تحويل',c:'rgba(139,92,246,0.25)'},
+                {v:'ccp',l:'📮 CCP',c:'rgba(245,158,11,0.25)'},
+              ].map(m=>`<button type="button" onclick="document.querySelectorAll('.cp-pay-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='${m.c}';document.getElementById('cp-method').value='${m.v}'" class="cp-pay-btn" style="padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${m.v==='cash'?'rgba(16,185,129,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${m.l}</button>`).join('')}
+            </div>
+            <input id="cp-method" type="hidden" value="cash" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">ملاحظات / مرجع الدفعة</label>
+            <input id="cp-notes" type="text" placeholder="مثال: الدفعة الأولى — مرجع شيك رقم 123456" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <button onclick="App._saveCustomerPayment()" style="width:100%;padding:14px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(5,150,105,0.35);">
+            ✓ تأكيد قبض الدفعة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('cp-amount')?.focus(), 150);
+  },
+
+  async _saveCustomerPayment() {
+    const projectId = document.getElementById('cp-project')?.value;
+    if (!projectId) { this.showToast('اختر الورشة أولاً', 'error'); return; }
+    const amount = parseFloat(document.getElementById('cp-amount')?.value) || 0;
+    if (!amount || amount <= 0) { this.showToast('أدخل مبلغاً صحيحاً', 'error'); return; }
+    const method = document.getElementById('cp-method')?.value || 'cash';
+    const notes = document.getElementById('cp-notes')?.value?.trim() || '';
+    const proj = await DB.getById('projects', projectId);
+
+    await DB.add('customer_payments', {
+      project_id: projectId,
+      client_name: proj?.client_name || '',
+      amount,
+      payment_method: method,
+      date: App.getLocalDateString(),
+      notes,
+      receipt_ref: 'RCP-' + Date.now().toString().slice(-6)
     });
-
-    alert(`✓ تم تحديث آلية تقاسم الأرباح بنجاح:\n- الشريك 1: ${p1}%\n- الشريك 2: ${p2}%`);
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
+    document.getElementById('customer-payment-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ تم قبض ${amount.toLocaleString('fr-FR')} دج`, 'success');
+    if (this.currentView === 'project_workspace' || this.currentView === 'wallets') {
+      await this.renderCurrentView();
     }
   },
 
@@ -7075,9 +7449,24 @@ async renderReportsView(container) {
     let clientPhone = project.client_phone || '';
 
     if (!clientPhone || clientPhone === '—' || clientPhone.length < 8) {
-      const enteredPhone = prompt('يرجى إدخال رقم هاتف الزبون للواتساب (مثال: 0550123456):', clientPhone || '');
-      if (!enteredPhone) return;
-      clientPhone = enteredPhone.trim();
+      // Show inline prompt using toast-style input
+      const entered = await new Promise(resolve => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        d.innerHTML = `<div style="background:#1a1a24;border-radius:20px;width:92%;max-width:400px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="font-weight:900;color:#fff;margin-bottom:12px;font-size:0.95rem;">📱 رقم هاتف الزبون للواتساب</div>
+          <input id="_wa-phone-inp" type="tel" value="${clientPhone||''}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;margin-bottom:12px;" />
+          <div style="display:flex;gap:8px;">
+            <button onclick="this.closest('div[style]').parentElement._resolve(document.getElementById('_wa-phone-inp').value)" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;color:#fff;font-weight:900;cursor:pointer;">إرسال واتساب ✓</button>
+            <button onclick="this.closest('div[style]').parentElement._resolve(null)" style="padding:11px 16px;background:#0f0f17;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#94a3b8;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>`;
+        d._resolve = val => { document.body.removeChild(d); resolve(val); };
+        document.body.appendChild(d);
+        setTimeout(() => document.getElementById('_wa-phone-inp')?.focus(), 100);
+      });
+      if (!entered) return;
+      clientPhone = entered.trim();
     }
 
     let cleanPhone = clientPhone.replace(/\D/g, '');
@@ -7128,9 +7517,23 @@ _شكراً لثقتكم في DARI LUXE_`;
     let clientPhone = project.client_phone || '';
 
     if (!clientPhone || clientPhone === '—' || clientPhone.length < 8) {
-      const enteredPhone = prompt('يرجى إدخال رقم هاتف الزبون للواتساب:', clientPhone || '');
-      if (!enteredPhone) return;
-      clientPhone = enteredPhone.trim();
+      const entered = await new Promise(resolve => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        d.innerHTML = `<div style="background:#1a1a24;border-radius:20px;width:92%;max-width:400px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="font-weight:900;color:#fff;margin-bottom:12px;font-size:0.95rem;">📱 رقم هاتف الزبون للواتساب</div>
+          <input id="_wa-phone-inv" type="tel" value="${clientPhone||''}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;margin-bottom:12px;" />
+          <div style="display:flex;gap:8px;">
+            <button onclick="this.closest('div[style]').parentElement._resolve(document.getElementById('_wa-phone-inv').value)" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;color:#fff;font-weight:900;cursor:pointer;">إرسال واتساب ✓</button>
+            <button onclick="this.closest('div[style]').parentElement._resolve(null)" style="padding:11px 16px;background:#0f0f17;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#94a3b8;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>`;
+        d._resolve = val => { document.body.removeChild(d); resolve(val); };
+        document.body.appendChild(d);
+        setTimeout(() => document.getElementById('_wa-phone-inv')?.focus(), 100);
+      });
+      if (!entered) return;
+      clientPhone = entered.trim();
     }
 
     let cleanPhone = clientPhone.replace(/\D/g, '');
