@@ -67,7 +67,24 @@
 
   <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
   <script>
+    // Force purge old cache versions on mobile
+    if (localStorage.getItem('dariluxe_app_version') !== 'v26') {
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            console.log('[Cache] Purging stale version:', name);
+            caches.delete(name);
+          });
+        });
+      }
+      localStorage.setItem('dariluxe_app_version', 'v26');
+    }
+
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update();
+      }).catch(err => console.warn('SW register warning:', err));
+
       navigator.serviceWorker.getRegistrations().then(regs => {
         for (let reg of regs) {
           reg.update();
@@ -90,7 +107,7 @@
 <body class="bg-[#0A0A0C] text-slate-100 overflow-x-hidden antialiased selection:bg-[#FF3B30] selection:text-white">
 
   <!-- Main Layout Wrapper -->
-  <div id="app-layout" class="flex min-h-screen w-full bg-[#0A0A0C]">
+  <div id="app-layout" class="block lg:flex min-h-screen w-full bg-[#0A0A0C]">
 
   <!-- Mobile Sidebar Backdrop -->
   <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-md z-40 hidden lg:hidden"></div>
