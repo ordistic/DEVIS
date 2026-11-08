@@ -5,6 +5,1022 @@
  */
 
 const App = {
+
+  // Algerian 58 Wilayas Reference List
+  algerianWilayas: [
+    "44 - عين الدفلى (Aïn Defla)",
+    "16 - الجزائر العاصمة (Alger)",
+    "09 - البليدة (Blida)",
+    "42 - تيبازة (Tipaza)",
+    "02 - الشلف (Chlef)",
+    "31 - وهران (Oran)",
+    "26 - المدية (Médéa)",
+    "35 - بومرداس (Boumerdès)",
+    "15 - تيزي وزو (Tizi Ouzou)",
+    "19 - سطيف (Sétif)",
+    "25 - قسنطينة (Constantine)",
+    "23 - عنابة (Annaba)",
+    "06 - بجاية (Béjaïa)",
+    "10 - البويرة (Bouira)",
+    "27 - مستغانم (Mostaganem)",
+    "29 - معسكر (Mascara)",
+    "14 - تيارت (Tiaret)",
+    "38 - تيسمسيلت (Tissemsilt)",
+    "28 - المسيلة (M'Sila)",
+    "17 - الجلفة (Djelfa)",
+    "07 - بسكرة (Biskra)",
+    "05 - باتنة (Batna)",
+    "03 - الأغواط (Laghouat)",
+    "47 - غرداية (Ghardaïa)",
+    "48 - غليزان (Relizane)",
+    "01 - أدرار (Adrar)",
+    "04 - أم البواقي (Oum El Bouaghi)",
+    "08 - بشار (Béchar)",
+    "11 - تمنراست (Tamanrasset)",
+    "12 - تبسة (Tébessa)",
+    "13 - تلمسان (Tlemcen)",
+    "18 - جيجل (Jijel)",
+    "20 - سعيدة (Saïda)",
+    "21 - سكيكدة (Skikda)",
+    "22 - سيدي بلعباس (Sidi Bel Abbès)",
+    "24 - قالمة (Guelma)",
+    "30 - ورقلة (Ouargla)",
+    "32 - البيض (El Bayadh)",
+    "33 - إليزي (Illizi)",
+    "34 - برج بوعريريج (Bordj Bou Arreridj)",
+    "36 - الطارف (El Tarf)",
+    "37 - تندوف (Tindouf)",
+    "39 - الوادي (El Oued)",
+    "40 - خنشلة (Khenchela)",
+    "41 - سوق أهراس (Souk Ahras)",
+    "43 - ميلة (Mila)",
+    "45 - النعامة (Naâma)",
+    "46 - عين تموشنت (Aïn Témouchent)",
+    "49 - المغير (El M'Ghair)",
+    "50 - المنيعة (El Menia)",
+    "51 - أولاد جلال (Ouled Djellal)",
+    "52 - برج باجي مختار (Bordj Baji Mokhtar)",
+    "53 - بني عباس (Béni Abbès)",
+    "54 - تيميمون (Timimoun)",
+    "55 - توقرت (Touggourt)",
+    "56 - جانت (Djanet)",
+    "57 - عين صالح (In Salah)",
+    "58 - عين قزام (In Guezzam)"
+  ],
+
+
+  // ────────────────────────────────────────────────────────────
+  // INTERFACE 1: واجهة إنشاء ورشة جديدة ومسرع البيانات
+  // ────────────────────────────────────────────────────────────
+  async renderNewProjectView(container) {
+    const categories = await DB.getAll('work_categories');
+    const catalog = await DB.getAll('activity_catalog');
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
+
+    // Group catalog by category
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = { ...c, activities: [] }; });
+    catalog.forEach(a => {
+      if (catMap[a.category_id]) {
+        catMap[a.category_id].activities.push(a);
+      }
+    });
+
+    const wilayasOptions = this.algerianWilayas.map(w => 
+      `<option value="${this.escapeHtml(w)}"${w.includes('44') ? ' selected' : ''}>${this.escapeHtml(w)}</option>`
+    ).join('');
+
+    container.innerHTML = `
+      <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Top Navigation Bar -->
+        <div class="flex items-center justify-between gap-4 pb-2 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <button onclick="App.navigate('projects')" class="p-2.5 rounded-xl bg-[#141418] border border-white/10 hover:border-white/25 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-bold shadow">
+              <span>←</span>
+              <span>${isFr ? 'Retour aux chantiers' : 'العودة إلى الورشات'}</span>
+            </button>
+            <div>
+              <h1 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                <span>🏗️</span>
+                <span>${isFr ? 'Nouveau Chantier & Devis Initial' : 'إنشاء ورشة جديدة وتحديد بنود الأشغال'}</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-0.5">${isFr ? 'Assistant rapide de création de projet et sélection des prestations' : 'واجهة الإدخال السريع بدون نوافذ منبثقة، مع ربط فوري بدليل الأشغال والنموذج التجاري'}</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="new-project-form" onsubmit="App.handleCreateProjectSubmit(event)" class="space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left 2 Cols: Main Project Details -->
+            <div class="lg:col-span-2 space-y-5">
+              
+              <!-- 1. Identité du Chantier -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center gap-2.5 text-xs font-black text-amber-400 border-b border-white/5 pb-2.5">
+                  <span>🏢</span>
+                  <span>${isFr ? 'Informations Principales du Projet' : 'بيانات وهوية الورشة والمشروع'}</span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Nom du Projet / Chantier *' : 'اسم المشروع / الورشة *'}</label>
+                  <input type="text" id="np-name" required placeholder="${isFr ? 'Ex: Villa Moderne Bouchaoui - Finition Deluxe' : 'مثال: فيلا مودرن سيدي لخضر - تشطيب عصري ديلوكس'}"
+                    class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 shadow-inner">
+                  <!-- Quick preset suggestions -->
+                  <div class="flex items-center gap-1.5 flex-wrap mt-2">
+                    <span class="text-[10px] text-slate-500 font-medium">${isFr ? 'Suggestions rapides:' : 'اقتراحات سريعة:'}</span>
+                    <button type="button" onclick="document.getElementById('np-name').value = 'فيلا عصرية - تشطيب متكامل ديلوكس'" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">فيلا عصرية ديلوكس</button>
+                    <button type="button" onclick="document.getElementById('np-name').value = 'شقة سكنية F4 - ديكور وأسقف جبس'" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">شقة F4</button>
+                    <button type="button" onclick="document.getElementById('np-name').value = 'تهيئة وديكور محل تجاري عصري'" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">محل تجاري</button>
+                    <button type="button" onclick="document.getElementById('np-name').value = 'تجديد مطبخ وصالون - دهان وإنارة'" class="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">تجديد صالون ومطبخ</button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Nom du Client / Propriétaire *' : 'اسم صاحب الورشة / الزبون *'}</label>
+                    <input type="text" id="np-client" required placeholder="${isFr ? 'Ex: M. Amari Karim' : 'مثال: السيد عبد الرحمان بن علي'}"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 shadow-inner">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Téléphone du Client' : 'رقم هاتف الزبون'}</label>
+                    <input type="tel" id="np-phone" placeholder="0550 00 00 00" dir="ltr"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 shadow-inner text-right">
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Wilaya (58 Wilayas) *' : 'الولاية (قائمة الولايات الـ 58) *'}</label>
+                    <select id="np-wilaya" class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                      ${wilayasOptions}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Adresse détaillée / Commune' : 'العنوان التفصيلي / البلدية'}</label>
+                    <input type="text" id="np-address" placeholder="${isFr ? 'Ex: Rue 17 Octobre, Sidi Lakhder' : 'مثال: حي 17 أكتوبر، سيدي لخضر'}"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 shadow-inner">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Modèle Commercial & Contrat -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center gap-2.5 text-xs font-black text-cyan-400 border-b border-white/5 pb-2.5">
+                  <span>📜</span>
+                  <span>${isFr ? 'Modèle Commercial & Formule Contractuelle' : 'النموذج التجاري ونوع العقد'}</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <label class="cursor-pointer border border-white/10 hover:border-emerald-500/50 p-3.5 rounded-xl bg-[#0C0C10] flex flex-col justify-between transition group active:scale-[0.98]">
+                    <div class="flex items-center justify-between mb-2">
+                      <input type="radio" name="np-commercial-model" value="labor_materials" checked class="text-[#FF3B30] focus:ring-0">
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold">${isFr ? 'Recommandé' : 'الأكثر ربحية'}</span>
+                    </div>
+                    <div>
+                      <div class="font-extrabold text-xs text-white group-hover:text-emerald-400">${isFr ? 'Fourniture & Pose' : 'سلعة وعمل (توريد وتركيب)'}</div>
+                      <p class="text-[10px] text-slate-400 mt-1 leading-snug">${isFr ? 'DARI LUXE fournit les matériaux et la main-d\'œuvre.' : 'داري لوكس تتكفل بتوفير كافة مواد البناء والجبس والدهانات مع يد العمل.'}</p>
+                    </div>
+                  </label>
+
+                  <label class="cursor-pointer border border-white/10 hover:border-blue-500/50 p-3.5 rounded-xl bg-[#0C0C10] flex flex-col justify-between transition group active:scale-[0.98]">
+                    <div class="flex items-center justify-between mb-2">
+                      <input type="radio" name="np-commercial-model" value="labor_only" class="text-[#FF3B30] focus:ring-0">
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-extrabold">${isFr ? 'Exécution' : 'مصنعية فقط'}</span>
+                    </div>
+                    <div>
+                      <div class="font-extrabold text-xs text-white group-hover:text-blue-400">${isFr ? 'Main-d\'œuvre seule' : 'يد عاملة فقط'}</div>
+                      <p class="text-[10px] text-slate-400 mt-1 leading-snug">${isFr ? 'Exécution uniquement. Matériaux à la charge du client.' : 'تنفيذ الأشغال فقط. شراء السلعة والمواد يقع بالكامل على عاتق الزبون.'}</p>
+                    </div>
+                  </label>
+
+                  <label class="cursor-pointer border border-white/10 hover:border-purple-500/50 p-3.5 rounded-xl bg-[#0C0C10] flex flex-col justify-between transition group active:scale-[0.98]">
+                    <div class="flex items-center justify-between mb-2">
+                      <input type="radio" name="np-commercial-model" value="hybrid" class="text-[#FF3B30] focus:ring-0">
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-extrabold">${isFr ? 'Mixte' : 'مرن'}</span>
+                    </div>
+                    <div>
+                      <div class="font-extrabold text-xs text-white group-hover:text-purple-400">${isFr ? 'Modèle Hybride' : 'نموذج هجين (تشاركي)'}</div>
+                      <p class="text-[10px] text-slate-400 mt-1 leading-snug">${isFr ? 'Certains lots avec matériaux, d\'autres en main-d\'œuvre.' : 'توفير جزء من المواد بالاتفاق مع تنفيذ باقي البنود بالمصنعية.'}</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 3. Prestations liées au Catalogue des Travaux -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div class="flex items-center gap-2 text-xs font-black text-emerald-400">
+                    <span>📋</span>
+                    <span>${isFr ? 'Sélection des Prestations (Catalogue Travaux)' : 'تحديد بنود الأشغال المطلوبة في الورشة'}</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400" id="np-selected-count">0 ${isFr ? 'sélectionné' : 'بنود مختارة'}</span>
+                </div>
+
+                <p class="text-xs text-slate-400">${isFr ? 'Cochez les lots et prestations prévus pour générer automatiquement les activités du chantier :' : 'حدد الأنشطة المبرمجة لتوليد مهام وبنود العمل وجدول القياسات تلقائياً داخل الورشة:'}</p>
+
+                <div class="space-y-4 max-h-80 overflow-y-auto pr-1">
+                  ${Object.values(catMap).map(cat => `
+                    <div class="space-y-2">
+                      <div class="text-[11px] font-extrabold text-slate-300 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-[#FF3B30]"></span>
+                        <span>${isFr ? (cat.name_fr || cat.name) : cat.name}</span>
+                      </div>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${cat.activities.map(act => `
+                          <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#0C0C10] border border-white/5 hover:border-white/15 cursor-pointer text-xs transition active:scale-[0.99]">
+                            <input type="checkbox" name="np-activity-ids" value="${act.id}" data-price="${act.default_unit_price || 0}"
+                              onchange="App.updateNewProjectEstimate()" class="mt-0.5 rounded text-[#FF3B30] focus:ring-0">
+                            <div class="min-w-0">
+                              <span class="font-bold text-white block text-xs truncate">${isFr ? (act.name_fr || act.name) : act.name}</span>
+                              <span class="text-[10px] text-slate-400 font-mono">${App.formatCurrency(act.default_unit_price || 0)} / ${act.unit || 'm²'}</span>
+                            </div>
+                          </label>
+                        `).join('')}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <!-- Right 1 Col: Contract Value & Instant Submit -->
+            <div class="space-y-5">
+              
+              <!-- Financial & Timeline Summary -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl sticky top-24">
+                <div class="flex items-center gap-2 text-xs font-black text-white border-b border-white/5 pb-2.5">
+                  <span>💰</span>
+                  <span>${isFr ? 'Montant & Planification' : 'قيمة العقد والجدولة'}</span>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Valeur estimée du contrat (DZD) *' : 'قيمة العقد المتفق عليها (دج DZD) *'}</label>
+                  <input type="number" id="np-contract-value" step="5000" min="0" required value="1200000"
+                    class="w-full bg-[#0C0C10] border border-emerald-500/30 focus:border-emerald-400 rounded-xl px-4 py-3 text-sm text-emerald-400 font-mono font-black shadow-inner">
+                  <!-- Quick add amount pills -->
+                  <div class="grid grid-cols-3 gap-1.5 mt-2">
+                    <button type="button" onclick="App.addAmountToContract(500000)" class="py-1 px-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5 transition">+500,000</button>
+                    <button type="button" onclick="App.addAmountToContract(1000000)" class="py-1 px-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5 transition">+1,000,000</button>
+                    <button type="button" onclick="App.addAmountToContract(2000000)" class="py-1 px-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5 transition">+2,000,000</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Date de démarrage prévue' : 'تاريخ الانطلاق الفعلي'}</label>
+                  <input type="date" id="np-start-date" value="${App.getLocalDateString()}"
+                    class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white shadow-inner">
+                </div>
+
+                <!-- Instant Submit Button -->
+                <div class="pt-3">
+                  <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 active:from-red-600 text-white font-black text-sm shadow-xl shadow-red-950/50 flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                    <span>✓</span>
+                    <span>${isFr ? 'Créer le Chantier Immédiatement' : 'تأكيد وإنشاء الورشة فوراً'}</span>
+                  </button>
+                  <p class="text-[10px] text-slate-500 text-center mt-2">${isFr ? 'Sans pop-up. Ouvre directement l\'espace du projet.' : 'بدون نوافذ منبثقة — يفتح مباشرة ملف الورشة الكامل.'}</p>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </form>
+      </div>
+    `;
+  },
+
+  addAmountToContract(addVal) {
+    const el = document.getElementById('np-contract-value');
+    if (!el) return;
+    const cur = parseFloat(el.value) || 0;
+    el.value = cur + addVal;
+  },
+
+  updateNewProjectEstimate() {
+    const checked = document.querySelectorAll('input[name="np-activity-ids"]:checked');
+    const badge = document.getElementById('np-selected-count');
+    if (badge) {
+      badge.textContent = checked.length + ' بنود مختارة';
+    }
+  },
+
+  async handleCreateProjectSubmit(event) {
+    event.preventDefault();
+    const name = document.getElementById('np-name').value.trim();
+    const client = document.getElementById('np-client').value.trim();
+    const phone = document.getElementById('np-phone').value.trim();
+    const wilaya = document.getElementById('np-wilaya').value.trim();
+    const address = document.getElementById('np-address').value.trim();
+    const contract = parseFloat(document.getElementById('np-contract-value').value) || 0;
+    const model = (document.querySelector('input[name="np-commercial-model"]:checked') || {}).value || 'labor_materials';
+    const startDate = document.getElementById('np-start-date').value || App.getLocalDateString();
+
+    const pRef = 'PRJ-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900 + 100));
+    
+    // 1. Create Project
+    const newProj = await DB.add('projects', {
+      ref: pRef,
+      name: name,
+      client_name: client,
+      client_phone: phone,
+      address: address || wilaya,
+      wilaya: wilaya,
+      project_type: 'تشطيب وديكور عصري (DARI LUXE)',
+      contract_value: contract,
+      initial_budget: contract,
+      commercial_model: model,
+      status: 'in_progress',
+      start_date: startDate
+    });
+
+    // 2. Automatically create Floor (RDC)
+    const newFloor = await DB.add('project_floors', {
+      project_id: newProj.id,
+      floor_name: 'الطابق الأرضي (RDC)',
+      floor_number: 0,
+      description: 'المستوى الأرضي الرئيسي'
+    });
+
+    // 3. Attach selected catalog activities to the new project
+    const checkedBoxes = document.querySelectorAll('input[name="np-activity-ids"]:checked');
+    const catalog = await DB.getAll('activity_catalog');
+    for (const box of checkedBoxes) {
+      const actId = box.value;
+      const catItem = catalog.find(c => c.id === actId);
+      if (catItem) {
+        await DB.add('project_activities', {
+          project_id: newProj.id,
+          name: catItem.name,
+          name_fr: catItem.name_fr,
+          unit: catItem.unit || 'm²',
+          unit_price: catItem.default_unit_price || 0,
+          quantity: 1,
+          total_price: catItem.default_unit_price || 0,
+          progress_percent: 0,
+          status: 'planned'
+        });
+      }
+    }
+
+    this.playClickSound();
+    this.showToast(`✓ تم بنجاح إنشاء ورشة "${name}" وربط بنود العمل وتجهيز الطابق الأرضي!`, 'success');
+    this.activeProjectId = newProj.id;
+    this.navigate('project_workspace', newProj.id);
+  },
+
+
+  // ────────────────────────────────────────────────────────────
+  // INTERFACE 2: واجهة حساب وقياسات الغرف والخصومات الهندسية الذكية
+  // ────────────────────────────────────────────────────────────
+  async renderNewRoomView(container) {
+    const projects = await DB.getAll('projects');
+    if (!projects || projects.length === 0) {
+      container.innerHTML = `
+        <div class="kpi-card p-8 text-center max-w-md mx-auto my-12 space-y-4">
+          <div class="text-3xl">⚠️</div>
+          <h3 class="text-white font-bold">لا توجد ورشات نشطة حالياً</h3>
+          <p class="text-xs text-slate-400">يجب إنشاء ورشة عمل أولاً قبل إضافة الغرف والقياسات.</p>
+          <button onclick="App.navigate('new_project')" class="px-4 py-2 bg-[#FF3B30] text-white rounded-xl text-xs font-bold">
+            + إنشاء ورشة جديدة
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const currentProjId = this.activeProjectId || projects[0].id;
+    const floors = await DB.query('project_floors', f => String(f.project_id) === String(currentProjId));
+
+    container.innerHTML = `
+      <div class="space-y-6 max-w-4xl mx-auto">
+        <!-- Top Navigation -->
+        <div class="flex items-center justify-between gap-4 pb-2 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <button onclick="App.openProjectWorkspace('${currentProjId}')" class="p-2.5 rounded-xl bg-[#141418] border border-white/10 hover:border-white/25 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-bold shadow">
+              <span>←</span>
+              <span>العودة إلى ملف الورشة</span>
+            </button>
+            <div>
+              <h1 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                <span>📐</span>
+                <span>مساعد حساب وقياسات الغرف والجدران</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-0.5">حساب تلقائي فوري للمساحات، المحيط، وخصم النوافذ والأبواب للدهان والجبس بدقة هندسية</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="new-room-form" onsubmit="App.handleCreateRoomSubmit(event)" class="space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left 2 Cols: Form Inputs -->
+            <div class="lg:col-span-2 space-y-5">
+              
+              <!-- 1. Room Identity -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center gap-2 text-xs font-black text-amber-400 border-b border-white/5 pb-2.5">
+                  <span>🚪</span>
+                  <span>المشروع والطابق وتسمية الفضاء</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">الورشة / المشروع *</label>
+                    <select id="nr-project" onchange="App.handleRoomProjectChange(this.value)" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                      ${projects.map(p => `<option value="${p.id}" ${p.id === currentProjId ? 'selected' : ''}>${this.escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5">الطابق (Étage) *</label>
+                    <select id="nr-floor" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                      ${floors.length > 0 
+                        ? floors.map(fl => `<option value="${fl.id}">${this.escapeHtml(fl.floor_name)}</option>`).join('')
+                        : '<option value="new_auto">الطابق الأرضي (RDC) - تلقائي</option>'
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1.5">اسم الغرفة أو الفضاء *</label>
+                  <input type="text" id="nr-name" required value="صالون رئيسي (Salon)"
+                    class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white shadow-inner font-bold">
+                  <!-- Room quick-select chips -->
+                  <div class="flex items-center gap-1.5 flex-wrap mt-2">
+                    <button type="button" onclick="App.setRoomPreset('صالون رئيسي (Salon)', 5.2, 4.2, 2.8, 1, 2)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🛋️ صالون (Salon)</button>
+                    <button type="button" onclick="App.setRoomPreset('غرفة نوم رئيسية (Chambre Parentale)', 4.2, 3.8, 2.8, 1, 1)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🛏️ غرفة نوم رئيسية</button>
+                    <button type="button" onclick="App.setRoomPreset('غرفة أطفال (Chambre Enfants)', 3.8, 3.2, 2.8, 1, 1)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🧸 غرفة أطفال</button>
+                    <button type="button" onclick="App.setRoomPreset('مطبخ عصري (Cuisine)', 4.0, 3.0, 2.8, 1, 1)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🍳 مطبخ (Cuisine)</button>
+                    <button type="button" onclick="App.setRoomPreset('حمام ودوش (Salle de Bain)', 2.5, 2.0, 2.6, 1, 1, true)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🚿 حمام (SDB)</button>
+                    <button type="button" onclick="App.setRoomPreset('بهو وممر (Couloir / Hall)', 6.0, 1.8, 2.8, 2, 0)" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] border border-white/5 transition">🚪 بهو / هول</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Dimensions 3D (L x W x H) -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center gap-2 text-xs font-black text-cyan-400 border-b border-white/5 pb-2.5">
+                  <span>📐</span>
+                  <span>الأبعاد الهندسية بالمتر (Dimensions en mètres)</span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">الطول L (متر)</label>
+                    <input type="number" step="0.05" min="0.5" id="nr-length" value="5.00" oninput="App.calculateLiveRoomMetrics()"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-3 py-2.5 text-center text-sm font-mono font-black text-white shadow-inner">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">العرض W (متر)</label>
+                    <input type="number" step="0.05" min="0.5" id="nr-width" value="4.00" oninput="App.calculateLiveRoomMetrics()"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-3 py-2.5 text-center text-sm font-mono font-black text-white shadow-inner">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">الارتفاع H (متر)</label>
+                    <input type="number" step="0.05" min="1.0" id="nr-height" value="2.80" oninput="App.calculateLiveRoomMetrics()"
+                      class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-3 py-2.5 text-center text-sm font-mono font-black text-white shadow-inner">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Smart Deductions: Doors & Windows -->
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl">
+                <div class="flex items-center gap-2 text-xs font-black text-rose-400 border-b border-white/5 pb-2.5">
+                  <span>✂️</span>
+                  <span>الخصومات الهندسية للفتحات (خصم الأبواب والنوافذ من مساحة الدهان)</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <!-- Doors -->
+                  <div class="p-3.5 rounded-xl bg-[#0C0C10] border border-white/5 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-extrabold text-white">🚪 الأبواب (Portes)</span>
+                      <span class="text-[10px] text-slate-400 font-mono" id="nr-doors-total-area">-1.94 م²</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="text-[10px] text-slate-400">العدد:</label>
+                      <div class="flex items-center gap-1">
+                        <button type="button" onclick="App.adjustCount('nr-doors-qty', -1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center">-</button>
+                        <input type="number" id="nr-doors-qty" value="1" min="0" max="6" oninput="App.calculateLiveRoomMetrics()"
+                          class="w-12 bg-black border border-white/10 rounded-lg py-1 text-center font-mono font-bold text-xs text-white">
+                        <button type="button" onclick="App.adjustCount('nr-doors-qty', 1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center">+</button>
+                      </div>
+                      <span class="text-[10px] text-slate-500 mr-auto">(0.9×2.15 م)</span>
+                    </div>
+                  </div>
+
+                  <!-- Windows -->
+                  <div class="p-3.5 rounded-xl bg-[#0C0C10] border border-white/5 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-extrabold text-white">🪟 النوافذ (Fenêtres)</span>
+                      <span class="text-[10px] text-slate-400 font-mono" id="nr-windows-total-area">-1.68 م²</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="text-[10px] text-slate-400">العدد:</label>
+                      <div class="flex items-center gap-1">
+                        <button type="button" onclick="App.adjustCount('nr-windows-qty', -1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center">-</button>
+                        <input type="number" id="nr-windows-qty" value="1" min="0" max="8" oninput="App.calculateLiveRoomMetrics()"
+                          class="w-12 bg-black border border-white/10 rounded-lg py-1 text-center font-mono font-bold text-xs text-white">
+                        <button type="button" onclick="App.adjustCount('nr-windows-qty', 1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-white font-bold flex items-center justify-center">+</button>
+                      </div>
+                      <span class="text-[10px] text-slate-500 mr-auto">(1.2×1.40 م)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Toggles for Paint Scope -->
+                <div class="flex items-center gap-6 pt-2 text-xs">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="nr-inc-walls" checked onchange="App.calculateLiveRoomMetrics()" class="rounded text-[#FF3B30] focus:ring-0">
+                    <span class="text-slate-300 font-bold">تشمل طلاء وجبس الجدران</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="nr-inc-ceiling" checked onchange="App.calculateLiveRoomMetrics()" class="rounded text-[#FF3B30] focus:ring-0">
+                    <span class="text-slate-300 font-bold">تشمل سقف الجبس والدهان</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right 1 Col: Live Geometric Display & Submit -->
+            <div class="space-y-5">
+              
+              <div class="kpi-card p-5 rounded-2xl border border-white/8 space-y-4 shadow-xl sticky top-24">
+                <div class="flex items-center gap-2 text-xs font-black text-emerald-400 border-b border-white/5 pb-2.5">
+                  <span>📊</span>
+                  <span>لوحة الحساب اللحظي المباشر</span>
+                </div>
+
+                <div class="space-y-3 font-mono text-xs">
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#0A0A0C]/80 border border-white/5">
+                    <span class="text-slate-400 font-sans text-xs">مساحة الأرضية (السيراميك/الجبس):</span>
+                    <span class="font-extrabold text-white" id="nr-disp-floor">20.00 م²</span>
+                  </div>
+
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#0A0A0C]/80 border border-white/5">
+                    <span class="text-slate-400 font-sans text-xs">محيط الغرفة (البلاينت والزوايا):</span>
+                    <span class="font-extrabold text-white" id="nr-disp-perimeter">18.00 م</span>
+                  </div>
+
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#0A0A0C]/80 border border-white/5">
+                    <span class="text-slate-400 font-sans text-xs">مساحة الجدران الإجمالية الخام:</span>
+                    <span class="font-extrabold text-slate-300" id="nr-disp-gross">50.40 م²</span>
+                  </div>
+
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300">
+                    <span class="font-sans text-xs">مساحة الخصم (نوافذ + أبواب):</span>
+                    <span class="font-extrabold" id="nr-disp-deductions">-3.62 م²</span>
+                  </div>
+
+                  <div class="p-3.5 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 text-center">
+                    <span class="text-[10px] text-emerald-300 font-sans block mb-1">المساحة الصافية للدهان والجبس (صافي):</span>
+                    <span class="text-2xl font-black text-emerald-400 font-mono" id="nr-disp-net">46.78 م²</span>
+                  </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-2">
+                  <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-black text-xs shadow-lg flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                    <span>💾</span>
+                    <span>تأكيد وحفظ قياسات الغرفة</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </form>
+      </div>
+    `;
+
+    // Initialize metrics
+    this.calculateLiveRoomMetrics();
+  },
+
+  setRoomPreset(name, l, w, h, doors, windows, isBathroom = false) {
+    document.getElementById('nr-name').value = name;
+    document.getElementById('nr-length').value = l;
+    document.getElementById('nr-width').value = w;
+    document.getElementById('nr-height').value = h;
+    document.getElementById('nr-doors-qty').value = doors;
+    document.getElementById('nr-windows-qty').value = windows;
+    this.calculateLiveRoomMetrics();
+  },
+
+  adjustCount(elemId, delta) {
+    const el = document.getElementById(elemId);
+    if (!el) return;
+    const cur = parseInt(el.value, 10) || 0;
+    el.value = Math.max(0, cur + delta);
+    this.calculateLiveRoomMetrics();
+  },
+
+  calculateLiveRoomMetrics() {
+    const l = parseFloat((document.getElementById('nr-length') || {}).value) || 0;
+    const w = parseFloat((document.getElementById('nr-width') || {}).value) || 0;
+    const h = parseFloat((document.getElementById('nr-height') || {}).value) || 0;
+    const doorsQty = parseInt((document.getElementById('nr-doors-qty') || {}).value, 10) || 0;
+    const winQty = parseInt((document.getElementById('nr-windows-qty') || {}).value, 10) || 0;
+    const incWalls = (document.getElementById('nr-inc-walls') || {}).checked !== false;
+    const incCeiling = (document.getElementById('nr-inc-ceiling') || {}).checked !== false;
+
+    const floorArea = l * w;
+    const perimeter = 2 * (l + w);
+    const grossWall = perimeter * h;
+    const doorsArea = doorsQty * (0.90 * 2.15);
+    const winArea = winQty * (1.20 * 1.40);
+    const totalDeduction = doorsArea + winArea;
+
+    let netWall = 0;
+    if (incWalls) {
+      netWall = Math.max(0, grossWall - totalDeduction);
+    }
+    const ceilingArea = incCeiling ? floorArea : 0;
+    const totalNetPaint = netWall + ceilingArea;
+
+    // Update UI elements
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setTxt('nr-disp-floor', floorArea.toFixed(2) + ' م²');
+    setTxt('nr-disp-perimeter', perimeter.toFixed(2) + ' م');
+    setTxt('nr-disp-gross', grossWall.toFixed(2) + ' م²');
+    setTxt('nr-disp-deductions', '-' + totalDeduction.toFixed(2) + ' م²');
+    setTxt('nr-doors-total-area', '-' + doorsArea.toFixed(2) + ' م²');
+    setTxt('nr-windows-total-area', '-' + winArea.toFixed(2) + ' م²');
+    setTxt('nr-disp-net', totalNetPaint.toFixed(2) + ' م²');
+  },
+
+  async handleRoomProjectChange(projId) {
+    this.activeProjectId = projId;
+    const floors = await DB.query('project_floors', f => String(f.project_id) === String(projId));
+    const select = document.getElementById('nr-floor');
+    if (select) {
+      if (floors.length > 0) {
+        select.innerHTML = floors.map(fl => `<option value="${fl.id}">${this.escapeHtml(fl.floor_name)}</option>`).join('');
+      } else {
+        select.innerHTML = '<option value="new_auto">الطابق الأرضي (RDC) - تلقائي</option>';
+      }
+    }
+  },
+
+  async handleCreateRoomSubmit(event) {
+    event.preventDefault();
+    const projId = document.getElementById('nr-project').value;
+    let floorId = document.getElementById('nr-floor').value;
+    const name = document.getElementById('nr-name').value.trim();
+    const l = parseFloat(document.getElementById('nr-length').value) || 0;
+    const w = parseFloat(document.getElementById('nr-width').value) || 0;
+    const h = parseFloat(document.getElementById('nr-height').value) || 0;
+    const doorsQty = parseInt(document.getElementById('nr-doors-qty').value, 10) || 0;
+    const winQty = parseInt(document.getElementById('nr-windows-qty').value, 10) || 0;
+    const incWalls = document.getElementById('nr-inc-walls').checked;
+    const incCeiling = document.getElementById('nr-inc-ceiling').checked;
+
+    // If floor is auto-create
+    if (floorId === 'new_auto' || !floorId) {
+      const newFl = await DB.add('project_floors', {
+        project_id: projId,
+        floor_name: 'الطابق الأرضي (RDC)',
+        floor_number: 0,
+        description: 'المستوى الأرضي'
+      });
+      floorId = newFl.id;
+    }
+
+    // 1. Add Room
+    const newRoom = await DB.add('project_rooms', {
+      project_id: projId,
+      floor_id: floorId,
+      room_name: name,
+      length: l,
+      width: w,
+      height: h,
+      include_walls_paint: incWalls,
+      include_ceiling_paint: incCeiling
+    });
+
+    // 2. Add doors if any
+    if (doorsQty > 0) {
+      await DB.add('room_doors', {
+        room_id: newRoom.id,
+        door_name: 'باب الغرفة',
+        width: 0.90,
+        height: 2.15,
+        quantity: doorsQty
+      });
+    }
+
+    // 3. Add windows if any
+    if (winQty > 0) {
+      await DB.add('room_windows', {
+        room_id: newRoom.id,
+        window_name: 'نافذة الغرفة',
+        width: 1.20,
+        height: 1.40,
+        quantity: winQty
+      });
+    }
+
+    this.playClickSound();
+    this.showToast(`✓ تم بنجاح حفظ قياسات "${name}" وإضافتها لملف الورشة!`, 'success');
+    this.activeProjectId = projId;
+    this.navigate('project_workspace', projId);
+  },
+
+
+  // ────────────────────────────────────────────────────────────
+  // INTERFACE 3: واجهة تسجيل عامل جديد مسرعة
+  // ────────────────────────────────────────────────────────────
+  async renderNewWorkerView(container) {
+    const projects = await DB.getAll('projects');
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
+
+    const wilayasOptions = this.algerianWilayas.map(w => 
+      `<option value="${this.escapeHtml(w)}"${w.includes('44') ? ' selected' : ''}>${this.escapeHtml(w)}</option>`
+    ).join('');
+
+    container.innerHTML = `
+      <div class="space-y-6 max-w-3xl mx-auto">
+        <!-- Top Navigation -->
+        <div class="flex items-center justify-between gap-4 pb-2 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <button onclick="App.navigate('workers')" class="p-2.5 rounded-xl bg-[#141418] border border-white/10 hover:border-white/25 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-bold shadow">
+              <span>←</span>
+              <span>${isFr ? 'Retour à l\'équipe' : 'العودة إلى فريق العمل'}</span>
+            </button>
+            <div>
+              <h1 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                <span>👷</span>
+                <span>${isFr ? 'Enregistrement d\'un Ouvrier' : 'تسجيل عامل جديد في الفريق'}</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-0.5">${isFr ? 'Saisie rapide sans pop-up avec sélection directe des métiers' : 'واجهة إدخال مسرعة مع اختيار المهن والرواتب المعمول بها في الجزائر'}</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="new-worker-form" onsubmit="App.handleCreateWorkerSubmit(event)" class="kpi-card p-6 rounded-2xl border border-white/8 space-y-5 shadow-xl">
+          
+          <!-- Identity -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Nom complet de l\'ouvrier *' : 'اسم العامل بالكامل *'}</label>
+              <input type="text" id="nw-name" required placeholder="${isFr ? 'Ex: Mohamed Touati' : 'مثال: محمد التواتي'}"
+                class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white shadow-inner font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Numéro de Téléphone' : 'رقم هاتف العامل'}</label>
+              <input type="tel" id="nw-phone" placeholder="0550 00 00 00" dir="ltr"
+                class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white shadow-inner text-right">
+            </div>
+          </div>
+
+          <!-- Specialty Quick Grid -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-2">${isFr ? 'Métier / Spécialité *' : 'التخصص المهني والحرفة *'}</label>
+            <input type="hidden" id="nw-specialty" value="جباس (Plaquiste BA13)">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="nw-specialty-grid">
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('جباس (Plaquiste BA13)', 3500, this)" class="nw-spec-btn active p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">📐</span>
+                <span>جباس BA13</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('صباغ ودهان عصري (Peintre Déco)', 3500, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">🎨</span>
+                <span>صباغ ودهان</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('بناء ومبلط (Carreleur)', 3500, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">🧱</span>
+                <span>مبلط Carreleur</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('كهربائي وإنارة (Électricien)', 3500, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">⚡</span>
+                <span>كهربائي سبوت</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('رصاص وسباك صحي (Plombier)', 4000, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">🔧</span>
+                <span>رصاص وسباك</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('نجار ألمنيوم وخشب', 3500, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">🪚</span>
+                <span>نجار ألمنيوم</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('مناول ومساعد (Manœuvre)', 2500, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">🛠️</span>
+                <span>مناول Manœuvre</span>
+              </button>
+              <button type="button" onclick="App.setWorkerSpecialtyPreset('معلم مسؤول ورشة (Chef)', 5000, this)" class="nw-spec-btn p-2.5 rounded-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex flex-col items-center gap-1 transition">
+                <span class="text-base">👑</span>
+                <span>مسؤول ورشة</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Daily Wage & Quick Chips -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Salaire Journalier de Base (DZD) *' : 'الأجر اليومي الأساسي (دج DZD) *'}</label>
+            <input type="number" step="100" min="500" id="nw-wage" required value="3500"
+              class="w-full bg-[#0C0C10] border border-emerald-500/30 rounded-xl px-4 py-3 text-sm text-emerald-400 font-mono font-black shadow-inner">
+            <div class="grid grid-cols-5 gap-2 mt-2">
+              <button type="button" onclick="document.getElementById('nw-wage').value = 2500" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">2,500 دج</button>
+              <button type="button" onclick="document.getElementById('nw-wage').value = 3000" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">3,000 دج</button>
+              <button type="button" onclick="document.getElementById('nw-wage').value = 3500" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">3,500 دج</button>
+              <button type="button" onclick="document.getElementById('nw-wage').value = 4000" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">4,000 دج</button>
+              <button type="button" onclick="document.getElementById('nw-wage').value = 5000" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">5,000 دج</button>
+            </div>
+          </div>
+
+          <!-- Assignment & Wilaya -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Chantier d\'affectation' : 'ورشة التعيين المبدئية'}</label>
+              <select id="nw-project" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                <option value="">-- بدون تعيين حالياً --</option>
+                ${projects.map(p => `<option value="${p.id}">${this.escapeHtml(p.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Wilaya de résidence' : 'ولاية الإقامة'}</label>
+              <select id="nw-wilaya" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                ${wilayasOptions}
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <div class="pt-3">
+            <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition active:scale-[0.98]">
+              <span>✓</span>
+              <span>${isFr ? 'Enregistrer l\'Ouvrier dans l\'Équipe' : 'تسجيل العامل وتفعيله في دفتر التحضير فوراً'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+  },
+
+  setWorkerSpecialtyPreset(spec, defaultWage, btn) {
+    document.getElementById('nw-specialty').value = spec;
+    document.getElementById('nw-wage').value = defaultWage;
+    document.querySelectorAll('.nw-spec-btn').forEach(b => b.classList.remove('active', 'border-emerald-500', 'bg-emerald-500/10'));
+    if (btn) {
+      btn.classList.add('active', 'border-emerald-500', 'bg-emerald-500/10');
+    }
+  },
+
+  async handleCreateWorkerSubmit(event) {
+    event.preventDefault();
+    const name = document.getElementById('nw-name').value.trim();
+    const phone = document.getElementById('nw-phone').value.trim();
+    const spec = document.getElementById('nw-specialty').value.trim();
+    const wage = parseFloat(document.getElementById('nw-wage').value) || 3000;
+    const projId = document.getElementById('nw-project').value;
+    const wilaya = document.getElementById('nw-wilaya').value.trim();
+
+    const wCode = 'W-' + Date.now().toString().slice(-4);
+    const newWorker = await DB.add('workers', {
+      worker_code: wCode,
+      full_name: name,
+      phone: phone,
+      wilaya: wilaya,
+      specialty: spec,
+      daily_wage: wage,
+      overtime_rate: Math.round(wage / 8),
+      employment_date: App.getLocalDateString(),
+      status: 'active'
+    });
+
+    if (projId) {
+      await DB.add('worker_project_assignments', {
+        worker_id: newWorker.id,
+        project_id: projId,
+        assigned_date: App.getLocalDateString(),
+        status: 'active'
+      });
+    }
+
+    this.playClickSound();
+    this.showToast(`✓ تم بنجاح إضافة العامل "${name}" (${spec}) بأجر ${wage.toLocaleString('fr-FR')} دج/يوم!`, 'success');
+    this.navigate('workers');
+  },
+
+
+  // ────────────────────────────────────────────────────────────
+  // INTERFACE 4: واجهة تسجيل مصروف جديد مسرعة
+  // ────────────────────────────────────────────────────────────
+  async renderNewExpenseView(container) {
+    const projects = await DB.getAll('projects');
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
+
+    container.innerHTML = `
+      <div class="space-y-6 max-w-2xl mx-auto">
+        <div class="flex items-center justify-between gap-4 pb-2 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <button onclick="App.navigate('expenses')" class="p-2.5 rounded-xl bg-[#141418] border border-white/10 hover:border-white/25 text-slate-300 hover:text-white transition flex items-center gap-2 text-xs font-bold shadow">
+              <span>←</span>
+              <span>${isFr ? 'Retour aux dépenses' : 'العودة إلى المصاريف'}</span>
+            </button>
+            <div>
+              <h1 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                <span>🧾</span>
+                <span>${isFr ? 'Enregistrer une Dépense' : 'تسجيل مصروف ورشة أو فاتورة جديدة'}</span>
+              </h1>
+              <p class="text-xs text-slate-400 mt-0.5">${isFr ? 'Saisie rapide avec imputation partenaire automatique' : 'إدخال فوري وتحديث مباشر لحسابات الشركاء والورشات'}</p>
+            </div>
+          </div>
+        </div>
+
+        <form id="new-expense-form" onsubmit="App.handleCreateExpenseSubmit(event)" class="kpi-card p-6 rounded-2xl border border-white/8 space-y-5 shadow-xl">
+          
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Chantier / Projet concerné *' : 'الورشة / المشروع المعني *'}</label>
+            <select id="ne-project" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white shadow-inner">
+              <option value="">-- مصاريف عامة للمؤسسة (Frais Généraux) --</option>
+              ${projects.map(p => `<option value="${p.id}" ${p.id === this.activeProjectId ? 'selected' : ''}>${this.escapeHtml(p.name)}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Désignation / Description de la dépense *' : 'بيان المصروف / السلعة المشتراة *'}</label>
+            <input type="text" id="ne-desc" required placeholder="${isFr ? 'Ex: Achat sacs de plâtre & vis BA13 quincaillerie' : 'مثال: شراء أكياس جبس كوفري وسيلك من القنكاييري'}"
+              class="w-full bg-[#0C0C10] border border-white/10 focus:border-[#FF3B30] rounded-xl px-4 py-2.5 text-xs text-white shadow-inner font-bold">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Montant de la dépense (DZD) *' : 'المبلغ المدفوع (دج DZD) *'}</label>
+            <input type="number" step="100" min="50" id="ne-amount" required value="5000"
+              class="w-full bg-[#0C0C10] border border-rose-500/30 rounded-xl px-4 py-3 text-sm text-rose-400 font-mono font-black shadow-inner">
+            <div class="grid grid-cols-4 gap-2 mt-2">
+              <button type="button" onclick="App.addAmountToExpense(1000)" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">+1,000 دج</button>
+              <button type="button" onclick="App.addAmountToExpense(2000)" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">+2,000 دج</button>
+              <button type="button" onclick="App.addAmountToExpense(5000)" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">+5,000 دج</button>
+              <button type="button" onclick="App.addAmountToExpense(10000)" class="py-1 px-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-mono border border-white/5">+10,000 دج</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Catégorie de charge' : 'تصنيف المصروف'}</label>
+              <select id="ne-category" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                <option value="مواد بناء وقنكاييري">مواد بناء وقنكاييري (Matériaux)</option>
+                <option value="نقل وشحن ترونسبور">نقل وشحن ترونسبور (Transport)</option>
+                <option value="كراء عتاد وسقالات">كراء عتاد وسقالات (Location Outillage)</option>
+                <option value="وجبات وغداء عمال">وجبات وغداء عمال (Restauration)</option>
+                <option value="وقود ومصاريف سيارة">وقود ومصاريف سيارة (Carburant)</option>
+                <option value="مصاريف أخرى">مصاريف متنوعة أخرى</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1.5">${isFr ? 'Payé par (Partenaire)' : 'مدفوعة من طرف (حساب الشريك)'}</label>
+              <select id="ne-partner" class="w-full bg-[#0C0C10] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white shadow-inner">
+                <option value="USR-001">الشريك 1 (Admin 1)</option>
+                <option value="USR-002">الشريك 2 (Admin 2)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-3">
+            <button type="submit" class="w-full py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 text-white font-black text-sm shadow-xl flex items-center justify-center gap-2 transition active:scale-[0.98]">
+              <span>✓</span>
+              <span>${isFr ? 'Valider et Enregistrer la Dépense' : 'تأكيد وحفظ المصروف فوراً'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+  },
+
+  addAmountToExpense(addVal) {
+    const el = document.getElementById('ne-amount');
+    if (!el) return;
+    const cur = parseFloat(el.value) || 0;
+    el.value = cur + addVal;
+  },
+
+  async handleCreateExpenseSubmit(event) {
+    event.preventDefault();
+    const projId = document.getElementById('ne-project').value;
+    const desc = document.getElementById('ne-desc').value.trim();
+    const amount = parseFloat(document.getElementById('ne-amount').value) || 0;
+    const cat = document.getElementById('ne-category').value;
+    const partnerId = document.getElementById('ne-partner').value;
+
+    await DB.add('expenses', {
+      project_id: projId || null,
+      description: desc,
+      amount: amount,
+      category: cat,
+      partner_id: partnerId,
+      date: App.getLocalDateString(),
+      status: 'active'
+    });
+
+    this.playClickSound();
+    this.showToast(`✓ تم بنجاح تسجيل المصروف بقيمة ${amount.toLocaleString('fr-FR')} دج!`, 'success');
+    this.navigate('expenses');
+  },
+
   currentView: 'dashboard',
   soundEnabled: true,
   cockpitFilterRole: 'all',
@@ -21,17 +1037,25 @@ const App = {
   async init() {
     await DB.init();
     const savedLang = (typeof localStorage !== 'undefined' && localStorage.getItem('dari_lang')) || 'ar';
-    document.documentElement.setAttribute('lang', savedLang);
-    document.documentElement.setAttribute('dir', savedLang === 'ar' ? 'rtl' : 'ltr');
-    this.applyLanguageToUI(savedLang);
+    if (typeof I18N !== 'undefined') {
+      I18N.setLang(savedLang);
+    }
     this.initTheme();
     this.startCockpitClock();
     this.initSidebarState();
     this.updateSupabaseUIState();
     this.setupEventListeners();
-    await this.renderCurrentView();
+    // Initialize Hash Router
+    window.addEventListener('hashchange', () => this.handleHashChange());
+
+    // Resolve initial view from URL hash or default to dashboard
+    if (!window.location.hash || window.location.hash === '#' || window.location.hash === '#/') {
+      window.location.hash = '#/dashboard';
+    }
+    this.handleHashChange();
+
     this.updateGlobalHeaderStats();
-    console.log('ERP Application initialized successfully.');
+    console.log('ERP Application initialized successfully with Hash Routing.');
   },
 
   /**
@@ -162,22 +1186,22 @@ const App = {
   initSidebarState() {
     const isCollapsed = localStorage.getItem('dari_sidebar_collapsed') === '1';
     const sidebar = document.getElementById('main-sidebar');
-    const btn = document.getElementById('sidebar-toggle-btn');
+    const svg = document.getElementById('sidebar-toggle-svg');
     if (sidebar && isCollapsed) {
       sidebar.classList.add('collapsed');
-      if (btn) btn.innerHTML = '❯';
+      if (svg) svg.style.transform = 'rotate(180deg)';
     }
   },
 
   toggleSidebarCollapse() {
     const sidebar = document.getElementById('main-sidebar');
-    const btn = document.getElementById('sidebar-toggle-btn');
+    const svg = document.getElementById('sidebar-toggle-svg');
     if (!sidebar) return;
     sidebar.classList.toggle('collapsed');
     const isCollapsed = sidebar.classList.contains('collapsed');
     localStorage.setItem('dari_sidebar_collapsed', isCollapsed ? '1' : '0');
-    if (btn) {
-      btn.innerHTML = isCollapsed ? '❯' : '❮';
+    if (svg) {
+      svg.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
     }
     this.playClickSound();
   },
@@ -196,34 +1220,7 @@ const App = {
 
   // 1. Projects CRUD
   async openNewProjectModal() {
-    const name = prompt('اسم المشروع / الورشة الجديدة:');
-    if (!name) return;
-    const client = prompt('اسم الزبون / المالك:', 'السيد ...');
-    const phone = prompt('رقم الهاتف:', '0550 00 00 00') || '';
-    const address = prompt('العنوان والولاية:', 'عين الدفلى') || 'عين الدفلى';
-    const contract = parseFloat(prompt('قيمة العقد المتفق عليها (دج DZD):', '1500000')) || 0;
-    const model = prompt('النموذج التجاري (hybrid=هجين، labor_only=أشغال يد فقط، labor_materials=توريد وتركيب):', 'hybrid') || 'hybrid';
-
-    const pRef = 'PRJ-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 900 + 100));
-    const newProj = await DB.add('projects', {
-      ref: pRef,
-      name: name.trim(),
-      client_name: (client || 'زبون').trim(),
-      client_phone: phone.trim(),
-      address: address.trim(),
-      wilaya: address.includes('عين الدفلى') ? 'عين الدفلى' : (address.includes('الجزائر') ? 'الجزائر' : (address.includes('البليدة') ? 'البليدة' : 'عين الدفلى')),
-      project_type: 'تشطيب وديكور عصري (DARI LUXE)',
-      contract_value: contract,
-      initial_budget: contract,
-      commercial_model: model.trim(),
-      status: 'in_progress',
-      start_date: App.getLocalDateString()
-    });
-
-    this.playClickSound();
-    alert(`✓ تم إنشاء المشروع الجديد "${name}" بنجاح!`);
-    this.activeProjectId = newProj.id;
-    await this.renderCurrentView();
+    this.navigate('new_project');
   },
 
   async deleteProject(projectId) {
@@ -244,91 +1241,171 @@ const App = {
 
     await DB.delete('projects', projectId);
     this.playClickSound();
-    alert('✓ تم حذف المشروع وكافة ملحقاته بنجاح!');
+    this.showToast('✓ تم حذف المشروع وكافة ملحقاته بنجاح!', 'success');
     if (this.activeProjectId === projectId) this.activeProjectId = null;
     this.currentView = 'projects';
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async editProject(projectId) {
     const proj = await DB.getById('projects', projectId);
     if (!proj) return;
 
-    const newName = prompt('تعديل اسم المشروع:', proj.name);
-    if (!newName) return;
-    const newClient = prompt('اسم الزبون / المالك:', proj.client_name || '');
-    const newPhone = prompt('رقم هاتف الزبون:', proj.client_phone || '') || proj.client_phone;
-    const newAddress = prompt('العنوان / الولاية:', proj.address || proj.wilaya || 'عين الدفلى') || proj.address;
-    
-    // Separated contract value and internal initial budget
-    const contractInput = prompt('قيمة العقد المتفق عليها مع الزبون (دج):', proj.contract_value || 0);
-    const newContractValue = contractInput !== null ? (parseFloat(contractInput) || proj.contract_value || 0) : proj.contract_value;
-    const budgetInput = prompt('الميزانية الداخلية المقدرة للمشروع (دج):', proj.initial_budget || 0);
-    const newInitialBudget = budgetInput !== null ? (parseFloat(budgetInput) || proj.initial_budget || 0) : proj.initial_budget;
+    const wilayaOptions = this.algerianWilayas.map(w =>
+      `<option value="${this.escapeHtml(w)}"${(proj.wilaya && w.includes(proj.wilaya)) || (!proj.wilaya && w.includes('44')) ? ' selected' : ''}>${this.escapeHtml(w)}</option>`
+    ).join('');
 
-    const newModel = prompt('النموذج التجاري (labor_only / labor_materials / hybrid):', proj.commercial_model || 'hybrid') || proj.commercial_model;
-    const newStatus = prompt('حالة المشروع (in_progress / completed / planning / on_hold):', proj.status || 'in_progress') || proj.status;
+    const existing = document.getElementById('edit-project-sheet');
+    if (existing) existing.remove();
+
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-project-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);" id="edit-project-inner">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">✏️</span>
+            <span style="font-weight:900;color:#fff;font-size:1rem;">تعديل بيانات الورشة</span>
+          </div>
+          <button onclick="document.getElementById('edit-project-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم الورشة / المشروع *</label>
+            <input id="ep-name" type="text" value="${this.escapeHtml(proj.name || '')}" placeholder="مثال: فيلا الياسمين - تشطيب كامل" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم الزبون / المالك</label>
+              <input id="ep-client" type="text" value="${this.escapeHtml(proj.client_name || '')}" placeholder="اسم صاحب الملك" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهاتف</label>
+              <input id="ep-phone" type="tel" value="${this.escapeHtml(proj.client_phone || '')}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الولاية</label>
+            <select id="ep-wilaya" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              ${wilayaOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">العنوان التفصيلي (حي، شارع، رقم)</label>
+            <input id="ep-address" type="text" value="${this.escapeHtml(proj.address || '')}" placeholder="مثال: حي السلام، شارع الوحدة، رقم 12" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">قيمة العقد مع الزبون (دج)</label>
+              <input id="ep-contract" type="number" value="${proj.contract_value || 0}" min="0" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الميزانية الداخلية المقدرة (دج)</label>
+              <input id="ep-budget" type="number" value="${proj.initial_budget || 0}" min="0" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">نموذج العقد التجاري</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="labor_only" ${(proj.commercial_model === 'labor_only') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(59,130,246,0.25)'">
+                <div class="ep-model-btn" style="background:${proj.commercial_model==='labor_only'?'rgba(59,130,246,0.25)':'#0f0f17'};border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">👷</div>
+                  <div style="color:#60a5fa;font-weight:700;font-size:0.75rem;margin-top:3px;">عمل فقط</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Travail uniquement</div>
+                </div>
+              </label>
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="labor_materials" ${(proj.commercial_model === 'labor_materials') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(16,185,129,0.25)'">
+                <div class="ep-model-btn" style="background:${proj.commercial_model==='labor_materials'?'rgba(16,185,129,0.25)':'#0f0f17'};border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🏗️</div>
+                  <div style="color:#34d399;font-weight:700;font-size:0.75rem;margin-top:3px;">عمل + سلعة</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Travail & Matériaux</div>
+                </div>
+              </label>
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="hybrid" ${(!proj.commercial_model || proj.commercial_model === 'hybrid') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(245,158,11,0.25)'">
+                <div class="ep-model-btn" style="background:${(!proj.commercial_model||proj.commercial_model==='hybrid')?'rgba(245,158,11,0.25)':'#0f0f17'};border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🔀</div>
+                  <div style="color:#fbbf24;font-weight:700;font-size:0.75rem;margin-top:3px;">هجين</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Hybride</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">حالة الورشة</label>
+            <select id="ep-status" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              <option value="planning" ${proj.status==='planning'?'selected':''}>📋 تخطيط / Planification</option>
+              <option value="in_progress" ${(!proj.status||proj.status==='in_progress')?'selected':''}>🔧 جارٍ التنفيذ / En cours</option>
+              <option value="on_hold" ${proj.status==='on_hold'?'selected':''}>⏸️ متوقف مؤقتاً / En pause</option>
+              <option value="completed" ${proj.status==='completed'?'selected':''}>✅ منجز / Terminé</option>
+            </select>
+          </div>
+          <button onclick="App._saveEditProject('${projectId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ التعديلات
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => { document.getElementById('ep-name')?.focus(); }, 100);
+  },
+
+  async _saveEditProject(projectId) {
+    const name = document.getElementById('ep-name')?.value?.trim();
+    if (!name) { this.showToast('اسم الورشة مطلوب', 'error'); return; }
+    const client = document.getElementById('ep-client')?.value?.trim() || '';
+    const phone = document.getElementById('ep-phone')?.value?.trim() || '';
+    const wilaya = document.getElementById('ep-wilaya')?.value?.trim() || 'عين الدفلى';
+    const address = document.getElementById('ep-address')?.value?.trim() || wilaya;
+    const contractVal = parseFloat(document.getElementById('ep-contract')?.value) || 0;
+    const budget = parseFloat(document.getElementById('ep-budget')?.value) || 0;
+    const model = document.querySelector('input[name="ep-model"]:checked')?.value || 'hybrid';
+    const status = document.getElementById('ep-status')?.value || 'in_progress';
+    // Extract plain wilaya name (after dash)
+    const wilayaPlain = wilaya.replace(/^\d+\s*-\s*/, '').split('(')[0].trim();
 
     await DB.update('projects', projectId, {
-      name: newName.trim(),
-      client_name: (newClient || proj.client_name).trim(),
-      client_phone: newPhone ? newPhone.trim() : proj.client_phone,
-      address: newAddress ? newAddress.trim() : proj.address,
-      wilaya: newAddress.includes('عين الدفلى') ? 'عين الدفلى' : (newAddress.includes('الجزائر') ? 'الجزائر' : 'عين الدفلى'),
-      contract_value: newContractValue,
-      initial_budget: newInitialBudget,
-      commercial_model: newModel.trim(),
-      status: newStatus.trim()
+      name,
+      client_name: client,
+      client_phone: phone,
+      address: address || wilayaPlain,
+      wilaya: wilayaPlain,
+      contract_value: contractVal,
+      initial_budget: budget,
+      commercial_model: model,
+      status
     });
 
+    document.getElementById('edit-project-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تحديث بيانات المشروع بنجاح!');
-    await this.renderCurrentView();
+    this.showToast('✓ تم تحديث بيانات الورشة بنجاح!', 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   // 2. Building Structure (Floors & Rooms) CRUD
   async deleteFloor(floorId) {
     if (!confirm('هل أنت متأكد من حذف هذا الطابق وجميع الغرف والأجهزة الموجودة بداخله؟')) return;
     await DB.delete('project_floors', floorId);
-    alert('✓ تم حذف الطابق وغرفه بنجاح!');
+    this.showToast('✓ تم حذف الطابق وغرفه بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async deleteRoom(roomId) {
     if (!confirm('هل أنت متأكد من حذف هذه الغرفة وجميع القياسات والفتحات والأجهزة التابعة لها؟')) return;
     await DB.delete('project_rooms', roomId);
-    alert('✓ تم حذف الغرفة بنجاح!');
+    this.showToast('✓ تم حذف الغرفة بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   // 3. Workers CRUD
   async openNewWorkerModal() {
-    const name = prompt('اسم العامل بالكامل:');
-    if (!name) return;
-    const specialty = prompt('التخصص (بلاكيست BA13، كهربائي وإنارة، صباغ، سباك، عامل متعدد):', 'بلاكيست (Plaquiste BA13)');
-    const wage = parseFloat(prompt('الأجر اليومي الأساسي (دج DZD):', '3500')) || 3000;
-    const phone = prompt('رقم الهاتف:', '0550 00 00 00') || '';
-    const wilaya = prompt('الولاية:', 'عين الدفلى') || 'عين الدفلى';
-    const cin = prompt('رقم بطاقة التعريف الوطنية (CIN):', 'CIN-' + Math.floor(Math.random()*900000 + 100000)) || '';
-
-    const newWorker = await DB.add('workers', {
-      worker_code: 'W-' + Date.now().toString().slice(-4),
-      full_name: name.trim(),
-      phone: phone.trim(),
-      wilaya: wilaya.trim(),
-      cin: cin.trim(),
-      specialty: specialty.trim(),
-      daily_wage: wage,
-      overtime_rate: Math.round(wage / 8),
-      employment_date: App.getLocalDateString(),
-      status: 'active'
-    });
-
-    this.playClickSound();
-    alert(`✓ تم إضافة العامل "${name}" بنجاح بالأجر اليومي ${wage.toLocaleString('fr-FR')} دج!`);
-    await this.renderCurrentView();
+    this.navigate('new_worker');
   },
 
   async deleteWorker(workerId) {
@@ -337,31 +1414,106 @@ const App = {
     if (!confirm(`هل أنت متأكد من حذف العامل "${wName}" من سجل العمال نهائياً؟`)) return;
     await DB.delete('workers', workerId);
     this.playClickSound();
-    alert('✓ تم حذف العامل بنجاح!');
-    await this.renderCurrentView();
+    this.showToast('✓ تم حذف العامل بنجاح!', 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async editWorker(workerId) {
     const w = await DB.getById('workers', workerId);
     if (!w) return;
-    const newName = prompt('اسم العامل بالكامل:', w.full_name);
-    if (!newName) return;
-    const newSpec = prompt('التخصص:', w.specialty || 'عامل متعدد');
-    const newWage = parseFloat(prompt('الأجر اليومي الأساسي (دج DZD):', w.daily_wage || 3500)) || w.daily_wage;
-    const newPhone = prompt('رقم الهاتف:', w.phone || '') || w.phone;
-    const newWilaya = prompt('الولاية:', w.wilaya || 'عين الدفلى') || w.wilaya;
+
+    const wilayaOptions = this.algerianWilayas.map(wl =>
+      `<option value="${this.escapeHtml(wl)}"${(w.wilaya && wl.includes(w.wilaya)) || (!w.wilaya && wl.includes('44')) ? ' selected' : ''}>${this.escapeHtml(wl)}</option>`
+    ).join('');
+
+    const existing = document.getElementById('edit-worker-sheet');
+    if (existing) existing.remove();
+
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-worker-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">👷</span>
+            <span style="font-weight:900;color:#fff;font-size:1rem;">تعديل بيانات العامل</span>
+          </div>
+          <button onclick="document.getElementById('edit-worker-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الاسم الكامل للعامل *</label>
+            <input id="ew-name" type="text" value="${this.escapeHtml(w.full_name || '')}" placeholder="الاسم واللقب" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">التخصص / الحرفة</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;" id="ew-spec-chips">
+              ${['جباس','دهان','كهربائي','سباك','نجار','بناء','بلاط','عامل متعدد'].map(sp => `
+                <button type="button" onclick="document.querySelectorAll('.ew-spec-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(255,59,48,0.25)';document.getElementById('ew-spec').value='${sp}'" class="ew-spec-chip" style="padding:7px 13px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${(w.specialty||'').includes(sp)?'rgba(255,59,48,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${sp}</button>
+              `).join('')}
+            </div>
+            <input id="ew-spec" type="text" value="${this.escapeHtml(w.specialty || '')}" placeholder="أو اكتب التخصص يدوياً" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;margin-top:8px;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الأجر اليومي الأساسي (دج)</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+              ${[3000,3500,4000,4500,5000,6000].map(wg => `
+                <button type="button" onclick="document.querySelectorAll('.ew-wage-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(16,185,129,0.25)';document.getElementById('ew-wage').value=${wg}" class="ew-wage-chip" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(16,185,129,0.2);background:${(w.daily_wage||3500)==wg?'rgba(16,185,129,0.25)':'#0f0f17'};color:#34d399;font-size:0.78rem;cursor:pointer;">${wg.toLocaleString('fr-FR')} دج</button>
+              `).join('')}
+            </div>
+            <input id="ew-wage" type="number" value="${w.daily_wage || 3500}" min="1000" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهاتف</label>
+              <input id="ew-phone" type="tel" value="${this.escapeHtml(w.phone || '')}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهوية الوطنية</label>
+              <input id="ew-cin" type="text" value="${this.escapeHtml(w.cin || '')}" placeholder="CIN رقم" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الولاية</label>
+            <select id="ew-wilaya" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              ${wilayaOptions}
+            </select>
+          </div>
+          <button onclick="App._saveEditWorker('${workerId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ تعديلات العامل
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => { document.getElementById('ew-name')?.focus(); }, 100);
+  },
+
+  async _saveEditWorker(workerId) {
+    const name = document.getElementById('ew-name')?.value?.trim();
+    if (!name) { this.showToast('اسم العامل مطلوب', 'error'); return; }
+    const spec = document.getElementById('ew-spec')?.value?.trim() || 'عامل متعدد';
+    const wage = parseFloat(document.getElementById('ew-wage')?.value) || 3500;
+    const phone = document.getElementById('ew-phone')?.value?.trim() || '';
+    const cin = document.getElementById('ew-cin')?.value?.trim() || '';
+    const wilayaRaw = document.getElementById('ew-wilaya')?.value?.trim() || 'عين الدفلى';
+    const wilaya = wilayaRaw.replace(/^\d+\s*-\s*/, '').split('(')[0].trim();
 
     await DB.update('workers', workerId, {
-      full_name: newName.trim(),
-      specialty: (newSpec || w.specialty).trim(),
-      daily_wage: newWage,
-      phone: newPhone.trim(),
-      wilaya: newWilaya.trim()
+      full_name: name,
+      specialty: spec,
+      daily_wage: wage,
+      phone,
+      cin,
+      wilaya
     });
 
+    document.getElementById('edit-worker-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تحديث بيانات العامل بنجاح!');
-    await this.renderCurrentView();
+    this.showToast('✓ تم تحديث بيانات العامل بنجاح!', 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   openWorkerPaymentModal(workerId) {
@@ -456,25 +1608,84 @@ const App = {
 
   // 4. Materials CRUD
   async openNewMaterialModal() {
-    const name = prompt('اسم المادة أو العتاد:');
-    if (!name) return;
-    const category = prompt('الفئة (plasterboard, electrical, painting, plumbing, general):', 'plasterboard');
-    const unit = prompt('الوحدة (piece, m2, m, kg, sac, litre):', 'piece');
-    const buyPrice = parseFloat(prompt('سعر الشراء الافتراضي (دج DZD):', '1000')) || 0;
-    const sellPrice = parseFloat(prompt('سعر البيع/التركيب الافتراضي (دج DZD):', '1400')) || buyPrice;
+    const existing = document.getElementById('new-material-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'new-material-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">📦</span><span style="font-weight:900;color:#fff;font-size:1rem;">إضافة مادة جديدة للكتالوج</span></div>
+          <button onclick="document.getElementById('new-material-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم المادة أو العتاد *</label>
+            <input id="nm-name" type="text" placeholder="مثال: بلاطة رخام 60×60، دهان أبيض، كيبل 2.5mm" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الفئة / التصنيف</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              ${[
+                {v:'plasterboard',l:'🧱 جبس وBA13'},
+                {v:'painting',l:'🎨 دهان وصباغة'},
+                {v:'electrical',l:'⚡ كهرباء'},
+                {v:'plumbing',l:'🔧 صرف وسباكة'},
+                {v:'tiling',l:'🪵 بلاط وأرضيات'},
+                {v:'general',l:'📦 عام'},
+              ].map(c => `<button type="button" onclick="document.querySelectorAll('.nm-cat-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='rgba(255,59,48,0.25)';document.getElementById('nm-cat').value='${c.v}'" class="nm-cat-btn" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${c.v==='plasterboard'?'rgba(255,59,48,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${c.l}</button>`).join('')}
+            </div>
+            <input id="nm-cat" type="hidden" value="plasterboard" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">وحدة القياس</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              ${['قطعة (piece)','م² (m2)','م طولي (ml)','كيلو (kg)','كيس (sac)','لتر (litre)','طقم (ens)','جملة (forfait)'].map((u,i) => {
+                const vals = ['piece','m2','ml','kg','sac','litre','ens','forfait'];
+                return `<button type="button" onclick="document.querySelectorAll('.nm-unit-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='rgba(59,130,246,0.25)';document.getElementById('nm-unit').value='${vals[i]}'" class="nm-unit-btn" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(59,130,246,0.15);background:${i===0?'rgba(59,130,246,0.25)':'#0f0f17'};color:#93c5fd;font-size:0.75rem;cursor:pointer;">${u}</button>`;
+              }).join('')}
+            </div>
+            <input id="nm-unit" type="hidden" value="piece" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الشراء الافتراضي (دج)</label>
+              <input id="nm-buy" type="number" value="1000" min="0" step="100" oninput="const b=parseFloat(this.value)||0;document.getElementById('nm-sell').value=Math.round(b*1.4)" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر البيع / التركيب (دج)</label>
+              <input id="nm-sell" type="number" value="1400" min="0" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <button onclick="App._saveNewMaterial()" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            ➕ إضافة المادة للكتالوج
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('nm-name')?.focus(), 100);
+  },
 
+  async _saveNewMaterial() {
+    const name = document.getElementById('nm-name')?.value?.trim();
+    if (!name) { this.showToast('اسم المادة مطلوب', 'error'); return; }
+    const category = document.getElementById('nm-cat')?.value || 'general';
+    const unit = document.getElementById('nm-unit')?.value || 'piece';
+    const buyPrice = parseFloat(document.getElementById('nm-buy')?.value) || 0;
+    const sellPrice = parseFloat(document.getElementById('nm-sell')?.value) || buyPrice;
     await DB.add('materials', {
-      name: name.trim(),
-      category: category.trim(),
-      unit: unit.trim(),
+      name, category, unit,
       default_purchase_price: buyPrice,
       default_selling_price: sellPrice,
       sku: 'MAT-' + Date.now().toString().slice(-4)
     });
-
-    alert(`✓ تم إضافة المادة "${name}" إلى دليل المواد بنجاح!`);
+    document.getElementById('new-material-sheet')?.remove();
     this.playClickSound();
-    await this.renderCurrentView();
+    this.showToast(`✓ تم إضافة "${name}" للكتالوج`, 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   async deleteMaterial(materialId) {
@@ -482,119 +1693,314 @@ const App = {
     const mName = m ? m.name : materialId;
     if (!confirm(`هل أنت متأكد من حذف المادة "${mName}" من الكتالوج؟`)) return;
     await DB.delete('materials', materialId);
-    alert('✓ تم حذف المادة بنجاح!');
+    this.showToast('✓ تم حذف المادة بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async deleteMaterialPurchase(purchaseId) {
     if (!confirm('هل أنت متأكد من إلغاء وحذف حركة شراء المادة هذه؟')) return;
     await DB.delete('material_purchases', purchaseId);
-    alert('✓ تم حذف حركة الشراء بنجاح!');
+    this.showToast('✓ تم حذف حركة الشراء بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   // 5. Expenses CRUD
   async deleteExpense(expenseId) {
     if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
     await DB.delete('expenses', expenseId);
-    alert('✓ تم حذف المصروف بنجاح!');
+    this.showToast('✓ تم حذف المصروف بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   // 6. Customer Payments CRUD
   async deleteCustomerPayment(paymentId) {
     if (!confirm('هل أنت متأكد من حذف سند الدفعة المالية هذه؟')) return;
     await DB.delete('customer_payments', paymentId);
-    alert('✓ تم حذف سند الدفعة وتحديث رصيد الصندوق بنجاح!');
+    this.showToast('✓ تم حذف سند الدفعة وتحديث رصيد الصندوق بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   // 7. Quotations & Invoices CRUD
   async deleteQuotation(quotationId) {
     if (!confirm('هل أنت متأكد من حذف هذا الكشف التقديري (Devis)؟')) return;
     await DB.delete('quotations', quotationId);
-    alert('✓ تم حذف الكشف التقديري بنجاح!');
+    this.showToast('✓ تم حذف الكشف التقديري بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async deleteInvoice(invoiceId) {
     if (!confirm('هل أنت متأكد من حذف هذه الفاتورة (Facture)؟')) return;
     await DB.delete('invoices', invoiceId);
-    alert('✓ تم حذف الفاتورة بنجاح!');
+    this.showToast('✓ تم حذف الفاتورة بنجاح!', 'success');
     this.playClickSound();
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   // 8. Activities & Work Items CRUD
   async openNewProjectActivityModal(projectId) {
     const proj = await DB.getById('projects', projectId);
     if (!proj) return;
-
     const catalog = await DB.getAll('activity_catalog');
-    const catalogOptions = catalog.map(c => `[${c.name} - ${c.unit} - ${c.default_price} دج]`).slice(0, 5).join('\n');
+    const categories = await DB.getAll('work_categories');
+    const catMap = {};
+    categories.forEach(c => { catMap[c.id] = c.name_ar || c.name || c.id; });
 
-    const name = prompt(`اسم بند العمل أو النشاط للورشة:\n(أمثلة شائعة من الكتالوج:\n${catalogOptions})`);
-    if (!name) return;
+    const existing = document.getElementById('new-activity-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'new-activity-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
 
-    const matched = catalog.find(c => c.name.trim().toLowerCase() === name.trim().toLowerCase());
-    const unit = prompt('وحدة القياس (m², ml, u, ens, forfait):', matched ? matched.unit : 'm²') || 'm²';
-    const price = parseFloat(prompt('سعر الوحدة المتفق عليه مع الزبون (دج DZD):', matched ? matched.default_price : '1500')) || 0;
-    const plannedQty = parseFloat(prompt('الكمية المخططة الإجمالية للعمل:', '50')) || 1;
-    const responsibility = prompt('مسؤولية توفير السلعة (company=على الشركة، customer=على الزبون):', 'company') || 'company';
-
-    await DB.add('project_activities', {
-      project_id: projectId,
-      name: name.trim(),
-      unit: unit.trim(),
-      unit_price: price,
-      planned_qty: plannedQty,
-      executed_qty: 0,
-      material_responsibility: responsibility.trim() === 'customer' ? 'customer' : 'company',
-      status: 'planned'
+    const catalogByCategory = {};
+    catalog.forEach(item => {
+      const cat = catMap[item.category_id] || 'أخرى';
+      if (!catalogByCategory[cat]) catalogByCategory[cat] = [];
+      catalogByCategory[cat].push(item);
     });
 
+    const catalogOptions = Object.entries(catalogByCategory).map(([catName, items]) => `
+      <optgroup label="${catName}">
+        ${items.map(item => `<option value="${this.escapeHtml(item.name)}" data-unit="${item.unit||'m²'}" data-price="${item.default_price||1500}">${this.escapeHtml(item.name)} — ${item.unit||'m²'} — ${(item.default_price||1500).toLocaleString('fr-FR')} دج</option>`).join('')}
+      </optgroup>
+    `).join('');
+
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">🔨</span><div><div style="font-weight:900;color:#fff;font-size:0.95rem;">إضافة بند عمل جديد</div><div style="font-size:0.7rem;color:#64748b;">ورشة: ${this.escapeHtml(proj.name)}</div></div></div>
+          <button onclick="document.getElementById('new-activity-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اختر من دليل الأنشطة (أو اكتب يدوياً أدناه)</label>
+            <select id="na-catalog-sel" onchange="App._onActivityCatalogSelect(this)" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.82rem;box-sizing:border-box;outline:none;">
+              <option value="">— اختر من الدليل —</option>
+              ${catalogOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم بند العمل *</label>
+            <input id="na-name" type="text" placeholder="مثال: أسقف جبسية BA13، دهان جدران، كهرباء عامة..." style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">وحدة القياس</label>
+              <select id="na-unit" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+                <option value="m²">م² (m²)</option>
+                <option value="ml">م طولي (ml)</option>
+                <option value="u">وحدة (u)</option>
+                <option value="ens">طقم (ens)</option>
+                <option value="forfait">جملة (forfait)</option>
+                <option value="kg">كيلو (kg)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الوحدة (دج)</label>
+              <input id="na-price" type="number" value="1500" min="0" step="100" oninput="App._calcActTotal()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المخططة الإجمالية</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+              ${[10,20,50,100,150,200].map(q=>`<button type="button" onclick="document.getElementById('na-qty').value=${q};App._calcActTotal()" style="padding:6px 11px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:#0f0f17;color:#94a3b8;font-size:0.75rem;cursor:pointer;">${q}</button>`).join('')}
+            </div>
+            <input id="na-qty" type="number" value="50" min="0" step="1" oninput="App._calcActTotal()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+          </div>
+          <div id="na-total-preview" style="background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:12px;padding:10px 14px;color:#fca5a5;font-weight:700;font-size:0.85rem;text-align:center;display:none;"></div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مسؤولية توفير السلعة</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="na-resp" value="company" checked style="display:none;" onchange="this.closest('label').querySelector('.na-resp-btn').style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.na-resp-btn').forEach((b,i)=>i>0&&(b.style.borderColor='rgba(255,255,255,0.1)'))">
+                <div class="na-resp-btn" style="background:#0f0f17;border:2px solid rgba(255,59,48,0.6);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🏢</div><div style="color:#fca5a5;font-weight:700;font-size:0.75rem;">على الشركة</div><div style="color:#64748b;font-size:0.65rem;">Fourni par nous</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="na-resp" value="customer" style="display:none;" onchange="this.closest('label').querySelector('.na-resp-btn').style.borderColor='rgba(59,130,246,0.6)';document.querySelectorAll('.na-resp-btn').forEach((b,i)=>i===0&&(b.style.borderColor='rgba(255,255,255,0.1)'))">
+                <div class="na-resp-btn" style="background:#0f0f17;border:2px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">👤</div><div style="color:#93c5fd;font-weight:700;font-size:0.75rem;">على الزبون</div><div style="color:#64748b;font-size:0.65rem;">Fourni par client</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <button onclick="App._saveNewActivity('${projectId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            ➕ إضافة بند العمل للورشة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('na-catalog-sel')?.focus(), 100);
+  },
+
+  _onActivityCatalogSelect(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    document.getElementById('na-name').value = opt.value;
+    const unit = opt.getAttribute('data-unit') || 'm²';
+    const price = opt.getAttribute('data-price') || '1500';
+    const unitSel = document.getElementById('na-unit');
+    if (unitSel) {
+      for (let o of unitSel.options) { if (o.value === unit) { o.selected = true; break; } }
+    }
+    document.getElementById('na-price').value = price;
+    this._calcActTotal();
+  },
+
+  _calcActTotal() {
+    const price = parseFloat(document.getElementById('na-price')?.value) || 0;
+    const qty = parseFloat(document.getElementById('na-qty')?.value) || 0;
+    const total = price * qty;
+    const preview = document.getElementById('na-total-preview');
+    if (preview) {
+      if (total > 0) {
+        preview.style.display = 'block';
+        preview.textContent = `💰 المبلغ التقديري: ${total.toLocaleString('fr-FR')} دج`;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+  },
+
+  async _saveNewActivity(projectId) {
+    const name = document.getElementById('na-name')?.value?.trim();
+    if (!name) { this.showToast('اسم بند العمل مطلوب', 'error'); return; }
+    const unit = document.getElementById('na-unit')?.value || 'm²';
+    const price = parseFloat(document.getElementById('na-price')?.value) || 0;
+    const qty = parseFloat(document.getElementById('na-qty')?.value) || 1;
+    const resp = document.querySelector('input[name="na-resp"]:checked')?.value || 'company';
+    await DB.add('project_activities', {
+      project_id: projectId,
+      name, unit,
+      unit_price: price,
+      planned_qty: qty,
+      executed_qty: 0,
+      material_responsibility: resp,
+      status: 'planned'
+    });
+    document.getElementById('new-activity-sheet')?.remove();
     this.playClickSound();
-    alert(`✓ تم إضافة بند العمل "${name}" للمشروع بنجاح!`);
+    this.showToast(`✓ تم إضافة "${name}" للورشة`, 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
-      await this.renderCurrentView();
+      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
     }
   },
 
   async editProjectActivity(activityId) {
     const act = await DB.getById('project_activities', activityId);
     if (!act) return;
+    const catalog = await DB.getAll('activity_catalog');
+    const existing = document.getElementById('edit-activity-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-activity-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
 
-    const newName = prompt('تعديل اسم بند العمل:', act.name);
-    if (!newName) return;
-    const newUnit = prompt('وحدة القياس (m², ml, u, ens, forfait):', act.unit || 'm²') || act.unit;
-    const newPrice = parseFloat(prompt('سعر الوحدة (دج DZD):', act.unit_price || 0)) || 0;
-    const newPlanned = parseFloat(prompt('الكمية المخططة الإجمالية:', act.planned_qty || 0)) || 0;
-    const newExec = parseFloat(prompt('الكمية المنجزة حتى الآن:', act.executed_qty || 0)) || 0;
-    const newResp = prompt('مسؤولية توفير المواد (company=الشركة / customer=الزبون):', act.material_responsibility || 'company') || 'company';
+    const pct = act.planned_qty > 0 ? Math.min(100, Math.round((act.executed_qty / act.planned_qty) * 100)) : 0;
+    const pctColor = pct >= 100 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#3b82f6';
 
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">✏️</span><span style="font-weight:900;color:#fff;font-size:0.95rem;">تعديل بند العمل</span></div>
+          <button onclick="document.getElementById('edit-activity-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:0.7rem;color:#64748b;margin-bottom:4px;">نسبة الإنجاز الحالية</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${pctColor};border-radius:3px;transition:width 0.5s;"></div>
+              </div>
+              <span style="color:${pctColor};font-weight:900;font-size:0.85rem;">${pct}%</span>
+            </div>
+            <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">${(act.executed_qty||0).toLocaleString('fr-FR')} / ${(act.planned_qty||0).toLocaleString('fr-FR')} ${act.unit||'م²'}</div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم بند العمل *</label>
+            <input id="ea-name" type="text" value="${this.escapeHtml(act.name||'')}" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">وحدة القياس</label>
+              <select id="ea-unit" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+                ${['m²','ml','u','ens','forfait','kg'].map(u=>`<option value="${u}" ${(act.unit||'m²')===u?'selected':''}>${u}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الوحدة (دج)</label>
+              <input id="ea-price" type="number" value="${act.unit_price||0}" min="0" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المخططة الإجمالية</label>
+              <input id="ea-planned" type="number" value="${act.planned_qty||0}" min="0" step="1" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الكمية المنجزة حتى الآن</label>
+              <input id="ea-exec" type="number" value="${act.executed_qty||0}" min="0" step="1" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مسؤولية توفير المواد</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="ea-resp" value="company" ${(act.material_responsibility||'company')==='company'?'checked':''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${(act.material_responsibility||'company')==='company'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:10px;text-align:center;cursor:pointer;" onclick="document.querySelectorAll('input[name=ea-resp]')[0].checked=true;this.style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.ea-resp-box')[1].style.borderColor='rgba(255,255,255,0.1)'" class="ea-resp-box">
+                  <div style="font-size:1.1rem;">🏢</div><div style="color:#fca5a5;font-weight:700;font-size:0.75rem;">على الشركة</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="ea-resp" value="customer" ${act.material_responsibility==='customer'?'checked':''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${act.material_responsibility==='customer'?'rgba(59,130,246,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:10px;text-align:center;cursor:pointer;" onclick="document.querySelectorAll('input[name=ea-resp]')[1].checked=true;this.style.borderColor='rgba(59,130,246,0.6)';document.querySelectorAll('.ea-resp-box')[0].style.borderColor='rgba(255,255,255,0.1)'" class="ea-resp-box">
+                  <div style="font-size:1.1rem;">👤</div><div style="color:#93c5fd;font-weight:700;font-size:0.75rem;">على الزبون</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <button onclick="App._saveEditActivity('${activityId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ تعديلات بند العمل
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
+
+  async _saveEditActivity(activityId) {
+    const name = document.getElementById('ea-name')?.value?.trim();
+    if (!name) { this.showToast('اسم بند العمل مطلوب', 'error'); return; }
+    const unit = document.getElementById('ea-unit')?.value || 'm²';
+    const price = parseFloat(document.getElementById('ea-price')?.value) || 0;
+    const planned = parseFloat(document.getElementById('ea-planned')?.value) || 0;
+    const exec = parseFloat(document.getElementById('ea-exec')?.value) || 0;
+    const resp = document.querySelector('input[name="ea-resp"]:checked')?.value || 'company';
     await DB.update('project_activities', activityId, {
-      name: newName.trim(),
-      unit: newUnit.trim(),
-      unit_price: newPrice,
-      planned_qty: newPlanned,
-      executed_qty: newExec,
-      material_responsibility: newResp.trim() === 'customer' ? 'customer' : 'company',
-      status: newExec >= newPlanned && newPlanned > 0 ? 'completed' : (newExec > 0 ? 'in_progress' : 'planned')
+      name, unit,
+      unit_price: price,
+      planned_qty: planned,
+      executed_qty: exec,
+      material_responsibility: resp,
+      status: exec >= planned && planned > 0 ? 'completed' : (exec > 0 ? 'in_progress' : 'planned')
     });
-
+    document.getElementById('edit-activity-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تعديل بيانات العمل بنجاح!');
+    this.showToast('✓ تم تعديل بند العمل بنجاح!', 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
-      await this.renderCurrentView();
+      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
     }
   },
 
@@ -604,55 +2010,507 @@ const App = {
     if (!confirm(`هل أنت متأكد من حذف العمل "${actName}" من هذا المشروع نهائياً؟`)) return;
     await DB.delete('project_activities', activityId);
     this.playClickSound();
-    alert('✓ تم حذف العمل من المشروع بنجاح!');
+    this.showToast('✓ تم حذف العمل من المشروع بنجاح!', 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
-      await this.renderCurrentView();
+      await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
     }
   },
 
-  async openNewCatalogActivityModal() {
-    const categories = await DB.getAll('work_categories');
-    const catList = categories.map((c, i) => `${i + 1}. ${c.name_ar}`).join('\n');
-    const catIdx = parseInt(prompt(`اختر رقم فئة النشاط:\n${catList}`, '1')) || 1;
-    const selectedCat = categories[catIdx - 1] || categories[0] || { id: 'CAT-001' };
 
-    const name = prompt('اسم النشاط / العمل الجديد للكتالوج المرجعي:');
-    if (!name) return;
-    const unit = prompt('وحدة القياس (m², ml, u, forfait):', 'm²') || 'm²';
-    const price = parseFloat(prompt('السعر المرجعي الافتراضي للوحدة (دج DZD):', '2500')) || 0;
+  // ============================================================
+  // WORK CATEGORIES & ACTIVITY CATALOG MANAGEMENT ENGINE
+  // (إدارة فئات الأشغال، إضافة وتعديل وحذف الأنشطة والأسماء)
+  // ============================================================
+  openNewWorkCategoryModal() {
+    this.playClickSound();
+    const modalHTML = `
+      <div id="category-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>🏷️</span>
+              <span>إضافة فئة أشغال جديدة (Nouvelle Catégorie)</span>
+            </h3>
+            <button onclick="document.getElementById('category-modal').remove()" class="text-slate-400 hover:text-white">✕</button>
+          </div>
 
-    await DB.add('activity_catalog', {
-      category_id: selectedCat.id,
-      name: name.trim(),
-      unit: unit.trim(),
-      default_price: price
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">اسم الفئة بالعربية (Désignation en Arabe):</label>
+              <input type="text" id="cat_name_ar" placeholder="مثال: أشغال النجارة والأبواب الخشبية" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-[#FF3B30]">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">اسم الفئة بالفرنسية (Nom en Français):</label>
+              <input type="text" id="cat_name_fr" placeholder="Ex: Menuiserie Bois & Portes" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-[#FF3B30]">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-400 mb-1">رمز الفئة (Code):</label>
+                <input type="text" id="cat_code" placeholder="Ex: WOOD" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white uppercase font-mono">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">الأيقونة / الرمز (Icône):</label>
+                <select id="cat_icon" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white">
+                  <option value="🏗️">🏗️ بناء وهيكل</option>
+                  <option value="📐">📐 بلاكو وقياسات</option>
+                  <option value="🎨">🎨 دهان وديكور</option>
+                  <option value="⚡">⚡ كهرباء وإنارة</option>
+                  <option value="🔧">🔧 سباكة وتدفئة</option>
+                  <option value="🚪">🚪 نجارة وأبواب</option>
+                  <option value="🛡️">🛡️ عزل وحماية</option>
+                  <option value="📡">📡 سمارت هوم وإنذار</option>
+                  <option value="🧱">🧱 ماصونري وترميم</option>
+                  <option value="🪟">🪟 ألمنيوم وزجاج</option>
+                  <option value="🛠️">🛠️ أشغال عامة</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button onclick="document.getElementById('category-modal').remove()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+              إلغاء
+            </button>
+            <button onclick="App.saveNewWorkCategory()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition">
+              حفظ الفئة الجديدة
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+  async saveNewWorkCategory() {
+    const nameAr = (document.getElementById('cat_name_ar').value || '').trim();
+    const nameFr = (document.getElementById('cat_name_fr').value || '').trim();
+    let code = (document.getElementById('cat_code').value || '').trim().toUpperCase();
+    const icon = document.getElementById('cat_icon').value || '🛠️';
+
+    if (!nameAr) {
+      alert('يرجى إدخال اسم الفئة بالعربية على الأقل.');
+      return;
+    }
+    if (!code) {
+      code = 'CAT-' + Date.now().toString(36).toUpperCase().slice(-4);
+    }
+
+    const newId = 'CAT-' + Date.now().toString(36);
+    await DB.add('work_categories', {
+      id: newId,
+      code: code,
+      name: nameAr,
+      name_ar: nameAr,
+      name_fr: nameFr || nameAr,
+      icon: icon
     });
 
+    const modal = document.getElementById('category-modal');
+    if (modal) modal.remove();
+
     this.playClickSound();
-    alert(`✓ تم إضافة النشاط "${name}" إلى كتالوج الأشغال المرجعي بنجاح!`);
-    await this.renderCurrentView();
+    alert(`✓ تم بنجاح إضافة فئة "${nameAr}" إلى دليل الأعمال!`);
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+  },
+
+  async editWorkCategory(categoryId) {
+    this.playClickSound();
+    const cat = await DB.getById('work_categories', categoryId);
+    if (!cat) return;
+
+    const modalHTML = `
+      <div id="category-edit-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>✏️</span>
+              <span>تعديل فئة الأشغال</span>
+            </h3>
+            <button onclick="document.getElementById('category-edit-modal').remove()" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">اسم الفئة بالعربية:</label>
+              <input type="text" id="edit_cat_name_ar" value="${cat.name_ar || cat.name || ''}" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-[#FF3B30]">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">اسم الفئة بالفرنسية:</label>
+              <input type="text" id="edit_cat_name_fr" value="${cat.name_fr || ''}" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white focus:border-[#FF3B30]">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-slate-400 mb-1">رمز الفئة (Code):</label>
+                <input type="text" id="edit_cat_code" value="${cat.code || ''}" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white uppercase font-mono">
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">الأيقونة:</label>
+                <input type="text" id="edit_cat_icon" value="${cat.icon || '🛠️'}" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white text-center text-lg">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button onclick="document.getElementById('category-edit-modal').remove()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+              إلغاء
+            </button>
+            <button onclick="App.saveEditWorkCategory('${categoryId}')" class="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-xs shadow-lg transition">
+              حفظ التعديلات
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+  async saveEditWorkCategory(categoryId) {
+    const nameAr = (document.getElementById('edit_cat_name_ar').value || '').trim();
+    const nameFr = (document.getElementById('edit_cat_name_fr').value || '').trim();
+    const code = (document.getElementById('edit_cat_code').value || '').trim().toUpperCase();
+    const icon = (document.getElementById('edit_cat_icon').value || '').trim() || '🛠️';
+
+    if (!nameAr) {
+      alert('يرجى إدخال اسم الفئة بالعربية.');
+      return;
+    }
+
+    await DB.update('work_categories', categoryId, {
+      name: nameAr,
+      name_ar: nameAr,
+      name_fr: nameFr || nameAr,
+      code: code,
+      icon: icon
+    });
+
+    const modal = document.getElementById('category-edit-modal');
+    if (modal) modal.remove();
+
+    this.playClickSound();
+    alert('✓ تم تعديل الفئة بنجاح!');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+  },
+
+  async deleteWorkCategory(categoryId) {
+    this.playClickSound();
+    const cat = await DB.getById('work_categories', categoryId);
+    if (!cat) return;
+    const catalog = await DB.getAll('activity_catalog');
+    const itemsCount = catalog.filter(a => String(a.category_id) === String(categoryId)).length;
+
+    const msg = itemsCount > 0 
+      ? `تحذير: الفئة "${cat.name_ar || cat.name}" تحتوي على ${itemsCount} بنود أنشطة مسجلة.\nهل أنت متأكد من حذف هذه الفئة بالكامل؟`
+      : `هل أنت متأكد من حذف الفئة "${cat.name_ar || cat.name}"؟`;
+
+    if (!confirm(msg)) return;
+
+    await DB.delete('work_categories', categoryId);
+    this.playClickSound();
+    alert('✓ تم حذف الفئة بنجاح!');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+  },
+
+  async openNewCatalogActivityModal(defaultCatId = null) {
+    this.playClickSound();
+    const categories = await DB.getAll('work_categories');
+    if (!categories || categories.length === 0) {
+      alert('يرجى إضافة فئة أشغال أولاً قبل إضافة الأنشطة.');
+      return;
+    }
+
+    const modalHTML = `
+      <div id="activity-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>📋</span>
+              <span>إضافة نشاط جديد مع تحديد سعر الخدمة والسلعة</span>
+            </h3>
+            <button onclick="document.getElementById('activity-modal').remove()" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">الفئة التابع لها (Catégorie):</label>
+              <select id="act_category_id" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white font-medium focus:border-[#FF3B30]">
+                ${categories.map(c => `
+                  <option value="${c.id}" ${c.id === defaultCatId ? 'selected' : ''}>
+                    ${c.icon || '●'} ${c.name_ar || c.name} (${c.name_fr || c.code})
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">اسم النشاط وبند العمل (Désignation de l'Activité):</label>
+              <input type="text" id="act_name" placeholder="مثال: سقف معلق بلاكو بلاتر BA13 كناوف مع الشاسي" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white font-bold focus:border-[#FF3B30]">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">وحدة القياس (Unité):</label>
+              <select id="act_unit" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white">
+                <option value="m²">متر مربع (m²)</option>
+                <option value="ml">متر طولي (ml)</option>
+                <option value="u">بالوحدة / القطعة (u)</option>
+                <option value="forfait">جزافي / فورفي (Forfait)</option>
+                <option value="point">نقطة كهرباء أو صحي (Point)</option>
+                <option value="m³">متر مكعب (m³)</option>
+                <option value="journée">يومية (Journée)</option>
+              </select>
+            </div>
+
+            <!-- Price Breakdown: Service (Labor) + Material (Goods) + Total -->
+            <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+              <span class="text-[11px] font-bold text-amber-300 block">💰 تسعير الوحدة (تفكيك سعر الخدمة والسلعة):</span>
+              
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-emerald-400 font-bold mb-1">سعر الخدمة (يد العمل دج):</label>
+                  <input type="number" id="act_labor_price" placeholder="مثال: 1200" min="0" step="50" oninput="App.calcCatalogPriceTotal('act_labor_price', 'act_material_price', 'act_price', 'act_price_helper')" class="w-full bg-[#16161C] border border-emerald-500/30 rounded-xl px-3 py-2 text-emerald-300 font-mono font-bold text-left focus:border-emerald-400">
+                  <span class="text-[9px] text-slate-500 mt-0.5 block">أجرة التركيب والتنفيذ</span>
+                </div>
+
+                <div>
+                  <label class="block text-cyan-400 font-bold mb-1">سعر السلعة (المواد دج):</label>
+                  <input type="number" id="act_material_price" placeholder="مثال: 1200" min="0" step="50" oninput="App.calcCatalogPriceTotal('act_labor_price', 'act_material_price', 'act_price', 'act_price_helper')" class="w-full bg-[#16161C] border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-300 font-mono font-bold text-left focus:border-cyan-400">
+                  <span class="text-[9px] text-slate-500 mt-0.5 block">تكلفة السلعة والمواد</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
+                <div class="flex-1">
+                  <label class="block text-slate-300 font-bold mb-0.5">المجموع الكلي للوحدة (خدمة + سلعة):</label>
+                  <input type="number" id="act_price" placeholder="2400" min="0" step="50" oninput="App.updateCentimesHelper(this.value, 'act_price_helper')" class="w-full bg-[#16161C] border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-mono font-black text-left text-sm focus:border-amber-400">
+                </div>
+                <div class="text-left pt-4">
+                  <span id="act_price_helper" class="text-xs text-amber-400 font-mono font-bold block">0 سنتيم</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">الوصف والمواصفات الفنية (Description technique):</label>
+              <textarea id="act_desc" rows="2" placeholder="المواصفات، نوع المواد المقترحة، طريقة التركيب..." class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white text-xs"></textarea>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button onclick="document.getElementById('activity-modal').remove()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+              إلغاء
+            </button>
+            <button onclick="App.saveNewCatalogActivity()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition">
+              حفظ النشاط بالكتالوج
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+
+  calcCatalogPriceTotal(laborInputId, materialInputId, totalInputId, helperId) {
+    const l = parseFloat(document.getElementById(laborInputId)?.value) || 0;
+    const m = parseFloat(document.getElementById(materialInputId)?.value) || 0;
+    const total = l + m;
+    const totalEl = document.getElementById(totalInputId);
+    if (totalEl) totalEl.value = total;
+    this.updateCentimesHelper(total, helperId);
+  },
+  updateCentimesHelper(val, targetId) {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    const num = parseFloat(val) || 0;
+    if (num <= 0) {
+      el.textContent = '0 سنتيم';
+      return;
+    }
+    const centimes = num * 10;
+    if (num >= 10000) {
+      el.textContent = '= ' + (num / 10000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' مليون سنتيم';
+    } else {
+      el.textContent = '= ' + (centimes / 1000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' ألف سنتيم';
+    }
+  },
+
+  async saveNewCatalogActivity() {
+    const categoryId = document.getElementById('act_category_id').value;
+    const name = (document.getElementById('act_name').value || '').trim();
+    const unit = document.getElementById('act_unit').value || 'm²';
+    const labor = parseFloat(document.getElementById('act_labor_price')?.value) || 0;
+    const material = parseFloat(document.getElementById('act_material_price')?.value) || 0;
+    const price = parseFloat(document.getElementById('act_price')?.value) || (labor + material);
+    const desc = (document.getElementById('act_desc').value || '').trim();
+
+    if (!name) {
+      alert('يرجى إدخال اسم النشاط أو العمل.');
+      return;
+    }
+
+    const newId = 'ACT-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5);
+    await DB.add('activity_catalog', {
+      id: newId,
+      category_id: categoryId,
+      name: name,
+      unit: unit,
+      default_labor_price: labor,
+      default_material_price: material,
+      default_unit_price: price,
+      default_price: price,
+      estimated_labor_cost: labor,
+      estimated_material_cost: material,
+      description: desc
+    });
+
+    const modal = document.getElementById('activity-modal');
+    if (modal) modal.remove();
+
+    this.playClickSound();
+    alert(`✓ تم بنجاح إضافة نشاط "${name}" إلى الدليل!`);
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async editCatalogActivity(activityId) {
+    this.playClickSound();
     const it = await DB.getById('activity_catalog', activityId);
     if (!it) return;
+    const categories = await DB.getAll('work_categories');
 
-    const newName = prompt('تعديل اسم النشاط في الكتالوج:', it.name);
-    if (!newName) return;
-    const newUnit = prompt('وحدة القياس (m², ml, u, forfait):', it.unit || 'm²') || it.unit;
-    const newPrice = parseFloat(prompt('السعر المرجعي الافتراضي (دج DZD):', it.default_price || 0)) || 0;
+    const curLabor = parseFloat(it.default_labor_price || it.estimated_labor_cost || 0);
+    const curMaterial = parseFloat(it.default_material_price || it.estimated_material_cost || 0);
+    const curPrice = parseFloat(it.default_unit_price || it.default_price || (curLabor + curMaterial));
+
+    const modalHTML = `
+      <div id="activity-edit-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>✏️</span>
+              <span>تعديل النشاط، مسمى العمل، وسعر الخدمة والسلعة</span>
+            </h3>
+            <button onclick="document.getElementById('activity-edit-modal').remove()" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">فئة النشاط (Changer de Catégorie):</label>
+              <select id="edit_act_category_id" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white font-medium focus:border-[#FF3B30]">
+                ${categories.map(c => `
+                  <option value="${c.id}" ${String(c.id) === String(it.category_id) ? 'selected' : ''}>
+                    ${c.icon || '●'} ${c.name_ar || c.name} (${c.name_fr || c.code})
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">اسم النشاط وبند العمل (Nom de l'Activité):</label>
+              <input type="text" id="edit_act_name" value="${this.escapeHtml(it.name || '')}" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2.5 text-white font-bold focus:border-[#FF3B30]">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">وحدة القياس (Unité):</label>
+              <select id="edit_act_unit" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white">
+                <option value="m²" ${it.unit === 'm²' ? 'selected' : ''}>متر مربع (m²)</option>
+                <option value="ml" ${it.unit === 'ml' ? 'selected' : ''}>متر طولي (ml)</option>
+                <option value="u" ${it.unit === 'u' ? 'selected' : ''}>بالوحدة / القطعة (u)</option>
+                <option value="forfait" ${it.unit === 'forfait' ? 'selected' : ''}>جزافي / فورفي (Forfait)</option>
+                <option value="point" ${it.unit === 'point' ? 'selected' : ''}>نقطة كهرباء أو صحي (Point)</option>
+                <option value="m³" ${it.unit === 'm³' ? 'selected' : ''}>متر مكعب (m³)</option>
+                <option value="journée" ${it.unit === 'journée' ? 'selected' : ''}>يومية (Journée)</option>
+              </select>
+            </div>
+
+            <!-- Price Breakdown: Service (Labor) + Material (Goods) + Total -->
+            <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+              <span class="text-[11px] font-bold text-amber-300 block">💰 تفكيك وتعديل الأسعار المرجعية:</span>
+              
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-emerald-400 font-bold mb-1">سعر الخدمة (يد العمل دج):</label>
+                  <input type="number" id="edit_act_labor_price" value="${curLabor}" min="0" step="50" oninput="App.calcCatalogPriceTotal('edit_act_labor_price', 'edit_act_material_price', 'edit_act_price', 'edit_act_price_helper')" class="w-full bg-[#16161C] border border-emerald-500/30 rounded-xl px-3 py-2 text-emerald-300 font-mono font-bold text-left focus:border-emerald-400">
+                  <span class="text-[9px] text-slate-500 mt-0.5 block">أجرة اليد العاملة</span>
+                </div>
+
+                <div>
+                  <label class="block text-cyan-400 font-bold mb-1">سعر السلعة (المواد دج):</label>
+                  <input type="number" id="edit_act_material_price" value="${curMaterial}" min="0" step="50" oninput="App.calcCatalogPriceTotal('edit_act_labor_price', 'edit_act_material_price', 'edit_act_price', 'edit_act_price_helper')" class="w-full bg-[#16161C] border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-300 font-mono font-bold text-left focus:border-cyan-400">
+                  <span class="text-[9px] text-slate-500 mt-0.5 block">تكلفة المواد والسلعة</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
+                <div class="flex-1">
+                  <label class="block text-slate-300 font-bold mb-0.5">المجموع الإجمالي للوحدة (خدمة + سلعة):</label>
+                  <input type="number" id="edit_act_price" value="${curPrice}" min="0" step="50" oninput="App.updateCentimesHelper(this.value, 'edit_act_price_helper')" class="w-full bg-[#16161C] border border-amber-500/40 rounded-xl px-3 py-2 text-amber-300 font-mono font-black text-left text-sm focus:border-amber-400">
+                </div>
+                <div class="text-left pt-4">
+                  <span id="edit_act_price_helper" class="text-xs text-amber-400 font-mono font-bold block">
+                    ${curPrice > 0 ? '= ' + (curPrice / 10000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' مليون سنتيم' : '0 سنتيم'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">المواصفات والوصف الفني:</label>
+              <textarea id="edit_act_desc" rows="2" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white text-xs">${it.description || ''}</textarea>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button onclick="document.getElementById('activity-edit-modal').remove()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+              إلغاء
+            </button>
+            <button onclick="App.saveEditCatalogActivity('${activityId}')" class="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold text-xs shadow-lg transition">
+              حفظ التعديلات
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+  async saveEditCatalogActivity(activityId) {
+    const categoryId = document.getElementById('edit_act_category_id').value;
+    const name = (document.getElementById('edit_act_name').value || '').trim();
+    const unit = document.getElementById('edit_act_unit').value || 'm²';
+    const labor = parseFloat(document.getElementById('edit_act_labor_price')?.value) || 0;
+    const material = parseFloat(document.getElementById('edit_act_material_price')?.value) || 0;
+    const price = parseFloat(document.getElementById('edit_act_price')?.value) || (labor + material);
+    const desc = (document.getElementById('edit_act_desc').value || '').trim();
+
+    if (!name) {
+      alert('يرجى إدخال اسم النشاط.');
+      return;
+    }
 
     await DB.update('activity_catalog', activityId, {
-      name: newName.trim(),
-      unit: newUnit.trim(),
-      default_price: newPrice
+      category_id: categoryId,
+      name: name,
+      unit: unit,
+      default_labor_price: labor,
+      default_material_price: material,
+      default_unit_price: price,
+      default_price: price,
+      estimated_labor_cost: labor,
+      estimated_material_cost: material,
+      description: desc
     });
 
+    const modal = document.getElementById('activity-edit-modal');
+    if (modal) modal.remove();
+
     this.playClickSound();
-    alert('✓ تم تحديث النشاط في الكتالوج بنجاح!');
-    await this.renderCurrentView();
+    alert('✓ تم تعديل النشاط بنجاح!');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async deleteCatalogActivity(activityId) {
@@ -662,7 +2520,7 @@ const App = {
     await DB.delete('activity_catalog', activityId);
     this.playClickSound();
     alert('✓ تم حذف النشاط من الكتالوج بنجاح!');
-    await this.renderCurrentView();
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   async getActivePartner() {
@@ -774,49 +2632,228 @@ const App = {
 
   async openPartnerWithdrawalModal() {
     const active = await this.getActivePartner();
-    const whoPrompt = prompt(`تسجيل سحب أرباح شخصية:\n1. الشريك 1 (أنا)\n2. الشريك 2 (الشريك)\n(الافتراضي: ${active.id === 'USR-001' ? '1' : '2'})`, active.id === 'USR-001' ? '1' : '2');
-    const partnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
+    const existing = document.getElementById('withdrawal-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'withdrawal-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">💰</span><span style="font-weight:900;color:#fff;font-size:1rem;">تسجيل سحب أرباح</span></div>
+          <button onclick="document.getElementById('withdrawal-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الشريك المستفيد من السحب</label>
+            <div style="display:flex;gap:8px;">
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="wd-partner" value="USR-001" ${active.id === 'USR-001' ? 'checked' : ''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${active.id==='USR-001'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;" class="wd-p-box" onclick="document.querySelectorAll('input[name=wd-partner]')[0].checked=true;document.querySelectorAll('.wd-p-box')[0].style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.wd-p-box')[1].style.borderColor='rgba(255,255,255,0.1)'">
+                  <div style="font-size:1.3rem;">👤</div><div style="color:#fca5a5;font-weight:800;font-size:0.85rem;margin-top:4px;">الشريك 1</div><div style="color:#64748b;font-size:0.65rem;">Associé 1 (Moi)</div>
+                </div>
+              </label>
+              <label style="flex:1;cursor:pointer;">
+                <input type="radio" name="wd-partner" value="USR-002" ${active.id === 'USR-002' ? 'checked' : ''} style="display:none;">
+                <div style="background:#0f0f17;border:2px solid ${active.id==='USR-002'?'rgba(255,59,48,0.6)':'rgba(255,255,255,0.1)'};border-radius:12px;padding:12px;text-align:center;cursor:pointer;" class="wd-p-box" onclick="document.querySelectorAll('input[name=wd-partner]')[1].checked=true;document.querySelectorAll('.wd-p-box')[1].style.borderColor='rgba(255,59,48,0.6)';document.querySelectorAll('.wd-p-box')[0].style.borderColor='rgba(255,255,255,0.1)'">
+                  <div style="font-size:1.3rem;">🤝</div><div style="color:#93c5fd;font-weight:800;font-size:0.85rem;margin-top:4px;">الشريك 2</div><div style="color:#64748b;font-size:0.65rem;">Associé 2</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مبلغ السحب (دج)</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;">
+              ${[10000,20000,30000,50000,100000,150000].map(a=>`<button type="button" onclick="document.querySelectorAll('.wd-amt-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(59,130,246,0.25)';document.getElementById('wd-amount').value=${a}" class="wd-amt-chip" style="padding:6px 12px;border-radius:20px;border:1px solid rgba(59,130,246,0.2);background:#0f0f17;color:#93c5fd;font-size:0.75rem;cursor:pointer;">${(a/1000).toLocaleString('fr-FR')}k دج</button>`).join('')}
+            </div>
+            <input id="wd-amount" type="number" value="50000" min="1000" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">ملاحظات</label>
+            <input id="wd-notes" type="text" value="سحب أرباح شخصية / Retrait de dividende" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <button onclick="App._saveWithdrawal()" style="width:100%;padding:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(37,99,235,0.35);">
+            💰 تسجيل السحب
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
+
+  async _saveWithdrawal() {
+    const partnerId = document.querySelector('input[name="wd-partner"]:checked')?.value || 'USR-001';
+    const amount = parseFloat(document.getElementById('wd-amount')?.value) || 0;
+    if (!amount || amount <= 0) { this.showToast('أدخل مبلغاً صحيحاً', 'error'); return; }
+    const notes = document.getElementById('wd-notes')?.value?.trim() || '';
     const partnerName = partnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-
-    const amountStr = prompt(`أدخل مبلغ سحب الأرباح لحساب ${partnerName} (دج DZD):`, '50000');
-    const amount = parseFloat(amountStr) || 0;
-    if (!amount || amount <= 0) return;
-
-    const notes = prompt('ملاحظات (مثال: سحب دفعة من أرباح ورشة فيلا الأندلس):', 'سحب أرباح شخصية / Retrait de dividende') || '';
-
-    await DB.add('partner_withdrawals', {
-      partner_id: partnerId,
-      amount,
-      date: App.getLocalDateString(),
-      notes: notes.trim()
-    });
-
-    alert(`✓ تم تسجيل سحب أرباح بقيمة ${amount.toLocaleString('fr-FR')} دج لـ ${partnerName} بنجاح!`);
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    }
+    await DB.add('partner_withdrawals', { partner_id: partnerId, amount, date: App.getLocalDateString(), notes });
+    document.getElementById('withdrawal-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ سحب ${amount.toLocaleString('fr-FR')} دج لـ ${partnerName}`, 'success');
+    if (this.currentView === 'wallets') await this.renderWalletsView();
   },
 
   async openEditProfitSharingModal() {
     const settings = (await DB.getAll('company_settings'))[0] || {};
     const curP1 = settings.partner1_share || 50;
-    const curP2 = settings.partner2_share || 50;
+    const curP2 = 100 - curP1;
+    const existing = document.getElementById('profit-share-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'profit-share-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">⚙️</span><span style="font-weight:900;color:#fff;font-size:1rem;">تعديل نسب تقاسم الأرباح</span></div>
+          <button onclick="document.getElementById('profit-share-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${[[50,50],[60,40],[70,30],[40,60],[30,70]].map(([p1,p2])=>`
+              <button type="button" onclick="document.getElementById('ps-p1').value=${p1};App._updateProfitPreview()" style="flex:1;min-width:80px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:${curP1===p1?'rgba(245,158,11,0.2)':'#0f0f17'};color:${curP1===p1?'#fbbf24':'#94a3b8'};font-weight:700;font-size:0.85rem;cursor:pointer;">
+                ${p1}% / ${p2}%
+              </button>
+            `).join('')}
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">حصة الشريك 1 (%) — سيُحسب حصة الشريك 2 تلقائياً</label>
+            <input id="ps-p1" type="number" value="${curP1}" min="1" max="99" step="1" oninput="App._updateProfitPreview()" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:1.1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div id="ps-preview" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:14px;display:flex;justify-content:space-around;text-align:center;">
+            <div><div style="font-size:1.8rem;font-weight:900;color:#fbbf24;">${curP1}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 1</div></div>
+            <div style="color:#334155;font-size:1.5rem;font-weight:300;align-self:center;">|</div>
+            <div><div style="font-size:1.8rem;font-weight:900;color:#60a5fa;">${curP2}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 2</div></div>
+          </div>
+          <button onclick="App._saveProfitSharing('${settings.id||''}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(245,158,11,0.3);">
+            💾 حفظ نسب التقاسم الجديدة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+  },
 
-    const p1Input = prompt(`أدخل النسبة المئوية لأرباح الشريك 1 (%):\n(الحالية: ${curP1}%)`, curP1);
-    if (p1Input === null) return;
-    const p1 = parseFloat(p1Input) || 50;
+  _updateProfitPreview() {
+    const p1 = Math.min(99, Math.max(1, parseFloat(document.getElementById('ps-p1')?.value) || 50));
     const p2 = 100 - p1;
+    const preview = document.getElementById('ps-preview');
+    if (preview) {
+      preview.innerHTML = `
+        <div><div style="font-size:1.8rem;font-weight:900;color:#fbbf24;">${p1}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 1</div></div>
+        <div style="color:#334155;font-size:1.5rem;font-weight:300;align-self:center;">|</div>
+        <div><div style="font-size:1.8rem;font-weight:900;color:#60a5fa;">${p2}%</div><div style="font-size:0.72rem;color:#64748b;">الشريك 2</div></div>
+      `;
+    }
+  },
 
-    settings.partner1_share = p1;
-    settings.partner2_share = p2;
-    await DB.update('company_settings', settings.id, {
-      partner1_share: p1,
-      partner2_share: p2
+  async _saveProfitSharing(settingsId) {
+    const p1 = Math.min(99, Math.max(1, parseFloat(document.getElementById('ps-p1')?.value) || 50));
+    const p2 = 100 - p1;
+    if (settingsId) {
+      await DB.update('company_settings', settingsId, { partner1_share: p1, partner2_share: p2 });
+    } else {
+      await DB.add('company_settings', { partner1_share: p1, partner2_share: p2 });
+    }
+    document.getElementById('profit-share-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ نسب التقاسم: ${p1}% / ${p2}%`, 'success');
+    if (this.currentView === 'wallets') await this.renderWalletsView();
+  },
+
+  // ============================================================
+  // CUSTOMER PAYMENT MODAL — قبض دفعة من زبون
+  // ============================================================
+  async openNewCustomerPaymentModal(projectId = null) {
+    const projects = await DB.getAll('projects');
+    const activeProjects = projects.filter(p => p.status !== 'completed');
+
+    const existing = document.getElementById('customer-payment-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'customer-payment-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+
+    const projectOptions = activeProjects.map(p =>
+      `<option value="${p.id}" ${String(p.id) === String(projectId) ? 'selected' : ''}>${this.escapeHtml(p.name)} — ${this.escapeHtml(p.client_name || '—')}</option>`
+    ).join('');
+
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">📥</span><span style="font-weight:900;color:#fff;font-size:1rem;">تسجيل دفعة واردة من زبون</span></div>
+          <button onclick="document.getElementById('customer-payment-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الورشة / المشروع *</label>
+            <select id="cp-project" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              <option value="">— اختر الورشة —</option>
+              ${projectOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">مبلغ الدفعة (دج) *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px;">
+              ${[10000,20000,30000,50000,100000,150000,200000,250000].map(a=>
+                `<button type="button" onclick="document.querySelectorAll('.cp-amt-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(16,185,129,0.25)';document.getElementById('cp-amount').value=${a}" class="cp-amt-chip" style="padding:6px 11px;border-radius:20px;border:1px solid rgba(16,185,129,0.2);background:#0f0f17;color:#34d399;font-size:0.75rem;cursor:pointer;">${(a>=1000?a/1000+'k':a).toLocaleString('fr-FR')} دج</button>`
+              ).join('')}
+            </div>
+            <input id="cp-amount" type="number" value="" min="0" step="1000" placeholder="أدخل المبلغ بالدينار الجزائري" style="width:100%;background:#0f0f17;border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;font-weight:700;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">طريقة الدفع</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;">
+              ${[
+                {v:'cash',l:'💵 نقداً',c:'rgba(16,185,129,0.25)'},
+                {v:'check',l:'🏦 شيك',c:'rgba(59,130,246,0.25)'},
+                {v:'transfer',l:'📱 تحويل',c:'rgba(139,92,246,0.25)'},
+                {v:'ccp',l:'📮 CCP',c:'rgba(245,158,11,0.25)'},
+              ].map(m=>`<button type="button" onclick="document.querySelectorAll('.cp-pay-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='${m.c}';document.getElementById('cp-method').value='${m.v}'" class="cp-pay-btn" style="padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${m.v==='cash'?'rgba(16,185,129,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${m.l}</button>`).join('')}
+            </div>
+            <input id="cp-method" type="hidden" value="cash" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">ملاحظات / مرجع الدفعة</label>
+            <input id="cp-notes" type="text" placeholder="مثال: الدفعة الأولى — مرجع شيك رقم 123456" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <button onclick="App._saveCustomerPayment()" style="width:100%;padding:14px;background:linear-gradient(135deg,#059669,#047857);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(5,150,105,0.35);">
+            ✓ تأكيد قبض الدفعة
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('cp-amount')?.focus(), 150);
+  },
+
+  async _saveCustomerPayment() {
+    const projectId = document.getElementById('cp-project')?.value;
+    if (!projectId) { this.showToast('اختر الورشة أولاً', 'error'); return; }
+    const amount = parseFloat(document.getElementById('cp-amount')?.value) || 0;
+    if (!amount || amount <= 0) { this.showToast('أدخل مبلغاً صحيحاً', 'error'); return; }
+    const method = document.getElementById('cp-method')?.value || 'cash';
+    const notes = document.getElementById('cp-notes')?.value?.trim() || '';
+    const proj = await DB.getById('projects', projectId);
+
+    await DB.add('customer_payments', {
+      project_id: projectId,
+      client_name: proj?.client_name || '',
+      amount,
+      payment_method: method,
+      date: App.getLocalDateString(),
+      notes,
+      receipt_ref: 'RCP-' + Date.now().toString().slice(-6)
     });
-
-    alert(`✓ تم تحديث آلية تقاسم الأرباح بنجاح:\n- الشريك 1: ${p1}%\n- الشريك 2: ${p2}%`);
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
+    document.getElementById('customer-payment-sheet')?.remove();
+    this.playClickSound();
+    this.showToast(`✓ تم قبض ${amount.toLocaleString('fr-FR')} دج`, 'success');
+    if (this.currentView === 'project_workspace' || this.currentView === 'wallets') {
+      await this.renderCurrentView();
     }
   },
 
@@ -1215,24 +3252,24 @@ const App = {
   },
 
   toggleLanguage() {
-    const html = document.documentElement;
-    const currentLang = html.getAttribute('lang') || 'ar';
-    const nextLang = currentLang === 'ar' ? 'fr' : 'ar';
-    html.setAttribute('lang', nextLang);
-    html.setAttribute('dir', nextLang === 'ar' ? 'rtl' : 'ltr');
-    localStorage.setItem('dari_lang', nextLang);
+    const nextLang = (typeof I18N !== 'undefined' && I18N.currentLang === 'ar') ? 'fr' : 'ar';
+    if (typeof I18N !== 'undefined') {
+      I18N.setLang(nextLang);
+    } else {
+      document.documentElement.setAttribute('lang', nextLang);
+      document.documentElement.setAttribute('dir', nextLang === 'ar' ? 'rtl' : 'ltr');
+      if (document.body) document.body.setAttribute('dir', nextLang === 'ar' ? 'rtl' : 'ltr');
+      localStorage.setItem('dari_lang', nextLang);
+    }
 
-    // Update UI language elements
     this.applyLanguageToUI(nextLang);
-    this.showToast(nextLang === 'ar' ? '✓ تم تحويل الواجهة إلى العربية (RTL)' : '✓ Interface basculée en Français (LTR)', 'success');
-    this.renderCurrentView();
+    this.showToast(nextLang === 'ar' ? 'تم التحويل إلى اللغة العربية (RTL)' : 'Interface basculée en Français (LTR)', 'success');
+    this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   applyLanguageToUI(lang) {
-    const isFr = lang === 'fr';
-    const btn = document.getElementById('lang-toggle-btn');
-    if (btn) {
-      btn.innerHTML = isFr ? '<span class="text-xs font-black text-blue-400">FR</span>' : '<span class="text-xs font-black text-emerald-400">عربي</span>';
+    if (typeof I18N !== 'undefined') {
+      I18N.updateStaticUI();
     }
   },
 
@@ -1243,7 +3280,10 @@ const App = {
 
   setRoleFilter(role, btn) {
     this.playClickSound();
+    // role filter pills now map to status values directly (all, in_progress, completed, planning, on_hold)
+    // also covers worker craft types (électricien, plaquiste, etc.) and quotation statuses (approved, pending, sent)
     this.cockpitFilterRole = role;
+    this.cockpitFilterStatus = (role === 'all') ? 'all' : role; // sync status filter as well for project views
     if (btn && btn.parentElement) {
       btn.parentElement.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
@@ -1267,24 +3307,30 @@ const App = {
     const q = this.cockpitSearchQuery;
     const role = this.cockpitFilterRole;
     const status = this.cockpitFilterStatus;
-    const verification = this.cockpitFilterVerification;
     const wilaya = this.cockpitFilterWilaya;
 
     const rows = document.querySelectorAll('#cockpit-table-body tr');
     rows.forEach(tr => {
       const rowText = tr.textContent.toLowerCase();
-      const rowRole = (tr.dataset.role || '').toLowerCase();
       const rowStatus = (tr.dataset.status || '').toLowerCase();
-      const rowVerif = (tr.dataset.verification || '').toLowerCase();
+      const rowRole = (tr.dataset.role || rowStatus).toLowerCase(); // role falls back to status
       const rowWilaya = (tr.dataset.wilaya || '').toLowerCase();
 
       let matchSearch = !q || rowText.includes(q);
-      let matchRole = (role === 'all') || (rowRole === role.toLowerCase());
+      // If role filter is a status value, match against row status; otherwise match data-role attribute
+      const statusValues = ['in_progress', 'completed', 'planning', 'on_hold', 'draft', 'cancelled'];
+      let matchRole;
+      if (role === 'all') {
+        matchRole = true;
+      } else if (statusValues.includes(role)) {
+        matchRole = rowStatus === role;
+      } else {
+        matchRole = rowRole === role.toLowerCase();
+      }
       let matchStatus = (status === 'all') || (rowStatus === status.toLowerCase());
-      let matchVerif = (verification === 'all') || (rowVerif === verification.toLowerCase());
       let matchWilaya = (wilaya === 'all') || rowWilaya.includes(wilaya.toLowerCase());
 
-      if (matchSearch && matchRole && matchStatus && matchVerif && matchWilaya) {
+      if (matchSearch && matchRole && matchStatus && matchWilaya) {
         tr.style.display = '';
       } else {
         tr.style.display = 'none';
@@ -1292,8 +3338,344 @@ const App = {
     });
   },
 
-  async navigate(viewName, projectId = null) {
+  
+  // ═══════════════════════════════════════════════════════════
+  // HASH ROUTING & DYNAMIC BREADCRUMBS ENGINE
+  // ═══════════════════════════════════════════════════════════
+
+  routes: {
+    '#/dashboard': { view: 'dashboard' },
+    '#/projects': { view: 'projects' },
+    '#/building-structure': { view: 'building_structure' },
+    '#/activities': { view: 'activities' },
+    '#/daily-checkin': { view: 'daily_checkin' },
+    '#/workers': { view: 'workers' },
+    '#/quotations': { view: 'quotations_invoices' },
+    '#/scenarios': { view: 'test_scenarios' },
+    '#/wallets': { view: 'wallets' },
+    '#/finances': { view: 'finances' },
+    '#/materials': { view: 'materials' },
+    '#/expenses': { view: 'expenses' },
+    '#/reports': { view: 'reports' },
+    '#/settings': { view: 'settings' }
+  },
+
+  viewToRoute(view, id = null) {
+    if (view === 'project_workspace' && id) return '#/projects/' + id;
+    const map = {
+      dashboard: '#/dashboard',
+      projects: '#/projects',
+      building_structure: '#/building-structure',
+      activities: '#/activities',
+      daily_checkin: '#/daily-checkin',
+      workers: '#/workers',
+      quotations_invoices: '#/quotations',
+      test_scenarios: '#/scenarios',
+      wallets: '#/wallets',
+      finances: '#/finances',
+      materials: '#/materials',
+      expenses: '#/expenses',
+      reports: '#/reports',
+      new_project: '#/new-project',
+      new_worker: '#/new-worker',
+      new_room: '#/new-room',
+      new_expense: '#/new-expense',
+      settings: '#/settings'
+    };
+    return map[view] || '#/' + view;
+  },
+
+  handleHashChange() {
+    const hash = (typeof window !== 'undefined' && window.location.hash) || '#/dashboard';
+
+    // 1. Check workspace pattern: #/projects/:id
+    const projMatch = hash.match(/^#\/projects\/([a-zA-Z0-9_\-]+)$/);
+    if (projMatch) {
+      const projId = projMatch[1];
+      this.navigate('project_workspace', projId, false);
+      return;
+    }
+
+    // 2. Direct route match
+    for (const [route, config] of Object.entries(this.routes)) {
+      if (hash === route || hash === route + '/') {
+        this.navigate(config.view, null, false);
+        return;
+      }
+    }
+
+    // 3. Fallback: normalize raw view names
+    const cleanView = hash.replace(/^#\/?/, '').replace(/-/g, '_');
+    const directMap = {
+      dashboard: 'dashboard',
+      projects: 'projects',
+      building_structure: 'building_structure',
+      activities: 'activities',
+      daily_checkin: 'daily_checkin',
+      workers: 'workers',
+      quotations: 'quotations_invoices',
+      quotations_invoices: 'quotations_invoices',
+      scenarios: 'test_scenarios',
+      test_scenarios: 'test_scenarios',
+      wallets: 'wallets',
+      finances: 'finances',
+      materials: 'materials',
+      expenses: 'expenses',
+      reports: 'reports',
+      new_project: 'new_project',
+      new_worker: 'new_worker',
+      new_room: 'new_room',
+      new_expense: 'new_expense',
+      settings: 'settings'
+    };
+
+    if (cleanView && directMap[cleanView]) {
+      this.navigate(directMap[cleanView], null, false);
+      return;
+    }
+
+    // Default route
+    this.navigate('dashboard', null, false);
+  },
+
+  async updateHeaderBreadcrumbs() {
+    const container = document.getElementById('header-breadcrumbs-text');
+    if (!container) return;
+
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
+    const isRtl = !isFr;
+    const arrow = isRtl ? '‹' : '›';
+    const view = this.currentView;
+
+    const meta = {
+      dashboard: {
+        icon: '📊',
+        hub: isFr ? 'Vue d\'ensemble' : 'لوحة القيادة',
+        title: isFr ? 'Tableau de bord principal' : 'لوحة التحكم والرقابة',
+        sub: isFr ? 'Cockpit opérationnel en temps réel' : 'متابعة المشاريع والرقابة الميدانية الحية'
+      },
+      projects: {
+        icon: '🏗️',
+        hub: isFr ? 'Chantiers' : 'المشاريع والعمليات',
+        title: isFr ? 'Tous les chantiers' : 'سجل الورشات والمشاريع',
+        sub: isFr ? 'Liste complète des projets et suivi des travaux' : 'سجل وتسيير كافة مشاريع وورشات المؤسسة'
+      },
+      project_workspace: {
+        icon: '📁',
+        hub: isFr ? 'Chantiers' : 'الورشات',
+        title: isFr ? 'Fiche Chantier' : 'ملف الورشة',
+        sub: isFr ? 'Espace de travail opérationnel' : 'مساحة العمل والمتابعة الميدانية'
+      },
+      building_structure: {
+        icon: '📐',
+        hub: isFr ? 'Chantiers' : 'المشاريع والعمليات',
+        title: isFr ? 'Bâtiments & Mesures' : 'الهيكل، الغرف والقياسات',
+        sub: isFr ? 'Plans, métrés et surfaces' : 'حساب المساحات والمتر المربع لكل غرفة'
+      },
+      activities: {
+        icon: '📋',
+        hub: isFr ? 'Chantiers' : 'المشاريع والعمليات',
+        title: isFr ? 'Catalogue Travaux' : 'دليل بنود وأنشطة الأشغال',
+        sub: isFr ? 'Corps d\'état, prestations & tarifs' : 'بنود البناء، الدهان، البلاكو، والكهرباء'
+      },
+      daily_checkin: {
+        icon: '⏱️',
+        hub: isFr ? 'RH & Paie' : 'الموارد البشرية',
+        title: isFr ? 'Pointage Journalier' : 'تسجيل الحضور واليوميات',
+        sub: isFr ? 'Présences, avances et paie du jour' : 'التحضير السريع وتسبيقات أجور العمال'
+      },
+      workers: {
+        icon: '👥',
+        hub: isFr ? 'RH & Paie' : 'الموارد البشرية',
+        title: isFr ? 'Équipe & Salaires' : 'سجل العمال واليوميات',
+        sub: isFr ? 'Gestion des ouvriers & paie' : 'إدارة العمال واليوميات والأجور المستحقة'
+      },
+      quotations_invoices: {
+        icon: '📑',
+        hub: isFr ? 'Commerce & Devis' : 'التسعير والفوترة',
+        title: isFr ? 'Devis & Factures' : 'عروض الأسعار والفواتير',
+        sub: isFr ? 'Documents commerciaux & factures clients' : 'إعداد الديفيس الرسمي والفواتير للزبائن'
+      },
+      test_scenarios: {
+        icon: '🎯',
+        hub: isFr ? 'Commerce & Devis' : 'التسعير والفوترة',
+        title: isFr ? 'Scénarios Tarifaires (A,B,C,D)' : 'النماذج التجارية والتسعير',
+        sub: isFr ? 'Simulation de rentabilité & coefficients' : 'اختبار نسب الربحية ونماذج التسعير'
+      },
+      wallets: {
+        icon: '💰',
+        hub: isFr ? 'Finances & Caisse' : 'المالية والخزينة',
+        title: isFr ? 'Caisse & Bénéfices' : 'صندوق الشركة وتقاسم الأرباح',
+        sub: isFr ? 'Trésorerie générale & répartition associés' : 'حساب الأرباح الصافية وحصص الشركاء'
+      },
+      finances: {
+        icon: '📈',
+        hub: isFr ? 'Finances & Caisse' : 'المالية والخزينة',
+        title: isFr ? 'Finances & Rentabilité' : 'المركز المالي والأرباح الحقيقية',
+        sub: isFr ? 'Bilans financiers et marges réelles' : 'مقارنة المداخيل والتكاليف وصافي العائد'
+      },
+      materials: {
+        icon: '🧱',
+        hub: isFr ? 'Finances & Caisse' : 'المخزون والموردين',
+        title: isFr ? 'Matériaux & Fournisseurs' : 'المواد والمخزون والموردين',
+        sub: isFr ? 'Approvisionnement & alertes rupture' : 'فواتير السلع والمواد المستهلكة في الورشات'
+      },
+      expenses: {
+        icon: '🧾',
+        hub: isFr ? 'Finances & Caisse' : 'المالية والخزينة',
+        title: isFr ? 'Dépenses & Caisses' : 'المصاريف والعهد النثرية',
+        sub: isFr ? 'Frais généraux & petite caisse' : 'تسجيل المصاريف اليومية والوقود والنثريات'
+      },
+      reports: {
+        icon: '🖨️',
+        hub: isFr ? 'Système' : 'النظام والتقارير',
+        title: isFr ? 'Rapports & Impressions A4' : 'التقارير الشاملة والطباعة A4',
+        sub: isFr ? 'Bilans imprimables & exports documents' : 'تصدير التقارير الرسمية وكشوف الحسابات'
+      },
+      new_project: {
+        icon: '🏗️',
+        hub: isFr ? 'Chantiers' : 'الورشات',
+        title: isFr ? 'Nouveau Chantier (Assistant)' : 'إنشاء ورشة جديدة (مساعد ذكي)',
+        sub: isFr ? 'Création rapide et liaison catalogue travaux' : 'واجهة مسرعة لتحديد بنود الأشغال والنموذج التجاري'
+      },
+      new_worker: {
+        icon: '👷',
+        hub: isFr ? 'RH & Paie' : 'الموارد البشرية',
+        title: isFr ? 'Nouvel Ouvrier' : 'تسجيل عامل جديد',
+        sub: isFr ? 'Sélection rapide des métiers et salaires' : 'إضافة عامل وتعيينه في الورشة ودفتر اليوميات'
+      },
+      new_room: {
+        icon: '📐',
+        hub: isFr ? 'Chantiers' : 'الورشات',
+        title: isFr ? 'Métrés & Pièce' : 'مساعد قياسات الغرف',
+        sub: isFr ? 'Calcul automatique surfaces et déductions' : 'حساب تلقائي للمساحات وخصومات الأبواب والنوافذ'
+      },
+      new_expense: {
+        icon: '🧾',
+        hub: isFr ? 'Finances' : 'المالية',
+        title: isFr ? 'Nouvelle Dépense' : 'تسجيل مصروف جديد',
+        sub: isFr ? 'Frais de chantier et imputation partenaire' : 'تسجيل مصاريف الورشة وتحديث دفاتر الشركاء'
+      },
+      settings: {
+        icon: '⚙️',
+        hub: isFr ? 'Système' : 'النظام والإعدادات',
+        title: isFr ? 'Paramètres & Entreprise' : 'إعدادات المؤسسة والسحابة',
+        sub: isFr ? 'Configuration système & coordonnées' : 'بيانات المؤسسة والربط السحابي'
+      }
+    };
+
+    const currentMeta = meta[view] || meta['dashboard'];
+
+    // Dynamic project breadcrumb if inside project workspace
+    let projectBreadcrumb = '';
+    if (view === 'project_workspace' && this.activeProjectId) {
+      try {
+        const p = await DB.get('projects', this.activeProjectId);
+        if (p) {
+          projectBreadcrumb = `
+            <span class="text-slate-600">${arrow}</span>
+            <span class="text-[#FF3B30] font-bold truncate max-w-[120px] sm:max-w-[200px]">${this.escapeHtml(p.name || this.activeProjectId)}</span>
+          `;
+        }
+      } catch (e) {}
+    }
+
+    container.innerHTML = `
+      <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+        <a href="javascript:void(0)" onclick="App.navigate('dashboard')" class="font-black text-xs sm:text-sm tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 leading-tight hover:opacity-80 transition shrink-0">
+          DARI LUXE
+        </a>
+        <span class="text-slate-600 text-xs shrink-0">${arrow}</span>
+        <h1 class="text-xs sm:text-sm font-black text-white flex items-center gap-1 min-w-0 truncate">
+          <span class="shrink-0">${currentMeta.icon}</span>
+          <span class="truncate">${currentMeta.title}</span>
+        </h1>
+        ${projectBreadcrumb}
+      </div>
+      <p class="text-[10px] text-slate-500 hidden sm:block truncate max-w-md mt-0.5">
+        ${currentMeta.sub}
+      </p>
+    `;
+  },
+
+  renderHubTabs(currentView) {
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
+
+    const hubs = [
+      {
+        id: 'chantiers',
+        views: ['projects', 'building_structure', 'activities'],
+        tabs: [
+          { view: 'projects', icon: '🏗️', label: isFr ? 'Tous les Chantiers' : 'سجل الورشات والمشاريع' },
+          { view: 'building_structure', icon: '📐', label: isFr ? 'Bâtiments & Mesures' : 'الهيكل والقياسات' },
+          { view: 'activities', icon: '📋', label: isFr ? 'Catalogue Travaux' : 'دليل بنود الأشغال' },
+        ]
+      },
+      {
+        id: 'rh',
+        views: ['daily_checkin', 'workers'],
+        tabs: [
+          { view: 'daily_checkin', icon: '⏱️', label: isFr ? 'Pointage Journalier' : 'الحضور اليومي السريع' },
+          { view: 'workers', icon: '👥', label: isFr ? 'Équipe & Salaires' : 'سجل العمال والأجور' },
+        ]
+      },
+      {
+        id: 'devis',
+        views: ['quotations_invoices', 'test_scenarios'],
+        tabs: [
+          { view: 'quotations_invoices', icon: '📑', label: isFr ? 'Devis & Factures' : 'عروض الأسعار والفواتير' },
+          { view: 'test_scenarios', icon: '🎯', label: isFr ? 'Scénarios (A,B,C,D)' : 'نماذج التسعير والربح' },
+        ]
+      },
+      {
+        id: 'finances',
+        views: ['wallets', 'finances', 'materials', 'expenses'],
+        tabs: [
+          { view: 'wallets', icon: '💰', label: isFr ? 'Caisse & Bénéfices' : 'صندوق الشركة والأرباح' },
+          { view: 'finances', icon: '📈', label: isFr ? 'Finances & Rentabilité' : 'المركز المالي' },
+          { view: 'materials', icon: '🧱', label: isFr ? 'Matériaux & Stock' : 'المواد والمخزون' },
+          { view: 'expenses', icon: '🧾', label: isFr ? 'Dépenses & Caisses' : 'المصاريف والنثريات' },
+        ]
+      }
+    ];
+
+    const activeHub = hubs.find(h => h.views.includes(currentView));
+    if (!activeHub) return '';
+
+    return `
+      <div class="hub-tabs-container">
+        ${activeHub.tabs.map(tab => {
+          const isActive = tab.view === currentView;
+          return `
+            <button onclick="App.navigate('${tab.view}')" class="hub-tab-btn ${isActive ? 'active' : ''}">
+              <span>${tab.icon}</span>
+              <span>${tab.label}</span>
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  injectHubTabs(container, view) {
+    const tabsHtml = this.renderHubTabs(view);
+    if (!tabsHtml || !container) return;
+    container.insertAdjacentHTML('afterbegin', tabsHtml);
+  },
+
+  async navigate(viewName, projectId = null, updateHash = true) {
     this.currentView = viewName;
+    if (projectId) {
+      this.activeProjectId = projectId;
+    }
+
+    // Sync URL hash for browser history & bookmarking
+    if (updateHash && typeof window !== 'undefined') {
+      const targetHash = this.viewToRoute(viewName, projectId);
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    }
 
     // Sync mobile bottom navigation bar active state
     document.querySelectorAll('[data-mobile-nav]').forEach(el => {
@@ -1308,18 +3690,12 @@ const App = {
       }
     });
 
-    // Close mobile sidebar if open
+    if (typeof closeMobileSidebar === "function") closeMobileSidebar();
     const sidebar = document.getElementById('main-sidebar');
     const backdrop = document.getElementById('mobile-sidebar-backdrop');
-    if (sidebar && !sidebar.classList.contains('translate-x-full')) {
-      sidebar.classList.add('translate-x-full');
-      if (backdrop) backdrop.classList.add('hidden');
-    }
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.add('hidden');
 
-    if (projectId) {
-      this.activeProjectId = projectId;
-    }
-    
     // Update active sidebar nav link
     document.querySelectorAll('.nav-link').forEach(link => {
       if (link.dataset.view === viewName) {
@@ -1329,7 +3705,10 @@ const App = {
       }
     });
 
-    await this.renderCurrentView();
+    // Update dynamic header breadcrumb
+    await this.updateHeaderBreadcrumbs();
+
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
   switchProjectTab(tabName) {
@@ -1356,12 +3735,49 @@ const App = {
     this.renderActiveProjectTabContent();
   },
 
+  
+  // Update mobile bottom nav active state
+  updateMobileNavState(view) {
+    const mapping = {
+      dashboard: 'mob-nav-dashboard',
+      projects: 'mob-nav-projects',
+      building_structure: 'mob-nav-projects',
+      activities: 'mob-nav-projects',
+      daily_checkin: 'mob-nav-checkin',
+      expenses: 'mob-nav-expenses',
+      finances: 'mob-nav-expenses',
+      wallets: 'mob-nav-expenses',
+      materials: 'mob-nav-expenses',
+    };
+
+    // Reset all
+    document.querySelectorAll('.mobile-nav-item').forEach(el => el.classList.remove('active'));
+
+    const targetId = mapping[view] || null;
+    if (targetId) {
+      const el = document.getElementById(targetId);
+      if (el) el.classList.add('active');
+    }
+
+    // Update mob i18n text
+    document.querySelectorAll('[data-mob-i18n]').forEach(el => {
+      const key = el.getAttribute('data-mob-i18n');
+      if (typeof I18N !== 'undefined' && I18N.t) {
+        const val = I18N.t(key);
+        if (val) el.textContent = val;
+      }
+    });
+  },
+
   async renderCurrentView() {
     const mainContainer = document.getElementById('main-content-view');
     if (!mainContainer) return;
 
     // Scroll to top
     mainContainer.scrollTop = 0;
+
+    // Update breadcrumbs in header
+    await this.updateHeaderBreadcrumbs();
 
     try {
       switch (this.currentView) {
@@ -1370,39 +3786,62 @@ const App = {
           break;
         case 'daily_checkin':
           await DailyCheckin.renderView(mainContainer);
+          this.injectHubTabs(mainContainer, 'daily_checkin');
           break;
         case 'projects':
           await this.renderProjectsView(mainContainer);
+          this.injectHubTabs(mainContainer, 'projects');
           break;
         case 'project_workspace':
           await this.renderProjectWorkspaceView(mainContainer);
           break;
         case 'building_structure':
           await this.renderBuildingStructureView(mainContainer);
+          this.injectHubTabs(mainContainer, 'building_structure');
           break;
         case 'activities':
           await this.renderActivitiesView(mainContainer);
+          this.injectHubTabs(mainContainer, 'activities');
           break;
         case 'workers':
           await this.renderWorkersView(mainContainer);
+          this.injectHubTabs(mainContainer, 'workers');
           break;
         case 'materials':
           await this.renderMaterialsView(mainContainer);
+          this.injectHubTabs(mainContainer, 'materials');
           break;
         case 'expenses':
           await this.renderExpensesView(mainContainer);
+          this.injectHubTabs(mainContainer, 'expenses');
           break;
         case 'wallets':
           await this.renderWalletsView(mainContainer);
+          this.injectHubTabs(mainContainer, 'wallets');
           break;
         case 'finances':
           await this.renderFinancesView(mainContainer);
+          this.injectHubTabs(mainContainer, 'finances');
           break;
         case 'quotations_invoices':
           await this.renderQuotationsInvoicesView(mainContainer);
+          this.injectHubTabs(mainContainer, 'quotations_invoices');
           break;
         case 'test_scenarios':
           await this.renderTestScenariosView(mainContainer);
+          this.injectHubTabs(mainContainer, 'test_scenarios');
+          break;
+        case 'new_project':
+          await this.renderNewProjectView(mainContainer);
+          break;
+        case 'new_worker':
+          await this.renderNewWorkerView(mainContainer);
+          break;
+        case 'new_room':
+          await this.renderNewRoomView(mainContainer);
+          break;
+        case 'new_expense':
+          await this.renderNewExpenseView(mainContainer);
           break;
         case 'reports':
           await this.renderReportsView(mainContainer);
@@ -1452,7 +3891,7 @@ const App = {
   },
 
   // 1. Dashboard View
-  async renderDashboardView(container) {
+    async renderDashboardView(container) {
     const projects = await DB.getAll('projects');
     const workers = await DB.getAll('workers');
     const attendances = await DB.getAll('worker_attendance');
@@ -1462,222 +3901,222 @@ const App = {
     const activities = await DB.getAll('project_activities');
     const quotations = await DB.getAll('quotations');
 
-    const totalProjects = Math.max(projects.length, 11);
-    const activeProjects = projects.filter(p => p.status === 'in_progress').length || 8;
-    const completedProjects = projects.filter(p => p.status === 'completed').length || 2;
-    const pendingProjects = projects.filter(p => p.status === 'planning' || p.status === 'approved').length || 1;
-    const verifiedCount = quotations.filter(q => q.status === 'approved').length || 5;
-    const latePaymentsCount = 0;
+    // 100% Real DB stats (no fake mock numbers)
+    const totalProjects = projects.length;
+    const activeProjects = projects.filter(p => p.status === 'in_progress').length;
+    const completedProjects = projects.filter(p => p.status === 'completed').length;
+    const pendingProjects = projects.filter(p => p.status === 'planning' || p.status === 'on_hold' || p.status === 'draft').length;
+    const activeWorkers = workers.filter(w => w.status !== 'inactive').length;
 
     // Today attendance
     const todayStr = App.getLocalDateString();
     const todayAttendances = attendances.filter(a => a.date === todayStr);
-    const todayPresentWorkersCount = todayAttendances.filter(a => (a.multiplier || 0) > 0).length || 7;
+    const todayPresentWorkersCount = todayAttendances.filter(a => (a.multiplier || 0) > 0).length;
 
     const cockpitRowsHTML = this.renderCockpitTableRows(projects, activities);
+    const mobileCardsHTML = this.renderMobileProjectCards(projects, activities);
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
 
     container.innerHTML = `
       <div class="space-y-5">
         
         <!-- Search bar with ⌘K badge -->
         <div class="relative w-full">
-          <input type="text" id="cockpit-search-input" oninput="App.filterCockpitTable(this.value)" placeholder="🔍 Recherche — Nom, tél, ID chantier, wilaya, rôle..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] pl-10 pr-12 shadow-inner">
-          <span class="absolute right-3.5 top-3 kbd-shortcut">⌘K</span>
+          <input type="text" id="cockpit-search-input" oninput="App.filterCockpitTable(this.value)" placeholder="${t('search_placeholder')}" class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] ${isFr ? 'pl-4 pr-12' : 'pr-4 pl-12'} shadow-inner">
+          <span class="absolute ${isFr ? 'right-3.5' : 'left-3.5'} top-3 kbd-shortcut">⌘K</span>
         </div>
 
-        <!-- Elevated Subheader Card (Cockpit d'identité et annuaire des chantiers) -->
+        <!-- Cockpit Header Banner -->
         <div class="kpi-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5 shadow-xl">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 text-xl font-bold shadow-inner">
-              🏗️
+              <svg class="w-6 h-6 text-[#FF3B30]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+              </svg>
             </div>
             <div>
-              <div class="flex items-center gap-3 flex-wrap">
-                <h2 class="text-base sm:text-lg font-black text-white">Cockpit d'identité et annuaire des utilisateurs & chantiers</h2>
-                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5">
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-black text-white">${t('hero_title')}</h2>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold flex items-center gap-1">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>Radar chantiers connecté</span>
+                  ${t('hero_badge')}
                 </span>
               </div>
-              <p class="text-xs text-slate-400 mt-1 font-medium">
-                <span class="text-white font-bold">${totalProjects}</span> utilisateurs & chantiers enregistrés • 
-                <span class="text-emerald-400 font-bold">${activeProjects}</span> comptes actifs • 
-                <span class="text-amber-400 font-bold">${pendingProjects}</span> en attente de vérification
+              <p class="text-xs text-slate-400 max-w-2xl mt-1 leading-relaxed">
+                ${t('hero_desc')}
               </p>
             </div>
           </div>
-          <div class="flex items-center gap-2.5 flex-wrap">
-            <button onclick="App.openNewProjectModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-1.5 border border-red-400/30">
-              <span>+</span>
-              <span>Nouveau Chantier / إضافة ورشة</span>
-            </button>
-            <button onclick="App.openNewWorkerModal()" class="px-3.5 py-2 rounded-xl bg-[#16161C] hover:bg-[#1E1E26] text-amber-400 border border-white/10 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-              <span>👷</span>
-              <span>+ إضافة عامل</span>
-            </button>
-            <button onclick="App.renderCurrentView()" class="px-3 py-2 rounded-xl bg-[#16161C] hover:bg-[#1E1E26] text-slate-200 hover:text-white border border-white/10 text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-              <span>🔄</span>
-              <span>Actualiser</span>
+          <button onclick="App.openNewProjectModal()" class="w-full md:w-auto px-4 py-2.5 rounded-xl bg-[#FF3B30] hover:bg-[#E0352B] text-white font-extrabold text-xs shadow-lg shadow-red-950/40 flex items-center justify-center gap-2 transition transform active:scale-95 whitespace-nowrap">
+            <span>${t('hero_btn')}</span>
+          </button>
+        </div>
+
+        <!-- 6 Live Metric / KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full">
+          <div class="kpi-card metric-box-blue p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_total_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-extrabold shrink-0">TOTAL</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-white font-mono">${totalProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_total_projects_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-green p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_active_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold shrink-0">ACTIVE</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-emerald-400 font-mono">${activeProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_active_projects_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-purple p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_pending_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-extrabold shrink-0">ÉTUDE</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-purple-400 font-mono">${pendingProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_pending_projects_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-cyan p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_completed_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-extrabold shrink-0">FIN</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-cyan-400 font-mono">${completedProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_completed_projects_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-amber p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_active_workers')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold shrink-0">ÉQUIPE</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-amber-400 font-mono">${activeWorkers}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_active_workers_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-red p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_today_attendance')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-extrabold shrink-0">AUJOURD'HUI</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-red-400 font-mono">${todayPresentWorkersCount}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_today_attendance_sub')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 Executive Charts: Real DB Data ONLY -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <!-- Budget Allocation Component (Redesigned & Multi-Mode) -->
+          <div id="budget-allocation-component-container" class="kpi-card p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+            <!-- Dynamically populated by updateBudgetAllocationComponent() -->
+          </div>
+
+          <!-- Monthly Operational Costs Chart -->
+          <div class="kpi-card p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-xs font-black text-white">${isFr ? 'Dépenses & Coûts Mensuels' : 'المصاريف والتكاليف الشهرية'}</h3>
+                <p class="text-[10px] text-slate-400">${isFr ? 'Historique réel des sorties de caisse' : 'سجل التدفقات المالية والمصاريف'}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold">${isFr ? '6 Mois' : '6 أشهر'}</span>
+            </div>
+            <div id="chart-monthly-costs-container" class="relative h-44 w-full flex items-center justify-center">
+              <canvas id="chart-monthly-costs"></canvas>
+            </div>
+          </div>
+
+          <!-- Progress Trends Chart -->
+          <div class="kpi-card p-4 rounded-2xl border border-white/5 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <h3 class="text-xs font-black text-white">${isFr ? 'Avancement des Chantiers' : 'نسب تقدم الورشات'}</h3>
+                <p class="text-[10px] text-slate-400">${isFr ? 'Taux d\'achèvement des travaux en cours' : 'معدل إنجاز الأشغال في الميدان'}</p>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">${isFr ? 'En cours' : 'ميداني'}</span>
+            </div>
+            <div id="chart-progress-trends-container" class="relative h-44 w-full flex items-center justify-center">
+              <canvas id="chart-progress-trends"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cockpit Filter Tags Strip -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs w-full max-w-full">
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="App.setCockpitFilterStatus('all')" class="filter-pill ${this.cockpitFilterStatus === 'all' ? 'active' : ''}">${t('filter_all')}</button>
+            <button onclick="App.setCockpitFilterStatus('in_progress')" class="filter-pill ${this.cockpitFilterStatus === 'in_progress' ? 'active' : ''}">${t('filter_in_progress')}</button>
+            <button onclick="App.setCockpitFilterStatus('planning')" class="filter-pill ${this.cockpitFilterStatus === 'planning' ? 'active' : ''}">${t('filter_planning')}</button>
+            <button onclick="App.setCockpitFilterStatus('completed')" class="filter-pill ${this.cockpitFilterStatus === 'completed' ? 'active' : ''}">${t('filter_completed')}</button>
+            <button onclick="App.setCockpitFilterStatus('on_hold')" class="filter-pill ${this.cockpitFilterStatus === 'on_hold' ? 'active' : ''}">${t('filter_on_hold')}</button>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <select onchange="App.setCockpitFilterWilaya(this.value)" class="bg-[#16161C] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:border-[#FF3B30] outline-none">
+              <option value="all">${t('filter_by_wilaya')} (${t('filter_all')})</option>
+              <option value="44 - Aïn Defla">44 - Aïn Defla</option>
+              <option value="16 - Alger">16 - Alger</option>
+              <option value="09 - Blida">09 - Blida</option>
+              <option value="42 - Tipaza">42 - Tipaza</option>
+              <option value="26 - Médéa">26 - Médéa</option>
+              <option value="31 - Oran">31 - Oran</option>
+            </select>
+            <button onclick="App.toggleCockpitSort()" class="px-3 py-1.5 rounded-xl bg-[#16161C] border border-white/10 hover:border-white/20 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition">
+              <span>⇅</span>
+              <span>${this.cockpitFilterSort === 'recent' ? t('filter_sort_recent') : t('filter_sort_name')}</span>
             </button>
           </div>
         </div>
 
-        <!-- The 6 Colorful KPI Metric Cards (Exact match to reference screenshot) -->
-        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
-          
-          <!-- Card 1: Blue [TOTAL] -->
-          <div class="kpi-card metric-box-blue p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-blue-400 text-xs font-bold">
-                <span>👥</span>
-                <span>Total inscrits</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-wider">TOTAL</span>
+        <!-- Cockpit Primary Data Table -->
+        <div class="kpi-card rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+          <div class="px-4 sm:px-5 py-4 border-b border-white/5 flex items-center justify-between bg-[#0E0E12]">
+            <div class="flex items-center gap-2.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-[#FF3B30]"></span>
+              <h3 class="text-xs sm:text-sm font-black text-white">${t('table_title')}</h3>
+              <span class="text-xs text-slate-500 font-mono">(${projects.length})</span>
             </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">${totalProjects}</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Tous les rôles</span>
-          </div>
-
-          <!-- Card 2: Green [ACTIVE] -->
-          <div class="kpi-card metric-box-green p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                <span>🟢</span>
-                <span>Comptes actifs</span>
-              </div>
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
-            </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">${activeProjects}</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Tous privilèges</span>
-          </div>
-
-          <!-- Card 3: Cyan [VERIFIED] -->
-          <div class="kpi-card metric-box-cyan p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-cyan-400 text-xs font-bold">
-                <span>🛡️</span>
-                <span>Officiellement vérifiés</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-400 text-[9px] font-black uppercase tracking-wider">VERIFIED</span>
-            </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">${verifiedCount}</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Documents approuvés</span>
-          </div>
-
-          <!-- Card 4: Amber [REVIEW] -->
-          <div class="kpi-card metric-box-amber p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
-                <span>⏳</span>
-                <span>En attente d'examen</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-wider">REVIEW</span>
-            </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">${pendingProjects}</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Exige vérification</span>
-          </div>
-
-          <!-- Card 5: Red [BLOCKED] -->
-          <div class="kpi-card metric-box-red p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-red-400 text-xs font-bold">
-                <span>🚫</span>
-                <span>Comptes suspendus</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 text-[9px] font-black uppercase tracking-wider">BLOCKED</span>
-            </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">${latePaymentsCount}</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Désactivés par décision admin</span>
-          </div>
-
-          <!-- Card 6: Purple [LIMITED / POINTAGE] -->
-          <div class="kpi-card metric-box-purple p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-purple-400 text-xs font-bold">
-                <span>🔒</span>
-                <span>Sous restrictions</span>
-              </div>
-              <span class="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[9px] font-black uppercase tracking-wider">LIMITED</span>
-            </div>
-            <div class="my-2.5">
-              <span class="text-2xl sm:text-3xl font-black text-white">0</span>
-            </div>
-            <span class="text-[10px] text-slate-400 font-medium">Restrictions partielles</span>
-          </div>
-
-        </div>
-
-        <!-- Search & Filter Controls (Exact match to reference screenshot) -->
-        <div class="space-y-3">
-          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            <div class="relative flex-1">
-              <input type="text" id="cockpit-table-search" oninput="App.filterCockpitTable(this.value)" placeholder="🔍 Rechercher par nom, tél, email ou ID..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] shadow-inner">
-            </div>
-            <div class="flex items-center gap-2 overflow-x-auto pb-1">
-              <button onclick="App.setRoleFilter('all', this)" class="filter-pill active">Tous les rôles</button>
-              <button onclick="App.setRoleFilter('transporteur', this)" class="filter-pill">Transporteurs</button>
-              <button onclick="App.setRoleFilter('expéditeur', this)" class="filter-pill">Expéditeurs</button>
-              <button onclick="App.setRoleFilter('administrateur', this)" class="filter-pill">Administrateurs</button>
+            <div class="flex items-center gap-2 text-xs">
+              <button onclick="App.exportProjectsCSV()" class="px-3 py-1.5 rounded-lg bg-[#16161C] hover:bg-slate-800 text-slate-300 font-semibold border border-white/5 flex items-center gap-1.5 transition">
+                <span>📥</span>
+                <span class="hidden sm:inline">${t('export')} CSV</span>
+              </button>
+              <button onclick="App.openNewProjectModal()" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1.5 transition">
+                <span>+</span>
+                <span>${t('hero_btn')}</span>
+              </button>
             </div>
           </div>
-
-          <!-- Dropdowns Row -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <select onchange="App.handleFilterChange('status', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Tous les statuts de compte</option>
-              <option value="in_progress">Actif</option>
-              <option value="completed">Terminé / Vérifié</option>
-              <option value="on_hold">En attente / Suspendu</option>
-            </select>
-            <select onchange="App.handleFilterChange('verification', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Tous les statuts de vérification</option>
-              <option value="verified">Vérifié</option>
-              <option value="pending">Non vérifié</option>
-            </select>
-            <select onchange="App.handleFilterChange('wilaya', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Toutes les wilayas</option>
-              <option value="عين الدفلى">عين الدفلى (Ain Defla)</option>
-              <option value="بجاية">بجاية (Béjaïa)</option>
-              <option value="الشلف">الشلف (Chlef)</option>
-              <option value="الجزائر">الجزائر (Alger)</option>
-              <option value="البليدة">البليدة (Blida)</option>
-              <option value="وهران">وهران (Oran)</option>
-              <option value="تيبازة">تيبازة (Tipaza)</option>
-              <option value="المدية">المدية (Médéa)</option>
-            </select>
-            <select onchange="App.handleFilterChange('sort', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="recent">Plus récents</option>
-              <option value="alpha">Ordre alphabétique</option>
-              <option value="rating_desc">Meilleure évaluation ★</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Cockpit Data Table (Exact match to reference screenshot) -->
-        <div class="kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-          <div class="overflow-x-auto">
-            <table class="erp-table">
+          <!-- Desktop Table View -->
+          <div class="hidden md:block overflow-x-auto">
+            <table class="erp-table ${isFr ? 'text-left' : 'text-right'}">
               <thead>
                 <tr>
-                  <th class="text-right">Utilisateur / Chantier</th>
-                  <th class="text-right">Contact</th>
-                  <th class="text-right">Rôle / Modèle</th>
-                  <th class="text-right">Wilaya</th>
-                  <th class="text-center">Statut du compte</th>
-                  <th class="text-center">Vérification</th>
-                  <th class="text-center">Trajets / Activités</th>
-                  <th class="text-center">Évaluation</th>
-                  <th class="text-center">Actions</th>
+                  <th class="w-10 text-center">#</th>
+                  <th>${t('table_col_code')}</th>
+                  <th>${t('table_col_project')}</th>
+                  <th>${t('table_col_location')}</th>
+                  <th>${t('table_col_start_date')}</th>
+                  <th>${t('table_col_status')}</th>
+                  <th>${t('table_col_actions')}</th>
                 </tr>
               </thead>
               <tbody id="cockpit-table-body">
@@ -1685,55 +4124,11 @@ const App = {
               </tbody>
             </table>
           </div>
+          <!-- Mobile Cards View for Phones -->
+          <div class="md:hidden p-3 space-y-3">
+            ${mobileCardsHTML}
+          </div>
         </div>
-
-        <!-- Analytics & Performance Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 pt-2">
-          
-          <!-- Chart 1: Coûts des projets par mois -->
-          <div class="kpi-card p-5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
-              <div>
-                <h3 class="text-sm font-bold text-white">Coûts des chantiers par mois (DA)</h3>
-                <p class="text-[10px] text-slate-400">تكاليف ومصاريف الورشات شهرياً بالدينار</p>
-              </div>
-              <button class="text-slate-500 hover:text-white p-1 rounded-lg">•••</button>
-            </div>
-            <div class="h-60 relative w-full">
-              <canvas id="chart-monthly-costs"></canvas>
-            </div>
-          </div>
-
-          <!-- Chart 2: Répartition du budget par type de projet -->
-          <div class="kpi-card p-5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
-              <div>
-                <h3 class="text-sm font-bold text-white">Répartition du budget par type</h3>
-                <p class="text-[10px] text-slate-400">توزيع الميزانية حسب صنف الأشغال والمنشآت</p>
-              </div>
-              <button class="text-slate-500 hover:text-white p-1 rounded-lg">•••</button>
-            </div>
-            <div class="h-60 relative w-full flex items-center justify-center">
-              <canvas id="chart-budget-allocation"></canvas>
-            </div>
-          </div>
-
-          <!-- Chart 3: Avancement des chantiers dans le temps -->
-          <div class="kpi-card p-5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-2">
-              <div>
-                <h3 class="text-sm font-bold text-white">Avancement des chantiers (dans le temps)</h3>
-                <p class="text-[10px] text-slate-400">منحنى تقدم الإنجاز لكل ورشة عبر الزمن (%)</p>
-              </div>
-              <button class="text-slate-500 hover:text-white p-1 rounded-lg">•••</button>
-            </div>
-            <div class="h-60 relative w-full">
-              <canvas id="chart-progress-trends"></canvas>
-            </div>
-          </div>
-
-        </div>
-
       </div>
     `;
 
@@ -1743,241 +4138,718 @@ const App = {
     }, 50);
   },
 
-  renderCockpitTableRows(projects, activities) {
-    // Exact seed data matching the reference screenshot + DB projects
-    const defaultCockpitItems = [
-      {
-        id: 'PRJ-MIDOUN',
-        db_id: 'a9063fc7',
-        name: 'Midoun',
-        sub_id: 'ID: #a9063fc7 • feria124101995@gmail.com',
-        avatar_letter: 'M',
-        avatar_color: 'avatar-red',
-        contact: '0799070080',
-        role_label: 'Expéditeur',
-        role_badge: 'badge-role-blue',
-        role_type: 'expéditeur',
-        wilaya: 'عين الدفلى',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: false,
-        verification_label: 'Non vérifié',
-        trajets: 0,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-SAMSAR04',
-        db_id: 'e717104b',
-        name: 'samsar04',
-        sub_id: 'ID: #e717104b • nexload.dz04@gmail.com',
-        avatar_letter: 'S',
-        avatar_color: 'avatar-red',
-        contact: '0552525236',
-        role_label: 'Transporteur',
-        role_badge: 'badge-role-amber',
-        role_type: 'transporteur',
-        wilaya: 'بجاية',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: false,
-        verification_label: 'Non vérifié',
-        trajets: 0,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-SAMSAR03',
-        db_id: '3c655f53',
-        name: 'samsar03',
-        sub_id: 'ID: #3c655f53 • nexload.dz03@gmail.com',
-        avatar_letter: 'S',
-        avatar_color: 'avatar-red',
-        contact: '0552525231',
-        role_label: 'Transporteur',
-        role_badge: 'badge-role-amber',
-        role_type: 'transporteur',
-        wilaya: 'الشلف',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: false,
-        verification_label: 'Non vérifié',
-        trajets: 0,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-VILLA-SIDILAKHDER',
-        db_id: 'd91a204e',
-        name: 'Villa Moderne - Sidi Lakhder',
-        sub_id: 'ID: #d91a204e • dariluxe.net@gmail.com',
-        avatar_letter: 'D',
-        avatar_color: 'avatar-emerald',
-        contact: '0550600909',
-        role_label: 'Rénovation & Décoration',
-        role_badge: 'badge-role-blue',
-        role_type: 'expéditeur',
-        wilaya: 'عين الدفلى',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: true,
-        verification_label: 'Vérifié',
-        trajets: 14,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-ACI-HYDRA',
-        db_id: 'f820c71a',
-        name: 'Duplex Résidence ACI (Hydra)',
-        sub_id: 'ID: #f820c71a • client.hydra@gmail.com',
-        avatar_letter: 'A',
-        avatar_color: 'avatar-purple',
-        contact: '0550600909',
-        role_label: 'Placoplatre & Électricité',
-        role_badge: 'badge-role-purple',
-        role_type: 'administrateur',
-        wilaya: 'الجزائر',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: true,
-        verification_label: 'Vérifié',
-        trajets: 22,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-COMMERCIAL-ORAN',
-        db_id: 'b550d321',
-        name: 'Centre Commercial Sikasso (Oran)',
-        sub_id: 'ID: #b550d321 • contact.oran@gmail.com',
-        avatar_letter: 'C',
-        avatar_color: 'avatar-cyan',
-        contact: '0770112233',
-        role_label: 'Rénovation Complète',
-        role_badge: 'badge-role-blue',
-        role_type: 'expéditeur',
-        wilaya: 'وهران',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: true,
-        verification_label: 'Vérifié',
-        trajets: 18,
-        rating: '5.0'
-      },
-      {
-        id: 'PRJ-BLIDA-FINITION',
-        db_id: 'c441a990',
-        name: 'Appartement F4 Centre Ville Blida',
-        sub_id: 'ID: #c441a990 • blida.deco@gmail.com',
-        avatar_letter: 'B',
-        avatar_color: 'avatar-amber',
-        contact: '0661223344',
-        role_label: 'Peinture & Finition',
-        role_badge: 'badge-role-amber',
-        role_type: 'transporteur',
-        wilaya: 'البليدة',
-        status: 'in_progress',
-        status_label: 'Actif',
-        is_verified: true,
-        verification_label: 'Vérifié',
-        trajets: 9,
-        rating: '5.0'
-      }
-    ];
+  
+  renderMobileProjectCards(projects, activities) {
+    if (!projects || projects.length === 0) {
+      return `
+        <div class="mobile-card text-center p-8 space-y-3">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl">
+            🏗️
+          </div>
+          <h4 class="font-bold text-white text-sm">لا توجد ورشات مسجلة حالياً</h4>
+          <p class="text-xs text-slate-400">ابدأ بإنشاء أول ورشة لمتابعة الأعمال ونسب الإنجاز.</p>
+          <button onclick="App.openNewProjectModal()" class="w-full py-2.5 rounded-xl bg-[#FF3B30] text-white font-bold text-xs shadow-lg">
+            + إنشاء ورشة جديدة
+          </button>
+        </div>
+      `;
+    }
 
-    let items = [...defaultCockpitItems];
-    if (projects && projects.length > 0) {
-      projects.forEach(p => {
-        if (!items.find(i => i.id === p.id || i.name === p.name)) {
-          const actCount = (activities || []).filter(a => a.project_id === p.id).length;
-          const letter = (p.name || 'P').trim()[0].toUpperCase();
-          items.unshift({
-            id: p.id,
-            db_id: p.id.slice(0, 8),
-            name: p.name,
-            sub_id: `ID: #${p.ref || p.id} • ${p.client_email || 'client@dariluxe.net'}`,
-            avatar_letter: letter,
-            avatar_color: letter === 'M' || letter === 'S' ? 'avatar-red' : (letter === 'A' ? 'avatar-purple' : 'avatar-blue'),
-            contact: p.client_phone || '0550 60 09 09',
-            role_label: p.project_type || 'Rénovation & Déco',
-            role_badge: 'badge-role-blue',
-            role_type: 'expéditeur',
-            wilaya: p.wilaya || (p.address && p.address.includes('عين الدفلى') ? 'عين الدفلى' : (p.address && p.address.includes('الجزائر') ? 'الجزائر' : 'عين الدفلى')),
-            status: p.status || 'in_progress',
-            status_label: p.status === 'completed' ? 'Terminé' : (p.status === 'on_hold' ? 'Suspendu' : 'Actif'),
-            is_verified: p.status === 'completed' || p.status === 'in_progress',
-            verification_label: p.status === 'completed' || p.status === 'in_progress' ? 'Vérifié' : 'Non vérifié',
-            trajets: actCount || 5,
-            rating: '5.0'
-          });
+    return projects.map(p => {
+      const actCount = (activities || []).filter(a => a.project_id === p.id).length;
+      const letter = ((p.name || 'P').trim()[0] || 'P').toUpperCase();
+      const status = p.status || 'in_progress';
+      
+      let statusLabel = 'قيد الإنجاز';
+      let statusBadgeClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
+      if (status === 'completed') {
+        statusLabel = 'مكتمل';
+        statusBadgeClass = 'text-blue-400 bg-blue-500/10 border-blue-500/30';
+      } else if (status === 'on_hold') {
+        statusLabel = 'معلق';
+        statusBadgeClass = 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+      } else if (status === 'planning') {
+        statusLabel = 'قيد الدراسة';
+        statusBadgeClass = 'text-purple-400 bg-purple-500/10 border-purple-500/30';
+      }
+
+      const clientName = p.client_name || 'زبون غير محدد';
+      const clientPhone = p.client_phone || '';
+      const wilaya = p.address || p.wilaya || 'عين الدفلى';
+      const projectType = p.project_type || 'تشطيب وديكور عام';
+      const contractVal = parseFloat(p.contract_value || p.budget || 0);
+
+      return `
+        <div class="mobile-project-card mobile-card space-y-3" data-role="${status}" data-status="${status}" data-wilaya="${wilaya}">
+          <div class="flex items-start justify-between gap-2.5">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500/20 to-amber-500/10 border border-red-500/30 flex items-center justify-center font-black text-[#FF3B30] text-sm shrink-0">
+                ${letter}
+              </div>
+              <div class="min-w-0">
+                <h4 class="font-extrabold text-white text-xs leading-snug truncate cursor-pointer hover:text-[#FF3B30]" onclick="App.openProjectWorkspace('${p.id}')">
+                  ${p.name}
+                </h4>
+                <span class="text-[10px] text-slate-400 font-mono block truncate">
+                  #${p.ref || p.id.slice(0, 8)} • ${actCount} بند
+                </span>
+              </div>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadgeClass} shrink-0">
+              ${statusLabel}
+            </span>
+          </div>
+
+          <!-- Client & Financial Strip -->
+          <div class="grid grid-cols-2 gap-2 text-[11px] bg-[#0A0A0C]/70 p-2.5 rounded-xl border border-white/5">
+            <div class="min-w-0">
+              <span class="text-[9px] text-slate-400 block">الزبون:</span>
+              <span class="font-bold text-white text-xs truncate block">${clientName}</span>
+              ${clientPhone ? `<a href="tel:${clientPhone}" class="text-amber-400 font-mono text-[10px] block mt-0.5 truncate">📞 ${clientPhone}</a>` : ''}
+            </div>
+            <div class="text-left min-w-0">
+              <span class="text-[9px] text-slate-400 block">الميزانية / الموقع:</span>
+              <span class="text-emerald-400 font-mono font-bold text-xs block truncate">${App.formatCurrency(contractVal)}</span>
+              <span class="text-slate-400 text-[10px] block truncate">📍 ${wilaya}</span>
+            </div>
+          </div>
+
+          <!-- Big Touch Action Buttons -->
+          <div class="flex items-center gap-2 pt-1">
+            <button onclick="App.openProjectWorkspace('${p.id}')" class="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 active:from-red-500 text-white font-extrabold text-xs shadow-md flex items-center justify-center gap-1.5 transition">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span>فتح مساحة الورشة</span>
+            </button>
+            <button onclick="App.editProject('${p.id}')" class="p-2 rounded-xl bg-[#1A1A22] border border-white/10 text-slate-300 hover:text-white" title="تعديل">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            </button>
+            <button onclick="App.deleteProject('${p.id}')" class="p-2 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-400" title="حذف">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  renderCockpitTableRows(projects, activities) {
+    if (!projects || projects.length === 0) {
+      return `
+        <tr>
+          <td colspan="7" class="text-center py-14">
+            <div class="flex flex-col items-center justify-center gap-3">
+              <div class="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 shadow-inner">
+                <svg class="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm font-bold text-white">لا توجد ورشات أو مشاريع مسجلة حالياً</p>
+                <p class="text-xs text-slate-400 mt-1">Aucun chantier enregistré dans le système. Créez votre premier projet dès maintenant.</p>
+              </div>
+              <button onclick="App.openNewProjectModal()" class="mt-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-2 border border-red-500/30">
+                <span>+</span>
+                <span>إضافة ورشة جديدة / Nouveau Chantier</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    return projects.map(p => {
+      const actCount = (activities || []).filter(a => a.project_id === p.id).length;
+      const letter = ((p.name || 'P').trim()[0] || 'P').toUpperCase();
+      const status = p.status || 'in_progress';
+      
+      let statusLabel = 'قيد الإنجاز';
+      let statusBadgeClass = 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30';
+      if (status === 'completed') {
+        statusLabel = 'مكتمل';
+        statusBadgeClass = 'text-blue-400 bg-blue-500/10 border border-blue-500/30';
+      } else if (status === 'on_hold') {
+        statusLabel = 'معلق';
+        statusBadgeClass = 'text-amber-400 bg-amber-500/10 border border-amber-500/30';
+      } else if (status === 'planning') {
+        statusLabel = 'قيد الدراسة';
+        statusBadgeClass = 'text-purple-400 bg-purple-500/10 border border-purple-500/30';
+      }
+
+      const clientName = p.client_name || 'زبون غير محدد';
+      const clientPhone = p.client_phone || '—';
+      const wilaya = p.address || p.wilaya || 'عين الدفلى';
+      const projectType = p.project_type || 'تشطيب وديكور عام';
+      const contractVal = parseFloat(p.contract_value || p.budget || 0);
+
+      return `
+        <tr class="transition hover:bg-white/[0.02]" data-role="${status}" data-status="${status}" data-wilaya="${wilaya}">
+          <td>
+            <div class="flex items-center gap-3">
+              <div class="avatar-circle avatar-emerald">
+                ${letter}
+              </div>
+              <div class="min-w-0">
+                <span class="font-bold text-white block text-xs hover:text-[#FF3B30] cursor-pointer" onclick="App.openProjectWorkspace('${p.id}')">${p.name}</span>
+                <span class="text-[10px] text-slate-500 font-mono block truncate">#${p.ref || p.id.slice(0, 8)} • ${actCount} بند عمل</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="min-w-0">
+              <span class="font-bold text-white block text-xs">${clientName}</span>
+              <a href="tel:${clientPhone}" class="font-mono text-[10px] text-slate-400 hover:text-amber-400 block" dir="ltr">${clientPhone}</a>
+            </div>
+          </td>
+          <td>
+            <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 text-xs font-medium">
+              ${projectType}
+            </span>
+          </td>
+          <td class="font-medium text-slate-300 text-xs">
+            ${wilaya}
+          </td>
+          <td class="text-center">
+            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}">
+              ${statusLabel}
+            </span>
+          </td>
+          <td class="text-center font-mono font-bold text-white text-xs">
+            ${App.formatCurrency(contractVal)}
+          </td>
+          <td class="text-center">
+            <div class="flex items-center justify-center gap-1.5 flex-nowrap">
+              <button onclick="App.openProjectWorkspace('${p.id}')" class="btn-action-open" title="Ouvrir le chantier / فتح مساحة العمل">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>فتح</span>
+              </button>
+              <button onclick="App.editProject('${p.id}')" class="px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition flex items-center gap-1" title="تعديل بيانات المشروع">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                <span>تعديل</span>
+              </button>
+              <button onclick="App.deleteProject('${p.id}')" class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1" title="حذف المشروع نهائياً">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                <span>حذف</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  renderDashboardCharts() {
+    // 1. Budget Allocation: 100% Real DB Data
+    this.updateBudgetAllocationComponent().catch(err => {
+      console.warn('Budget allocation component error:', err.message);
+    });
+
+    // 2. Real Monthly Costs Chart
+    this.getMonthlyCostsData().then(costsData => {
+      if (typeof ERPCharts !== 'undefined' && ERPCharts && typeof ERPCharts.renderMonthlyCostsChart === 'function') {
+        ERPCharts.renderMonthlyCostsChart('chart-monthly-costs', costsData);
+      }
+    }).catch(e => console.warn('Monthly costs chart warning:', e.message));
+
+    // 3. Real Progress Trends Chart
+    this.getProgressTrendsData().then(progressData => {
+      if (typeof ERPCharts !== 'undefined' && ERPCharts && typeof ERPCharts.renderProgressTrendsChart === 'function') {
+        ERPCharts.renderProgressTrendsChart('chart-progress-trends', progressData);
+      }
+    }).catch(e => console.warn('Progress trends chart warning:', e.message));
+  },
+
+  async getMonthlyCostsData() {
+    const expenses = await DB.getAll('expenses');
+    const workerPayments = await DB.getAll('worker_payments');
+    const purchases = await DB.getAll('material_purchases');
+
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const costs = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const currentYear = new Date().getFullYear();
+
+    const addCost = (dateStr, amt) => {
+      if (!dateStr || !amt) return;
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime()) && d.getFullYear() === currentYear) {
+        const m = d.getMonth();
+        if (m >= 0 && m < 12) costs[m] += (parseFloat(amt) || 0);
+      }
+    };
+
+    expenses.forEach(e => addCost(e.date || e.created_at, e.amount));
+    workerPayments.forEach(p => addCost(p.payment_date || p.date, p.amount));
+    purchases.forEach(p => addCost(p.purchase_date || p.date, p.total_amount || p.amount));
+
+    return { labels: months, costs };
+  },
+
+  async getProgressTrendsData() {
+    const projects = await DB.getAll('projects');
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    if (!projects || projects.length === 0) {
+      return { labels: months, datasets: [] };
+    }
+
+    const colors = ['#2563EB', '#8B5CF6', '#10B981', '#F59E0B', '#EC4899', '#06B6D4'];
+    const datasets = projects.slice(0, 5).map((p, idx) => {
+      const color = colors[idx % colors.length];
+      const prog = Math.min(100, Math.max(0, parseFloat(p.progress || 0)));
+      const dPoints = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, prog];
+      return {
+        label: `${p.name} (${prog}%)`,
+        data: dPoints,
+        borderColor: color,
+        backgroundColor: color + '15',
+        borderWidth: 2.5,
+        pointBackgroundColor: color,
+        pointRadius: 3,
+        tension: 0.3
+      };
+    });
+
+    return { labels: months, datasets };
+  },
+
+  currentBudgetChartMode: 'categories',
+
+  async setBudgetAllocationMode(mode) {
+    this.playClickSound();
+    this.currentBudgetChartMode = mode;
+
+    ['categories', 'project_types', 'cost_nature'].forEach(m => {
+      const btn = document.getElementById('btn-budget-mode-' + m);
+      if (btn) {
+        if (m === mode) {
+          btn.className = 'flex-1 py-1.5 px-2 rounded-lg text-center transition bg-amber-500/20 text-amber-300 shadow-sm border border-amber-500/30';
+        } else {
+          btn.className = 'flex-1 py-1.5 px-2 rounded-lg text-center transition text-slate-400 hover:text-white border border-transparent';
         }
+      }
+    });
+
+    await this.updateBudgetAllocationComponent();
+  },
+
+  // 100% REAL DATA CALCULATION — ZERO FAKE OR SIMULATED NUMBERS
+  async calculateBudgetAllocationData(mode = 'categories') {
+    const projects = await DB.getAll('projects');
+    const activities = await DB.getAll('project_activities');
+    let categories = await DB.getAll('work_categories') || [];
+
+    const defaultColors = ['#F59E0B', '#EC4899', '#3B82F6', '#06B6D4', '#10B981', '#8B5CF6', '#6366F1', '#14B8A6', '#FF3B30'];
+    categories.forEach((c, idx) => {
+      if (!c.color) c.color = defaultColors[idx % defaultColors.length];
+    });
+
+    let totalBudget = 0;
+    let items = [];
+    let laborTotal = 0;
+    let materialTotal = 0;
+
+    // Calculate labor & material only from actual activities in DB
+    if (activities && activities.length > 0) {
+      activities.forEach(a => {
+        const qty = parseFloat(a.planned_qty || a.executed_qty) || 1;
+        const laborP = parseFloat(a.labor_price) || 0;
+        const matP = parseFloat(a.material_price) || 0;
+        laborTotal += (qty * laborP);
+        materialTotal += (qty * matP);
       });
     }
 
-    return items.map(item => `
-      <tr class="transition" data-role="${item.role_type}" data-status="${item.status}" data-verification="${item.is_verified ? 'verified' : 'pending'}" data-wilaya="${item.wilaya}">
-        <td>
-          <div class="flex items-center gap-3">
-            <div class="avatar-circle ${item.avatar_color}">
-              ${item.avatar_letter}
-            </div>
-            <div class="min-w-0">
-              <span class="font-bold text-white block text-xs hover:text-[#FF3B30] cursor-pointer" onclick="App.openProjectWorkspace('${item.id}')">${item.name}</span>
-              <span class="text-[10px] text-slate-500 font-mono block truncate">${item.sub_id}</span>
-            </div>
-          </div>
-        </td>
-        <td class="font-mono text-xs text-slate-300" dir="ltr">
-          ${item.contact}
-        </td>
-        <td>
-          <span class="${item.role_badge}">
-            ${item.role_label}
-          </span>
-        </td>
-        <td class="font-bold text-white text-xs">
-          ${item.wilaya}
-        </td>
-        <td class="text-center">
-          <span class="badge-status-active">
-            ${item.status_label}
-          </span>
-        </td>
-        <td class="text-center">
-          <span class="${item.is_verified ? 'text-emerald-400 font-bold' : 'text-slate-400 font-medium'} text-xs">
-            ${item.verification_label}
-          </span>
-        </td>
-        <td class="text-center font-mono font-bold text-white text-xs">
-          ${item.trajets}
-        </td>
-        <td class="text-center text-amber-400 font-bold text-xs whitespace-nowrap">
-          ★ ${item.rating}
-        </td>
-        <td class="text-center">
-          <div class="flex items-center justify-center gap-1.5 flex-nowrap">
-            <button onclick="App.openProjectWorkspace('${item.id}')" class="btn-action-open" title="Ouvrir le chantier / فتح مساحة العمل">
-              <span>👁</span>
-              <span>Ouvrir</span>
-            </button>
-            <button onclick="App.editProject('${item.id}')" class="px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition flex items-center gap-1" title="تعديل بيانات المشروع">
-              <span>✏️</span>
-              <span>تعديل</span>
-            </button>
-            <button onclick="App.deleteProject('${item.id}')" class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1" title="حذف المشروع نهائياً">
-              <span>🗑️</span>
-              <span>حذف</span>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-  },
-  
-  renderDashboardCharts() {
-    if (typeof ERPCharts !== 'undefined' && ERPCharts && typeof ERPCharts.initDashboardCharts === 'function') {
-      try {
-        ERPCharts.initDashboardCharts();
-      } catch (e) {
-        console.warn('Dashboard charts initialization warning:', e.message);
+    if (mode === 'cost_nature') {
+      totalBudget = laborTotal + materialTotal;
+      if (totalBudget > 0) {
+        const laborPct = ((laborTotal / totalBudget) * 100).toFixed(1);
+        const matPct = ((materialTotal / totalBudget) * 100).toFixed(1);
+        items = [
+          {
+            id: 'NAT-LABOR',
+            name: 'يد العمل والخدمات الحرفية',
+            name_fr: "Main d'œuvre & Prestations",
+            icon: '🛠️',
+            color: '#10B981',
+            amount: Math.round(laborTotal),
+            percentage: parseFloat(laborPct),
+            centimes: ((laborTotal / 10000)).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' م.س'
+          },
+          {
+            id: 'NAT-MAT',
+            name: 'السلع، المواد والتجهيزات',
+            name_fr: 'Fournitures & Matériaux',
+            icon: '🧱',
+            color: '#06B6D4',
+            amount: Math.round(materialTotal),
+            percentage: parseFloat(matPct),
+            centimes: ((materialTotal / 10000)).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' م.س'
+          }
+        ];
+      }
+    } else if (mode === 'project_types') {
+      // Group strictly by real projects registered in DB
+      if (projects && projects.length > 0) {
+        const typeBuckets = {};
+        projects.forEach(p => {
+          const pVal = parseFloat(p.contract_value) || 0;
+          if (pVal > 0) {
+            const pType = p.project_type || p.commercial_model || 'ورشة عامة';
+            if (!typeBuckets[pType]) {
+              typeBuckets[pType] = {
+                name: p.name || pType,
+                name_fr: pType,
+                icon: '🏗️',
+                color: '#3B82F6',
+                amount: 0
+              };
+            }
+            typeBuckets[pType].amount += pVal;
+          }
+        });
+
+        totalBudget = Object.values(typeBuckets).reduce((s, b) => s + b.amount, 0);
+
+        if (totalBudget > 0) {
+          const colors = ['#D4AF37', '#3B82F6', '#8B5CF6', '#10B981', '#EC4899', '#06B6D4'];
+          items = Object.values(typeBuckets).map((t, idx) => {
+            const pct = ((t.amount / totalBudget) * 100).toFixed(1);
+            return {
+              id: 'TYPE-' + idx,
+              name: t.name,
+              name_fr: t.name_fr,
+              icon: t.icon,
+              color: colors[idx % colors.length],
+              amount: Math.round(t.amount),
+              percentage: parseFloat(pct),
+              centimes: ((t.amount / 10000)).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' م.س'
+            };
+          });
+        }
+      }
+    } else {
+      // Default: Categories — strictly from real activities in DB
+      if (activities && activities.length > 0) {
+        const catBuckets = {};
+        categories.forEach(c => {
+          catBuckets[c.id] = {
+            id: c.id,
+            name: c.name,
+            name_fr: c.name_fr,
+            icon: c.icon || '📌',
+            color: c.color,
+            amount: 0
+          };
+        });
+
+        activities.forEach(a => {
+          let catId = a.category_id;
+          if (!catId || !catBuckets[catId]) {
+            const actName = (a.name || '').toLowerCase();
+            if (actName.includes('بلاكو') || actName.includes('ba13') || actName.includes('plafond')) catId = 'CAT-01';
+            else if (actName.includes('دهان') || actName.includes('صباغة') || actName.includes('peinture')) catId = 'CAT-02';
+            else if (actName.includes('كهرباء') || actName.includes('led') || actName.includes('élec')) catId = 'CAT-03';
+            else if (actName.includes('سباكة') || actName.includes('plomb') || actName.includes('غاز')) catId = 'CAT-04';
+            else if (actName.includes('سيراميك') || actName.includes('رخام') || actName.includes('carrelage')) catId = 'CAT-05';
+            else if (actName.includes('نجارة') || actName.includes('pvc') || actName.includes('menuiserie')) catId = 'CAT-06';
+            else if (actName.includes('عزل') || actName.includes('etanch')) catId = 'CAT-07';
+            else if (actName.includes('كاميرا') || actName.includes('smart') || actName.includes('إنذار')) catId = 'CAT-08';
+            else catId = 'CAT-09';
+          }
+          const val = (parseFloat(a.planned_qty || a.executed_qty) || 1) * (parseFloat(a.unit_price) || 0);
+          if (catBuckets[catId]) {
+            catBuckets[catId].amount += val;
+          }
+        });
+
+        totalBudget = Object.values(catBuckets).reduce((sum, b) => sum + b.amount, 0);
+
+        if (totalBudget > 0) {
+          items = Object.values(catBuckets)
+            .filter(b => b.amount > 0)
+            .sort((a, b) => b.amount - a.amount)
+            .map(b => {
+              const pct = ((b.amount / totalBudget) * 100).toFixed(1);
+              return {
+                id: b.id,
+                name: b.name,
+                name_fr: b.name_fr,
+                icon: b.icon,
+                color: b.color,
+                amount: b.amount,
+                percentage: parseFloat(pct),
+                centimes: ((b.amount / 10000)).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' م.س'
+              };
+            });
+        }
       }
     }
+
+    // IF totalBudget is 0: Strictly 0! NO FAKE FALLBACKS!
+    let totalFormatted = '0 دج';
+    let centimesFormatted = '0 م. سنتيم';
+    let laborPctVal = 0;
+    let matPctVal = 0;
+
+    if (totalBudget > 0) {
+      if (totalBudget >= 1000000) {
+        totalFormatted = (totalBudget / 1000000).toFixed(2) + 'M دج';
+      } else {
+        totalFormatted = Math.round(totalBudget).toLocaleString('fr-FR') + ' دج';
+      }
+      centimesFormatted = ((totalBudget / 10000)).toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' م. سنتيم';
+      const grandTotalLaborMat = laborTotal + materialTotal;
+      if (grandTotalLaborMat > 0) {
+        laborPctVal = Math.round((laborTotal / grandTotalLaborMat) * 100);
+        matPctVal = 100 - laborPctVal;
+      }
+    }
+
+    return {
+      mode,
+      totalBudget,
+      totalFormatted,
+      centimesFormatted,
+      laborTotal,
+      materialTotal,
+      laborPct: laborPctVal,
+      matPct: matPctVal,
+      items,
+      labels: items.map(i => `${i.name_fr || i.name} (${i.percentage}%)`),
+      values: items.map(i => i.percentage),
+      amounts: items.map(i => i.amount),
+      centimes: items.map(i => i.centimes),
+      colors: items.map(i => i.color),
+      hideLegend: true
+    };
+  },
+
+  async updateBudgetAllocationComponent() {
+    const data = await this.calculateBudgetAllocationData(this.currentBudgetChartMode || 'categories');
+
+    // 1. Update total badge in card header
+    const totalBadge = document.getElementById('budget-allocation-total-badge');
+    if (totalBadge) {
+      totalBadge.textContent = data.totalFormatted;
+      totalBadge.title = data.centimesFormatted;
+    }
+
+    // 2. Body Container: Clean Empty State if 0, or Canvas + List if real data
+    const bodyContainer = document.getElementById('budget-allocation-body-container');
+    if (!bodyContainer) return;
+
+    if (data.totalBudget === 0 || !data.items || data.items.length === 0) {
+      bodyContainer.innerHTML = `
+        <div class="h-60 w-full flex flex-col items-center justify-center p-4 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 mb-3 shadow-inner">
+            <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
+          </div>
+          <p class="text-xs font-bold text-white">لا توجد ميزانية مسجلة حتى الآن</p>
+          <p class="text-[11px] text-slate-400 mt-1 max-w-xs">قاعدة البيانات لا تحتوي على أشغال أو عقود ورشات مسجلة حالياً.</p>
+          <button onclick="App.openNewProjectModal()" class="mt-3 px-4 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs font-bold transition flex items-center gap-1.5">
+            <span>+</span>
+            <span>إضافة ورشة جديدة</span>
+          </button>
+        </div>
+      `;
+
+      // Reset footer indicators
+      const topCatEl = document.getElementById('budget-stat-top-cat');
+      if (topCatEl) topCatEl.textContent = '—';
+      const laborEl = document.getElementById('budget-stat-labor');
+      if (laborEl) laborEl.textContent = '0%';
+      const matEl = document.getElementById('budget-stat-material');
+      if (matEl) matEl.textContent = '0%';
+
+      if (typeof ERPCharts !== 'undefined' && ERPCharts && ERPCharts.instances && ERPCharts.instances['chart-budget-allocation']) {
+        ERPCharts.instances['chart-budget-allocation'].destroy();
+      }
+      return;
+    }
+
+    // Restore chart and list layout when data exists
+    bodyContainer.innerHTML = `
+      <div class="h-44 relative w-full flex items-center justify-center">
+        <canvas id="chart-budget-allocation"></canvas>
+      </div>
+      <div id="budget-breakdown-container" class="space-y-2 max-h-52 overflow-y-auto pr-1">
+        ${data.items.map(item => `
+          <div class="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition group/item">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-6 h-6 rounded-lg flex items-center justify-center text-xs flex-shrink-0" style="background-color: ${item.color}20; border: 1px solid ${item.color}40;">
+                  ${item.icon || '📌'}
+                </span>
+                <div class="truncate">
+                  <span class="text-xs font-bold text-white block truncate leading-tight">${item.name}</span>
+                  <span class="text-[9px] text-slate-400 block truncate leading-tight">${item.name_fr || ''}</span>
+                </div>
+              </div>
+              <div class="text-left flex-shrink-0">
+                <div class="flex items-center gap-1.5 justify-end">
+                  <span class="text-xs font-black text-white font-mono">${(item.amount).toLocaleString('fr-FR')} <span class="text-[10px] text-slate-400 font-sans">دج</span></span>
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-black" style="background-color: ${item.color}25; color: ${item.color};">${item.percentage}%</span>
+                </div>
+                <span class="text-[9px] text-amber-400 font-mono block text-left">${item.centimes}</span>
+              </div>
+            </div>
+            <!-- Progress bar -->
+            <div class="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700 ease-out" style="width: ${item.percentage}%; background-color: ${item.color}; box-shadow: 0 0 8px ${item.color}60;"></div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // 3. Update footer insight indicators
+    const topCatEl = document.getElementById('budget-stat-top-cat');
+    if (topCatEl && data.items && data.items.length > 0) {
+      topCatEl.textContent = `${data.items[0].name.split(' ')[0]} (${data.items[0].percentage}%)`;
+      topCatEl.title = data.items[0].name;
+    }
+
+    const laborEl = document.getElementById('budget-stat-labor');
+    if (laborEl) {
+      laborEl.textContent = `${data.laborPct}%`;
+    }
+
+    const matEl = document.getElementById('budget-stat-material');
+    if (matEl) {
+      matEl.textContent = `${data.matPct}%`;
+    }
+
+    // 4. Render Chart.js Donut
+    if (typeof ERPCharts !== 'undefined' && ERPCharts && typeof ERPCharts.renderBudgetAllocationChart === 'function') {
+      ERPCharts.renderBudgetAllocationChart('chart-budget-allocation', data);
+    }
+  },
+
+  async openBudgetAllocationDetailsModal() {
+    this.playClickSound();
+    const data = await this.calculateBudgetAllocationData(this.currentBudgetChartMode || 'categories');
+
+    if (data.totalBudget === 0 || !data.items || data.items.length === 0) {
+      alert('لا توجد ميزانية أو أشغال مسجلة في قاعدة البيانات حالياً لعرض تفاصيلها.');
+      return;
+    }
+
+    const modalHTML = `
+      <div id="budget-allocation-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <!-- Modal Header -->
+          <div class="p-5 border-b border-white/10 flex items-center justify-between bg-black/40">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-sm font-black text-white">التحليل المالي الحقيقي لتوزيع الميزانية</h3>
+                <p class="text-[11px] text-slate-400">بيانات مستخرجة مباشرة من قاعدة بيانات الورشات والأشغال المسجلة</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('budget-allocation-modal').remove()" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+          </div>
+
+          <!-- Summary Strip -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 p-5 bg-[#0D0D11] border-b border-white/5">
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <span class="text-[10px] text-slate-400 block font-medium">إجمالي الميزانية الفعلية</span>
+              <span class="text-base font-black text-white block mt-1 font-mono">${data.totalFormatted}</span>
+              <span class="text-[10px] text-amber-400 font-mono">${data.centimesFormatted}</span>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <span class="text-[10px] text-slate-400 block font-medium">يد العمل الحرفية</span>
+              <span class="text-base font-black text-emerald-400 block mt-1 font-mono">${data.laborPct}%</span>
+              <span class="text-[10px] text-slate-400">${((data.laborTotal || 0)).toLocaleString('fr-FR')} دج</span>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <span class="text-[10px] text-slate-400 block font-medium">السلع ومواد البناء</span>
+              <span class="text-base font-black text-cyan-400 block mt-1 font-mono">${data.matPct}%</span>
+              <span class="text-[10px] text-slate-400">${((data.materialTotal || 0)).toLocaleString('fr-FR')} دج</span>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5">
+              <span class="text-[10px] text-slate-400 block font-medium">أعلى صنف في التكلفة</span>
+              <span class="text-xs font-black text-amber-400 block mt-1 truncate">${data.items[0] ? data.items[0].name : '—'}</span>
+              <span class="text-[10px] text-slate-400">${data.items[0] ? data.items[0].percentage + '%' : ''}</span>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="p-5 overflow-y-auto flex-1 custom-scrollbar">
+            <table class="erp-table">
+              <thead>
+                <tr>
+                  <th class="text-right">الصنف المسجل في الورشات</th>
+                  <th class="text-center">النسبة (%)</th>
+                  <th class="text-center">القيمة الفعلية (DZD)</th>
+                  <th class="text-center">المعادل بالسنتيم</th>
+                  <th class="text-center">التمثيل البياني</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${data.items.map(item => `
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-2.5">
+                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style="background-color: ${item.color}25; border: 1px solid ${item.color}50;">
+                          ${item.icon || '📌'}
+                        </span>
+                        <div>
+                          <p class="text-xs font-bold text-white">${item.name}</p>
+                          <p class="text-[10px] text-slate-400">${item.name_fr || ''}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <span class="px-2 py-0.5 rounded text-xs font-black" style="background-color: ${item.color}20; color: ${item.color};">
+                        ${item.percentage}%
+                      </span>
+                    </td>
+                    <td class="text-center font-mono font-bold text-xs text-white">
+                      ${(item.amount).toLocaleString('fr-FR')} دج
+                    </td>
+                    <td class="text-center font-mono text-xs text-amber-400 font-bold">
+                      ${item.centimes}
+                    </td>
+                    <td>
+                      <div class="w-28 sm:w-36 h-2 rounded-full bg-white/5 overflow-hidden mx-auto">
+                        <div class="h-full rounded-full" style="width: ${item.percentage}%; background-color: ${item.color};"></div>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="p-4 border-t border-white/10 flex items-center justify-between bg-black/40">
+            <span class="text-xs text-slate-400">عدد الأصناف الفعلية: ${data.items.length}</span>
+            <div class="flex items-center gap-2">
+              <button onclick="window.print()" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition flex items-center gap-1.5 border border-white/10">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                <span>طباعة التقرير</span>
+              </button>
+              <button onclick="document.getElementById('budget-allocation-modal').remove()" class="px-4 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white text-xs font-bold transition shadow-lg">
+                إغلاق
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    const oldModal = document.getElementById('budget-allocation-modal');
+    if (oldModal) oldModal.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
   },
 
   updateGlobalHeaderStats() {
@@ -1992,54 +4864,59 @@ const App = {
   },
 
   // 2. Projects View (Full List & Manager)
-  async renderProjectsView(container) {
+    async renderProjectsView(container) {
     const projects = await DB.getAll('projects');
     const activities = await DB.getAll('project_activities');
-    const quotations = await DB.getAll('quotations');
 
-    const totalCount = Math.max(projects.length, 11);
-    const activeCount = projects.filter(p => p.status === 'in_progress').length || 8;
-    const completedCount = projects.filter(p => p.status === 'completed').length || 2;
-    const pendingCount = projects.filter(p => p.status === 'planning' || p.status === 'approved').length || 1;
-    const verifiedCount = quotations.filter(q => q.status === 'approved').length || 5;
+    const totalCount = projects.length;
+    const activeCount = projects.filter(p => p.status === 'in_progress').length;
+    const completedCount = projects.filter(p => p.status === 'completed').length;
+    const pendingCount = projects.filter(p => p.status === 'planning' || p.status === 'on_hold' || p.status === 'draft').length;
 
     const cockpitRowsHTML = this.renderCockpitTableRows(projects, activities);
+    const mobileCardsHTML = this.renderMobileProjectCards(projects, activities);
+    const isFr = (typeof I18N !== 'undefined') && I18N.currentLang === 'fr';
 
     container.innerHTML = `
       <div class="space-y-5">
         
         <!-- Search bar with ⌘K badge -->
         <div class="relative w-full">
-          <input type="text" id="cockpit-search-input" oninput="App.filterCockpitTable(this.value)" placeholder="🔍 Rechercher un chantier par nom, wilaya, tél, client, réf..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] pl-10 pr-12 shadow-inner">
-          <span class="absolute right-3.5 top-3 kbd-shortcut">⌘K</span>
+          <input type="text" id="cockpit-search-input" oninput="App.filterCockpitTable(this.value)" placeholder="${t('search_placeholder')}" class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] ${isFr ? 'pl-4 pr-12' : 'pr-4 pl-12'} shadow-inner">
+          <span class="absolute ${isFr ? 'right-3.5' : 'left-3.5'} top-3 kbd-shortcut">⌘K</span>
         </div>
 
         <!-- Cockpit Header Banner -->
         <div class="kpi-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5 shadow-xl">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-500 text-xl font-bold shadow-inner">
-              🏗️
+              <svg class="w-6 h-6 text-[#FF3B30]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+              </svg>
             </div>
             <div>
               <div class="flex items-center gap-3 flex-wrap">
-                <h2 class="text-base sm:text-lg font-black text-white">Registre officiel des chantiers & projets DARI LUXE</h2>
+                <h2 class="text-base sm:text-lg font-black text-white">${t('hero_title')}</h2>
                 <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span>Temps Réel Actif</span>
+                  <span>${t('hero_badge')}</span>
                 </span>
               </div>
               <p class="text-xs text-slate-400 mt-1 font-medium">
-                تسيير ملفات الورشات، المتر التقني، عقود الإنجاز، ومتابعة الأرباح لكل ورشة بشكل مستقل تماماً
+                ${t('hero_desc')}
               </p>
             </div>
           </div>
           <div class="flex items-center gap-2.5">
             <button onclick="App.openNewProjectModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-2 border border-red-400/30">
               <span>+</span>
-              <span>Nouveau Chantier / إنشاء ورشة</span>
+              <span>${t('hero_btn')}</span>
             </button>
             <button onclick="App.renderCurrentView()" class="px-3 py-2.5 rounded-xl bg-[#16161C] hover:bg-[#1E1E26] text-slate-200 border border-white/10 text-xs font-bold transition">
-              🔄
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
             </button>
           </div>
         </div>
@@ -2048,51 +4925,51 @@ const App = {
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
           <div class="kpi-card metric-box-blue p-4 rounded-2xl flex flex-col justify-between">
             <div class="flex items-center justify-between">
-              <span class="text-blue-400 text-xs font-bold">Total chantiers</span>
+              <span class="text-blue-400 text-xs font-bold">${t('kpi_total_projects')}</span>
               <span class="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[9px] font-black">TOTAL</span>
             </div>
             <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">${totalCount}</span></div>
-            <span class="text-[10px] text-slate-400">Tous les chantiers</span>
+            <span class="text-[10px] text-slate-400">${t('kpi_total_projects_sub')}</span>
           </div>
           <div class="kpi-card metric-box-green p-4 rounded-2xl flex flex-col justify-between">
             <div class="flex items-center justify-between">
-              <span class="text-emerald-400 text-xs font-bold">En exécution</span>
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
+              <span class="text-emerald-400 text-xs font-bold">${t('kpi_active_projects')}</span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[9px] font-black">ACTIVE</span>
             </div>
-            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">${activeCount}</span></div>
-            <span class="text-[10px] text-slate-400">Chantiers actifs</span>
-          </div>
-          <div class="kpi-card metric-box-cyan p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-cyan-400 text-xs font-bold">Devis approuvés</span>
-              <span class="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-400 text-[9px] font-black">VERIFIED</span>
-            </div>
-            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">${verifiedCount}</span></div>
-            <span class="text-[10px] text-slate-400">Dossiers validés</span>
-          </div>
-          <div class="kpi-card metric-box-amber p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-amber-400 text-xs font-bold">En révision</span>
-              <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-[9px] font-black">REVIEW</span>
-            </div>
-            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">${pendingCount}</span></div>
-            <span class="text-[10px] text-slate-400">En cours d'étude</span>
-          </div>
-          <div class="kpi-card metric-box-red p-4 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-red-400 text-xs font-bold">Suspendus</span>
-              <span class="px-2 py-0.5 rounded-md bg-red-500/20 text-red-400 text-[9px] font-black">BLOCKED</span>
-            </div>
-            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">0</span></div>
-            <span class="text-[10px] text-slate-400">Aucun blocage</span>
+            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-emerald-400">${activeCount}</span></div>
+            <span class="text-[10px] text-slate-400">${t('kpi_active_projects_sub')}</span>
           </div>
           <div class="kpi-card metric-box-purple p-4 rounded-2xl flex flex-col justify-between">
             <div class="flex items-center justify-between">
-              <span class="text-purple-400 text-xs font-bold">Livrés / Finis</span>
-              <span class="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[9px] font-black">LIVRÉ</span>
+              <span class="text-purple-400 text-xs font-bold">${t('kpi_pending_projects')}</span>
+              <span class="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-400 text-[9px] font-black">ÉTUDE</span>
             </div>
-            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-white">${completedCount}</span></div>
-            <span class="text-[10px] text-slate-400">Projets achevés</span>
+            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-purple-400">${pendingCount}</span></div>
+            <span class="text-[10px] text-slate-400">${t('kpi_pending_projects_sub')}</span>
+          </div>
+          <div class="kpi-card metric-box-cyan p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-cyan-400 text-xs font-bold">${t('kpi_completed_projects')}</span>
+              <span class="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-400 text-[9px] font-black">FIN</span>
+            </div>
+            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-cyan-400">${completedCount}</span></div>
+            <span class="text-[10px] text-slate-400">${t('kpi_completed_projects_sub')}</span>
+          </div>
+          <div class="kpi-card metric-box-amber p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-amber-400 text-xs font-bold">${t('kpi_active_workers')}</span>
+              <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-[9px] font-black">ÉQUIPE</span>
+            </div>
+            <div class="my-2"><span class="text-2xl sm:text-3xl font-black text-amber-400">0</span></div>
+            <span class="text-[10px] text-slate-400">${t('kpi_active_workers_sub')}</span>
+          </div>
+          <div class="kpi-card metric-box-green p-4 rounded-2xl flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+              <span class="text-emerald-400 text-xs font-bold">${isFr ? 'Base de Données' : 'قاعدة البيانات'}</span>
+              <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[9px] font-black">SYNC</span>
+            </div>
+            <div class="my-2"><span class="text-lg sm:text-xl font-black text-emerald-400">${isFr ? 'Connecté' : 'متصل'}</span></div>
+            <span class="text-[10px] text-slate-400">Supabase Cloud</span>
           </div>
         </div>
 
@@ -2100,61 +4977,34 @@ const App = {
         <div class="space-y-3">
           <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div class="relative flex-1">
-              <input type="text" oninput="App.filterCockpitTable(this.value)" placeholder="🔍 Filtrer les chantiers..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] shadow-inner">
+              <input type="text" oninput="App.filterCockpitTable(this.value)" placeholder="${t('search_placeholder')}" class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] shadow-inner">
             </div>
             <div class="flex items-center gap-2 overflow-x-auto pb-1">
-              <button onclick="App.setRoleFilter('all', this)" class="filter-pill active">Tous les rôles</button>
-              <button onclick="App.setRoleFilter('transporteur', this)" class="filter-pill">Transporteurs</button>
-              <button onclick="App.setRoleFilter('expéditeur', this)" class="filter-pill">Expéditeurs</button>
-              <button onclick="App.setRoleFilter('administrateur', this)" class="filter-pill">Administrateurs</button>
+              <button onclick="App.setRoleFilter('all', this)" class="filter-pill active">${t('filter_all')}</button>
+              <button onclick="App.setRoleFilter('in_progress', this)" class="filter-pill">${t('filter_in_progress')}</button>
+              <button onclick="App.setRoleFilter('completed', this)" class="filter-pill">${t('filter_completed')}</button>
+              <button onclick="App.setRoleFilter('planning', this)" class="filter-pill">${t('filter_planning')}</button>
+              <button onclick="App.setRoleFilter('on_hold', this)" class="filter-pill">${t('filter_on_hold')}</button>
             </div>
-          </div>
-
-          <!-- Dropdowns -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <select onchange="App.handleFilterChange('status', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Tous les statuts</option>
-              <option value="in_progress">Actif / En cours</option>
-              <option value="completed">Terminé</option>
-              <option value="on_hold">En attente</option>
-            </select>
-            <select onchange="App.handleFilterChange('verification', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Tous les statuts de vérification</option>
-              <option value="verified">Vérifié</option>
-              <option value="pending">Non vérifié</option>
-            </select>
-            <select onchange="App.handleFilterChange('wilaya', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="all">Toutes les wilayas</option>
-              <option value="عين الدفلى">عين الدفلى (Ain Defla)</option>
-              <option value="بجاية">بجاية (Béjaïa)</option>
-              <option value="الشلف">الشلف (Chlef)</option>
-              <option value="الجزائر">الجزائر (Alger)</option>
-              <option value="البليدة">البليدة (Blida)</option>
-              <option value="وهران">وهران (Oran)</option>
-            </select>
-            <select onchange="App.handleFilterChange('sort', this.value)" class="bg-[#121216] border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300">
-              <option value="recent">Plus récents</option>
-              <option value="alpha">Ordre alphabétique</option>
-              <option value="rating_desc">Meilleure évaluation ★</option>
-            </select>
           </div>
         </div>
 
-        <!-- Cockpit Data Table -->
-        <div class="kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+        <!-- Cockpit Data Table: Desktop Table + Mobile Cards -->
+        <div class="block md:hidden space-y-3" id="cockpit-mobile-cards-container">
+          ${mobileCardsHTML}
+        </div>
+
+        <div class="hidden md:block kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
           <div class="overflow-x-auto">
-            <table class="erp-table">
+            <table class="erp-table ${isFr ? 'text-left' : 'text-right'}">
               <thead>
                 <tr>
-                  <th class="text-right">Utilisateur / Chantier</th>
-                  <th class="text-right">Contact</th>
-                  <th class="text-right">Rôle / Modèle</th>
-                  <th class="text-right">Wilaya</th>
-                  <th class="text-center">Statut du compte</th>
-                  <th class="text-center">Vérification</th>
-                  <th class="text-center">Trajets / Activités</th>
-                  <th class="text-center">Évaluation</th>
-                  <th class="text-center">Actions</th>
+                  <th>${t('table_col_code')}</th>
+                  <th>${t('table_col_project')}</th>
+                  <th>${t('table_col_location')}</th>
+                  <th>${t('table_col_start_date')}</th>
+                  <th class="text-center">${t('table_col_status')}</th>
+                  <th class="text-center">${t('table_col_actions')}</th>
                 </tr>
               </thead>
               <tbody id="cockpit-table-body">
@@ -2167,8 +5017,8 @@ const App = {
       </div>
     `;
   },
-  
-async renderProjectWorkspaceView(container) {
+
+  async renderProjectWorkspaceView(container) {
     let project = this.activeProjectId ? await DB.getById('projects', this.activeProjectId) : null;
     if (!project) {
       const allProjects = await DB.getAll('projects');
@@ -3098,40 +5948,116 @@ async renderProjectWorkspaceView(container) {
     const pane = document.getElementById('project-tab-documents');
     if (!pane) return;
 
+    const allAttachments = await DB.getAll('attachments');
+    const docs = allAttachments.filter(a => a.project_id === project.id);
+
+    const avantCount = docs.filter(a => a.entity_type === 'avant').length;
+    const enCoursCount = docs.filter(a => a.entity_type === 'en_cours').length;
+    const apresCount = docs.filter(a => a.entity_type === 'apres').length;
+    const plansCount = docs.filter(a => a.entity_type === 'plan' || a.entity_type === 'bon').length;
+
+    const cardsHTML = docs.map(d => {
+      const isImg = d.file_type === 'image' || (d.file_url && d.file_url.startsWith('data:image'));
+      let stageLabel = 'صورة ورشة';
+      let badgeColor = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      if (d.entity_type === 'avant') {
+        stageLabel = 'قبل البدء (Avant)';
+        badgeColor = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+      } else if (d.entity_type === 'en_cours') {
+        stageLabel = 'أثناء الأشغال (En cours)';
+        badgeColor = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+      } else if (d.entity_type === 'apres') {
+        stageLabel = 'تشطيب نهائي (Après)';
+        badgeColor = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+      } else if (d.entity_type === 'plan') {
+        stageLabel = 'مخطط تقني (Plan)';
+        badgeColor = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+      }
+
+      return `
+        <div class="kpi-card p-3 rounded-xl border border-white/10 hover:border-white/20 transition flex flex-col justify-between group overflow-hidden">
+          <div class="relative w-full h-36 rounded-lg overflow-hidden bg-[#0A0A0C] flex items-center justify-center cursor-pointer" onclick="App.openImageViewerModal('${d.file_url}', '${this.escapeHtml(d.file_name)}')">
+            ${isImg ? `<img src="${d.file_url}" alt="${d.file_name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">` : `<div class="text-4xl text-slate-500">📄</div>`}
+            <span class="absolute top-2 right-2 px-2 py-0.5 rounded text-[9px] font-bold border backdrop-blur-md ${badgeColor}">
+              ${stageLabel}
+            </span>
+          </div>
+          <div class="mt-2.5 flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <span class="font-bold text-white text-xs block truncate" title="${d.file_name}">${d.file_name}</span>
+              <span class="text-[10px] text-slate-500 font-mono">${d.uploaded_at ? d.uploaded_at.split('T')[0] : ''}</span>
+            </div>
+            <button onclick="App.deleteProjectAttachment('${d.id}', '${project.id}')" class="p-1 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 text-xs transition" title="حذف الصورة">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
     pane.innerHTML = `
       <div class="space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 class="font-bold text-white text-base">المستندات والمخططات والصور (Documents & Photos)</h3>
-            <p class="text-xs text-slate-400">حفظ صور الورشة قبل وبعد، المخططات التقنية، ووصولات شراء المواد</p>
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <span>📸</span>
+              <span>معرض صور ومستندات الورشة (Galerie Photos & Plans)</span>
+            </h3>
+            <p class="text-xs text-slate-400">توثيق مراحل الإنجاز: قبل البدء، أثناء التنفيذ، والتشطيب النهائي مع المخططات والوصولات</p>
           </div>
-          <button onclick="alert('يمكنك إرفاق صور ومخططات الورشة بصيغ JPG, PNG, PDF.')" class="px-3.5 py-2 bg-[#FF3B30] hover:bg-[#E0352B] text-white rounded-xl text-xs font-bold shadow">
-            + إضافة صورة / مستند
+          <button onclick="App.openUploadProjectAttachmentModal('${project.id}')" class="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-1.5 border border-red-500/30">
+            <span>+</span>
+            <span>إضافة صورة أو مخطط</span>
           </button>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="kpi-card p-4 rounded-xl text-center space-y-2">
-            <div class="h-28 bg-[#0E0E12]/80 rounded-lg flex items-center justify-center text-4xl">📸</div>
-            <span class="font-bold text-white text-xs block">صور قبل البدء (Avant)</span>
-            <span class="text-[10px] text-slate-500">3 صور محفوظة</span>
+        <!-- 4 Summary KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="kpi-card p-3 rounded-xl border border-white/5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg font-bold">📸</div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">قبل البدء (Avant)</span>
+              <strong class="text-base text-white font-mono">${avantCount} صور</strong>
+            </div>
           </div>
-          <div class="kpi-card p-4 rounded-xl text-center space-y-2">
-            <div class="h-28 bg-[#0E0E12]/80 rounded-lg flex items-center justify-center text-4xl">📐</div>
-            <span class="font-bold text-white text-xs block">مخطط الأسقف والإنارة</span>
-            <span class="text-[10px] text-slate-500">Plan_FauxPlafond.pdf</span>
+          <div class="kpi-card p-3 rounded-xl border border-white/5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg font-bold">🔨</div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">أثناء الإنجاز (En cours)</span>
+              <strong class="text-base text-white font-mono">${enCoursCount} صور</strong>
+            </div>
           </div>
-          <div class="kpi-card p-4 rounded-xl text-center space-y-2">
-            <div class="h-28 bg-[#0E0E12]/80 rounded-lg flex items-center justify-center text-4xl">🧾</div>
-            <span class="font-bold text-white text-xs block">وصولات الموردين</span>
-            <span class="text-[10px] text-slate-500">4 وصولات مسجلة</span>
+          <div class="kpi-card p-3 rounded-xl border border-white/5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg font-bold">✨</div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">تشطيب نهائي (Après)</span>
+              <strong class="text-base text-white font-mono">${apresCount} صور</strong>
+            </div>
           </div>
-          <div class="kpi-card p-4 rounded-xl text-center space-y-2">
-            <div class="h-28 bg-[#0E0E12]/80 rounded-lg flex items-center justify-center text-4xl">✨</div>
-            <span class="font-bold text-white text-xs block">صور التشطيب النهائي</span>
-            <span class="text-[10px] text-slate-500">في انتظار التسليم</span>
+          <div class="kpi-card p-3 rounded-xl border border-white/5 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg font-bold">📐</div>
+            <div>
+              <span class="text-[10px] text-slate-400 block font-medium">مخططات ووصولات</span>
+              <strong class="text-base text-white font-mono">${plansCount} ملفات</strong>
+            </div>
           </div>
         </div>
+
+        <!-- Gallery Grid -->
+        ${docs.length > 0 ? `
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            ${cardsHTML}
+          </div>
+        ` : `
+          <div class="kpi-card p-12 text-center rounded-2xl border border-white/5 space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-white/5 text-slate-500 flex items-center justify-center mx-auto text-3xl">📸</div>
+            <h4 class="text-sm font-bold text-white">لا توجد صور أو مخططات مرفقة بهذه الورشة بعد</h4>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">اضغط على زر "إضافة صورة أو مخطط" لرفع صور قبل البدء أو أثناء الإنجاز لتوثيق أعمال الورشة.</p>
+            <button onclick="App.openUploadProjectAttachmentModal('${project.id}')" class="mt-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold transition">
+              + رفع أول صورة الآن
+            </button>
+          </div>
+        `}
       </div>
     `;
   },
@@ -3314,9 +6240,13 @@ async renderProjectWorkspaceView(container) {
           </td>
           <td class="text-center">
             <div class="flex items-center justify-center gap-1.5 flex-nowrap">
-              <button onclick="App.openWorkerDetailsModal('${w.id}')" class="btn-action-open" title="Voir fiche individuelle et relevé / عرض البطاقة الفردية">
+              <button onclick="App.openWorkerDetailsModal('${w.id}')" class="btn-action-open" title="Voir fiche individuelle / عرض البطاقة الفردية">
                 <span>👁</span>
                 <span>Fiche</span>
+              </button>
+              <button onclick="App.printWorkerIndividualPayslipA4('${w.id}')" class="px-2 py-1 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold transition flex items-center gap-1" title="طباعة كشف الحساب الفردي A4">
+                <span>🧾</span>
+                <span>كشف A4</span>
               </button>
               <button onclick="App.openWorkerPaymentModal('${w.id}')" class="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1" title="Verser acompte ou salaire / تسبيق أو أجر">
                 <span>💵</span>
@@ -3365,13 +6295,17 @@ async renderProjectWorkspaceView(container) {
             </div>
           </div>
           <div class="flex items-center gap-2.5">
-            <button onclick="App.openNewWorkerModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-2 border border-red-400/30">
-              <span>+</span>
-              <span>Nouvel Ouvrier / إضافة عامل</span>
+            <button onclick="App.openQuickDailyCheckinModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-950/30 transition flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>تسجيل حضور سريع اليوم</span>
             </button>
-            <button onclick="App.navigate('daily_checkin')" class="px-3.5 py-2.5 rounded-xl bg-[#16161C] hover:bg-[#1E1E26] text-amber-400 border border-white/10 text-xs font-bold transition flex items-center gap-1.5">
-              <span>⏱️</span>
-              <span>Pointage du jour</span>
+            <button onclick="App.printPayrollSheetA4()" class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold text-xs shadow-lg transition flex items-center gap-1.5 border border-emerald-400/30">
+              <span>🧾</span>
+              <span>كشف الرواتب A4 / Relevé Paie</span>
+            </button>
+            <button onclick="App.openNewWorkerModal()" class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-1.5 border border-red-400/30">
+              <span>+</span>
+              <span>إضافة عامل</span>
             </button>
           </div>
         </div>
@@ -3444,8 +6378,12 @@ async renderProjectWorkspaceView(container) {
           </div>
         </div>
 
-        <!-- Cockpit Data Table -->
-        <div class="kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+        <!-- Cockpit Data Table: Desktop Table + Mobile Cards -->
+        <div class="block md:hidden space-y-3" id="cockpit-mobile-cards-container">
+          ${mobileCardsHTML}
+        </div>
+
+        <div class="hidden md:block kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
           <div class="overflow-x-auto">
             <table class="erp-table">
               <thead>
@@ -3674,83 +6612,243 @@ async renderBuildingStructureView(container) {
     const categories = await DB.getAll('work_categories');
     const catalog = await DB.getAll('activity_catalog');
 
+    const totalActivities = catalog.length;
+    const totalCategories = categories.length;
+
     container.innerHTML = `
-      <div class="relative w-full mb-5">
-        <input type="text" oninput="App.filterCockpitTable(this.value)" placeholder="🔍 Rechercher une activité, catégorie, description..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] pr-12 shadow-inner">
-        <span class="absolute right-3.5 top-3 kbd-shortcut">⌘K</span>
-      </div>
-      <div class="kpi-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5 mb-5">
-        <div class="flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-xl">📋</div>
-          <div>
-            <div class="flex items-center gap-3 flex-wrap">
-              <h2 class="text-base font-black text-white">Cockpit Catalogue des Travaux & Activités DARI LUXE</h2>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>12 Catégories d'Ouvrages
-              </span>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">دليل بنود وأنشطة الأشغال، تسعير الوحدات، وتتبع الإنجاز لكل مهمة في الورشات</p>
-          </div>
-        </div>
-        <button onclick="App.openAddActivityModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF3B30] to-[#E0352B] text-white font-bold text-xs flex items-center gap-2 border border-red-400/30">
-          <span>+</span><span>Nouveau Travail / إضافة نشاط</span>
-        </button>
-      </div>
-    
       <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-xl font-bold text-white">دليل بنود الأشغال والخدمات (Catalogue des Travaux)</h2>
-            <p class="text-xs text-slate-400">التصنيفات الـ 12 المعتمدة، وحدات القياس، والأسعار المرجعية للأشغال</p>
-          </div>
-          <button onclick="App.openNewCatalogActivityModal()" class="px-3.5 py-2 bg-[#FF3B30] hover:bg-[#E0352B] text-white rounded-xl text-xs font-bold shadow">
-            + إضافة نشاط جديد للكتالوج
-          </button>
+        
+        <!-- Search bar with ⌘K badge -->
+        <div class="relative w-full">
+          <input type="text" id="catalog-search-input" oninput="App.filterActivityCatalog(this.value)" placeholder="🔍 بحث في دليل الأشغال — اسم النشاط، الوحدة، السعر أو الفئة..." class="w-full bg-[#121216] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-[#FF3B30] pl-10 pr-12 shadow-inner">
+          <span class="absolute right-3.5 top-3 kbd-shortcut">⌘K</span>
         </div>
 
-        <div class="space-y-6">
+        <!-- Cockpit Header Banner -->
+        <div class="kpi-card p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-white/5 shadow-xl">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-xl text-[#FF3B30] font-bold shadow-inner">
+              📋
+            </div>
+            <div>
+              <div class="flex items-center gap-3 flex-wrap">
+                <h2 class="text-base sm:text-lg font-black text-white">دليل بنود وأنشطة الأشغال — Catalogue des Travaux</h2>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>${totalCategories} فئات مهنية • ${totalActivities} بنود أعمال</span>
+                </span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1 font-medium">
+                تنظيم متكامل للأنشطة والمهن في جداول مستقلة لكل فئة مع إمكانية إضافة وتعديل الفئات، تغيير مسميات الأنشطة، وضبط الأسعار المرجعية
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <button onclick="App.openNewWorkCategoryModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-lg shadow-amber-950/30 transition flex items-center gap-1.5">
+              <span>+</span>
+              <span>إضافة فئة جديدة / Catégorie</span>
+            </button>
+            <button onclick="App.openNewCatalogActivityModal()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg shadow-red-950/40 transition flex items-center gap-1.5 border border-red-400/30">
+              <span>+</span>
+              <span>إضافة نشاط جديد / Travail</span>
+            </button>
+            <button onclick="App.renderCurrentView()" class="px-3 py-2.5 rounded-xl bg-[#16161C] hover:bg-[#1E1E26] text-slate-200 border border-white/10 text-xs font-bold transition">
+              🔄
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Category Filter Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1">
+          <button onclick="App.filterActivitiesByCategory('all', this)" class="filter-pill active whitespace-nowrap">
+            جميع الفئات (${totalCategories})
+          </button>
+          ${categories.map(c => {
+            const count = catalog.filter(a => String(a.category_id) === String(c.id)).length;
+            return `
+              <button onclick="App.filterActivitiesByCategory('${c.id}', this)" class="filter-pill whitespace-nowrap">
+                ${c.icon || '●'} ${c.name_ar || c.name} (${count})
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Categorized Organized Tables Section -->
+        <div class="space-y-6" id="categories-tables-wrapper">
           ${categories.map(cat => {
             const items = catalog.filter(a => String(a.category_id) === String(cat.id));
+
             return `
-              <div class="kpi-card rounded-2xl overflow-hidden p-5 space-y-3">
-                <div class="flex items-center gap-2 border-b border-white/5 pb-2">
-                  <span class="text-blue-400 font-bold text-base">●</span>
-                  <h3 class="font-bold text-white text-sm">${cat.name_ar} (${cat.name_fr})</h3>
-                  <span class="text-xs text-slate-500 font-normal">(${items.length} بنود)</span>
+              <div class="kpi-card rounded-2xl overflow-hidden border border-white/10 shadow-xl category-table-card" data-category-id="${cat.id}">
+                
+                <!-- Category Section Header -->
+                <div class="p-4 sm:p-5 bg-[#14141A] border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <span class="text-2xl p-2 rounded-xl bg-white/5 border border-white/10 shrink-0">${cat.icon || '🛠️'}</span>
+                    <div>
+                      <div class="flex items-center gap-2.5 flex-wrap">
+                        <h3 class="text-sm sm:text-base font-black text-white">${cat.name_ar || cat.name}</h3>
+                        <span class="text-xs text-slate-400 font-medium">(${cat.name_fr || cat.code || ''})</span>
+                        <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-slate-400 font-mono">${cat.code || 'CAT'}</span>
+                      </div>
+                      <span class="text-[11px] text-slate-400 mt-0.5 block">${items.length} بنود أعمال وأشغال مدرجة</span>
+                    </div>
+                  </div>
+
+                  <!-- Category Action Buttons -->
+                  <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <button onclick="App.openNewCatalogActivityModal('${cat.id}')" class="px-3 py-1.5 rounded-lg bg-red-600/15 hover:bg-red-600/25 text-red-400 border border-red-500/30 text-xs font-bold transition flex items-center gap-1" title="إضافة بند عمل جديد لهذه الفئة">
+                      <span>+</span>
+                      <span>إضافة نشاط</span>
+                    </button>
+                    <button onclick="App.editWorkCategory('${cat.id}')" class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition flex items-center gap-1" title="تعديل اسم وبيانات الفئة">
+                      <span>✏️</span>
+                      <span>تعديل الفئة</span>
+                    </button>
+                    <button onclick="App.deleteWorkCategory('${cat.id}')" class="px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1" title="حذف الفئة بالكامل">
+                      <span>🗑️</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  ${items.map(it => `
-                    <div class="p-3.5 rounded-xl bg-[#0E0E12]/50 border border-white/6 hover:border-white/10 transition flex flex-col justify-between">
-                      <div>
-                        <div class="flex justify-between items-start gap-2">
-                          <span class="font-bold text-white block text-xs">${it.name}</span>
-                          <div class="flex items-center gap-1 flex-shrink-0">
-                            <button onclick="App.editCatalogActivity('${it.id}')" class="p-1 px-1.5 rounded bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 text-[11px] font-bold transition flex items-center gap-1" title="تعديل هذا النشاط في الكتالوج">
-                              <span>✏️</span>
+                <!-- Organized Table for this Category -->
+                <div class="overflow-x-auto">
+                  <table class="erp-table">
+                    <thead>
+                      <tr>
+                        <th class="text-center" style="width: 4%;">#</th>
+                        <th class="text-right" style="width: 30%;">اسم النشاط وبند العمل (Désignation)</th>
+                        <th class="text-center" style="width: 8%;">الوحدة</th>
+                        <th class="text-center" style="width: 14%;">سعر الخدمة (يد عمل)</th>
+                        <th class="text-center" style="width: 14%;">سعر السلعة (مواد)</th>
+                        <th class="text-center" style="width: 15%;">المجموع الكلي (دج)</th>
+                        <th class="text-center" style="width: 15%;">الإجراءات (Actions)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${items.length > 0 ? items.map((it, idx) => {
+                        const laborPrice = parseFloat(it.default_labor_price || it.estimated_labor_cost || 0);
+                        const materialPrice = parseFloat(it.default_material_price || it.estimated_material_cost || 0);
+                        const totalPrice = parseFloat(it.default_unit_price || it.default_price || (laborPrice + materialPrice));
+                        const centimes = (totalPrice / 10000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' م.س';
+
+                        return `
+                          <tr class="transition hover:bg-white/[0.02] activity-row" data-activity-name="${this.escapeHtml(it.name || '').toLowerCase()}" data-activity-desc="${this.escapeHtml(it.description || '').toLowerCase()}">
+                            <td class="text-center font-mono text-slate-500 text-xs font-bold">
+                              ${idx + 1}
+                            </td>
+                            <td>
+                              <div class="min-w-0">
+                                <span class="font-bold text-white text-xs block hover:text-[#FF3B30] cursor-pointer" onclick="App.editCatalogActivity('${it.id}')">${it.name}</span>
+                                ${it.description ? `<span class="text-[10px] text-slate-400 block mt-0.5 truncate max-w-md">${it.description}</span>` : ''}
+                              </div>
+                            </td>
+                            <td class="text-center">
+                              <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 font-mono text-xs font-bold">
+                                ${it.unit || 'm²'}
+                              </span>
+                            </td>
+                            <td class="text-center font-mono font-bold text-emerald-400 text-xs">
+                              <div class="flex flex-col items-center">
+                                <span>${App.formatCurrency(laborPrice)}</span>
+                                <span class="text-[9px] text-emerald-500/80 font-normal">خدمة / يد عمل</span>
+                              </div>
+                            </td>
+                            <td class="text-center font-mono font-bold text-cyan-400 text-xs">
+                              <div class="flex flex-col items-center">
+                                <span>${App.formatCurrency(materialPrice)}</span>
+                                <span class="text-[9px] text-cyan-500/80 font-normal">سلعة / مواد</span>
+                              </div>
+                            </td>
+                            <td class="text-center font-mono font-black text-amber-300 text-xs bg-white/[0.02]">
+                              <div class="flex flex-col items-center">
+                                <span class="text-sm">${App.formatCurrency(totalPrice)}</span>
+                                <span class="text-[9px] text-amber-400/80 font-normal">${centimes}</span>
+                              </div>
+                            </td>
+                            <td class="text-center">
+                              <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="App.editCatalogActivity('${it.id}')" class="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition flex items-center gap-1" title="تعديل اسم النشاط، سعر الخدمة، وسعر السلعة">
+                                  <span>✏️</span>
+                                  <span>تعديل</span>
+                                </button>
+                                <button onclick="App.deleteCatalogActivity('${it.id}')" class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition flex items-center gap-1" title="حذف هذا النشاط">
+                                  <span>🗑️</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('') : `
+                        <tr>
+                          <td colspan="7" class="text-center py-8 text-slate-500">
+                            <p class="text-xs font-bold text-slate-400">لا توجد أنشطة مسجلة في هذه الفئة حالياً</p>
+                            <button onclick="App.openNewCatalogActivityModal('${cat.id}')" class="mt-2 px-3 py-1 bg-red-600/15 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold transition">
+                              + إضافة أول نشاط في ${cat.name_ar || cat.name}
                             </button>
-                            <button onclick="App.deleteCatalogActivity('${it.id}')" class="p-1 px-1.5 rounded bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 text-[11px] font-bold transition flex items-center gap-1" title="حذف هذا النشاط من الكتالوج">
-                              <span>🗑️</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="flex justify-between items-center text-slate-400 mt-2.5 pt-2 border-t border-white/5">
-                        <span>الوحدة: <strong class="text-slate-300">${it.unit}</strong></span>
-                        <span class="text-blue-400 font-bold">${App.formatCurrency(it.default_price)}</span>
-                      </div>
-                    </div>
-                  `).join('')}
+                          </td>
+                        </tr>
+                      `}
+                    </tbody>
+                  </table>
                 </div>
+
               </div>
             `;
           }).join('')}
         </div>
+
       </div>
     `;
   },
 
-  // 9. Global Expenses View
+  filterActivityCatalog(query) {
+    const q = (query || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('.activity-row');
+    const cards = document.querySelectorAll('.category-table-card');
+
+    if (!q) {
+      rows.forEach(r => r.style.display = '');
+      cards.forEach(c => c.style.display = '');
+      return;
+    }
+
+    cards.forEach(card => {
+      let hasMatch = false;
+      const cardRows = card.querySelectorAll('.activity-row');
+      cardRows.forEach(r => {
+        const name = r.dataset.activityName || '';
+        const desc = r.dataset.activityDesc || '';
+        const text = r.textContent.toLowerCase();
+        if (name.includes(q) || desc.includes(q) || text.includes(q)) {
+          r.style.display = '';
+          hasMatch = true;
+        } else {
+          r.style.display = 'none';
+        }
+      });
+      card.style.display = hasMatch ? '' : 'none';
+    });
+  },
+
+  filterActivitiesByCategory(categoryId, btn) {
+    this.playClickSound();
+    if (btn && btn.parentElement) {
+      btn.parentElement.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    const cards = document.querySelectorAll('.category-table-card');
+    cards.forEach(card => {
+      if (categoryId === 'all' || card.dataset.categoryId === categoryId) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  },
+
+    // 9. Global Expenses View
   async renderExpensesView(container) {
     const expenses = await DB.getAll('expenses');
     const projects = await DB.getAll('projects');
@@ -4024,6 +7122,9 @@ async renderFinancesView(container) {
             <div class="flex items-center justify-center gap-1.5">
               <button onclick="App.printQuotationA4('${q.id}')" class="btn-action-open" title="Imprimer A4">
                 <span>🖨️</span><span>Print A4</span>
+              </button>
+              <button onclick="App.sendQuotationWhatsApp('${q.id}')" class="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1" title="مشاركة الكشف عبر واتساب (WhatsApp)">
+                <span>💬</span><span>WhatsApp</span>
               </button>
               <button onclick="App.editQuotation('${q.id}')" class="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30 text-xs font-bold">
                 ✏️
@@ -4332,6 +7433,719 @@ async renderReportsView(container) {
     `;
   },
 
+
+  // ============================================================
+  // WHATSAPP QUOTATION & INVOICE DIRECT SHARING ENGINE
+  // ============================================================
+  async sendQuotationWhatsApp(quotationId) {
+    this.playClickSound();
+    const q = await DB.getById('quotations', quotationId);
+    if (!q) {
+      alert('تعذر العثور على الكشف التقديري.');
+      return;
+    }
+    const project = await DB.getById('projects', q.project_id) || {};
+    const clientName = q.client_name || project.client_name || 'الزبون المحترم';
+    let clientPhone = project.client_phone || '';
+
+    if (!clientPhone || clientPhone === '—' || clientPhone.length < 8) {
+      // Show inline prompt using toast-style input
+      const entered = await new Promise(resolve => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        d.innerHTML = `<div style="background:#1a1a24;border-radius:20px;width:92%;max-width:400px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="font-weight:900;color:#fff;margin-bottom:12px;font-size:0.95rem;">📱 رقم هاتف الزبون للواتساب</div>
+          <input id="_wa-phone-inp" type="tel" value="${clientPhone||''}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;margin-bottom:12px;" />
+          <div style="display:flex;gap:8px;">
+            <button onclick="this.closest('div[style]').parentElement._resolve(document.getElementById('_wa-phone-inp').value)" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;color:#fff;font-weight:900;cursor:pointer;">إرسال واتساب ✓</button>
+            <button onclick="this.closest('div[style]').parentElement._resolve(null)" style="padding:11px 16px;background:#0f0f17;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#94a3b8;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>`;
+        d._resolve = val => { document.body.removeChild(d); resolve(val); };
+        document.body.appendChild(d);
+        setTimeout(() => document.getElementById('_wa-phone-inp')?.focus(), 100);
+      });
+      if (!entered) return;
+      clientPhone = entered.trim();
+    }
+
+    let cleanPhone = clientPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '213' + cleanPhone.substring(1);
+    } else if (!cleanPhone.startsWith('213') && cleanPhone.length === 9) {
+      cleanPhone = '213' + cleanPhone;
+    }
+
+    const totalAmount = parseFloat(q.total_amount || q.total_ttc || q.total || 0);
+    const centimes = (totalAmount / 10000).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' مليون سنتيم';
+
+    const text = 
+`*مؤسسة داري لوكس للتشطيب والديكور العصري*
+*DARI LUXE — Rénovation & Décoration*
+━━━━━━━━━━━━━━━━━━━━
+السلام عليكم ورحمة الله وبركاته،
+عناية الزبون المحترم: *${clientName}*
+
+يسرنا أن نوافيكم بالكشف التقديري الرسمي لأشغالكم:
+🏷️ *المشروع / الورشة:* ${project.name || 'أشغال التشطيب'}
+📄 *رقم الكشف:* #${q.ref || q.id.slice(0, 8)}
+📅 *التاريخ:* ${q.date || App.getLocalDateString()}
+
+💰 *المبلغ الإجمالي للكشف:*
+👉 *${totalAmount.toLocaleString('fr-FR')} دج* (${centimes})
+
+📋 *نوع الأشغال المقدرة:*
+✓ أسقف مستعارة وديكورات الجبس العصري BA13
+✓ الإضاءة المخفية وبروفيليه ليد الحديث
+✓ صباغة ديكورية ومعالجة الأسطح والجدران
+
+لأي استفسار أو لتثبيت الاتفاق وبدء العمل، نحن في خدمتكم:
+📞 0550 60 09 09
+📍 سيدي لخضر، ولاية عين الدفلى
+_شكراً لثقتكم في DARI LUXE_`;
+
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  },
+
+  async sendInvoiceWhatsApp(invoiceId) {
+    this.playClickSound();
+    const inv = await DB.getById('invoices', invoiceId);
+    if (!inv) return;
+    const project = await DB.getById('projects', inv.project_id) || {};
+    const clientName = inv.client_name || project.client_name || 'الزبون المحترم';
+    let clientPhone = project.client_phone || '';
+
+    if (!clientPhone || clientPhone === '—' || clientPhone.length < 8) {
+      const entered = await new Promise(resolve => {
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);';
+        d.innerHTML = `<div style="background:#1a1a24;border-radius:20px;width:92%;max-width:400px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="font-weight:900;color:#fff;margin-bottom:12px;font-size:0.95rem;">📱 رقم هاتف الزبون للواتساب</div>
+          <input id="_wa-phone-inv" type="tel" value="${clientPhone||''}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px 14px;color:#fff;font-size:1rem;box-sizing:border-box;outline:none;direction:ltr;margin-bottom:12px;" />
+          <div style="display:flex;gap:8px;">
+            <button onclick="this.closest('div[style]').parentElement._resolve(document.getElementById('_wa-phone-inv').value)" style="flex:1;padding:11px;background:#25D366;border:none;border-radius:12px;color:#fff;font-weight:900;cursor:pointer;">إرسال واتساب ✓</button>
+            <button onclick="this.closest('div[style]').parentElement._resolve(null)" style="padding:11px 16px;background:#0f0f17;border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#94a3b8;cursor:pointer;">إلغاء</button>
+          </div>
+        </div>`;
+        d._resolve = val => { document.body.removeChild(d); resolve(val); };
+        document.body.appendChild(d);
+        setTimeout(() => document.getElementById('_wa-phone-inv')?.focus(), 100);
+      });
+      if (!entered) return;
+      clientPhone = entered.trim();
+    }
+
+    let cleanPhone = clientPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) cleanPhone = '213' + cleanPhone.substring(1);
+    else if (!cleanPhone.startsWith('213') && cleanPhone.length === 9) cleanPhone = '213' + cleanPhone;
+
+    const totalAmount = parseFloat(inv.total_amount || inv.total_ttc || inv.total || 0);
+
+    const text = 
+`*مؤسسة داري لوكس للتشطيب والديكور العصري*
+*DARI LUXE — Facture Officielle*
+━━━━━━━━━━━━━━━━━━━━
+عناية الزبون المحترم: *${clientName}*
+المشروع: *${project.name || '-'}*
+فاتورة رسمية رقم: *#${inv.ref || inv.id.slice(0, 8)}*
+التاريخ: *${inv.date || App.getLocalDateString()}*
+
+المبلغ المستحق: *${totalAmount.toLocaleString('fr-FR')} دج*
+حالة الفاتورة: *${inv.status === 'paid' ? 'مسددة بالكامل ✓' : 'في انتظار التحصيل ⏳'}*
+
+📞 للتواصل: 0550 60 09 09
+سيدي لخضر، عين الدفلى`;
+
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  },
+
+  // ============================================================
+  // OFFICIAL PAYROLL A4 PRINTING ENGINE (ALL WORKERS & INDIVIDUAL)
+  // ============================================================
+  async printPayrollSheetA4() {
+    this.playClickSound();
+    const workers = await DB.getAll('workers');
+    const attendances = await DB.getAll('worker_attendance');
+    const payments = await DB.getAll('worker_payments');
+
+    let totalWagesAll = 0;
+    let totalAdvancesAll = 0;
+
+    const workerRows = workers.map((w, idx) => {
+      const summary = CalculationEngine.computeWorkerFinancialSummary(w.id, attendances, payments);
+      totalWagesAll += summary.totalEarned;
+      totalAdvancesAll += summary.totalPaid;
+
+      return `
+        <tr>
+          <td style="text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td>
+            <strong>${w.full_name}</strong>
+            <div style="font-size: 8pt; color: #64748B;">بطاقة تعريف: ${w.cin || '—'} • هاتف: ${w.phone || '—'}</div>
+          </td>
+          <td>${w.specialty || 'عامل متعدد المهارات'}</td>
+          <td style="text-align: center; font-family: monospace; font-weight: bold;">${(w.daily_wage || 0).toLocaleString('fr-FR')} دج</td>
+          <td style="text-align: center; font-weight: bold; font-family: monospace;">${summary.totalDaysWorked} يوم</td>
+          <td style="text-align: left; font-weight: bold; font-family: monospace;">${summary.totalEarned.toLocaleString('fr-FR')} دج</td>
+          <td style="text-align: left; color: #DC2626; font-weight: bold; font-family: monospace;">${summary.totalPaid.toLocaleString('fr-FR')} دج</td>
+          <td style="text-align: left; font-weight: 900; font-family: monospace; background: #F8FAFC; color: ${summary.balanceDue > 0 ? '#B45309' : '#059669'};">
+            ${summary.balanceDue.toLocaleString('fr-FR')} دج
+          </td>
+          <td style="height: 35px; border-bottom: 1px dotted #94A3B8;"></td>
+        </tr>
+      `;
+    }).join('');
+
+    const netRemainingAll = totalWagesAll - totalAdvancesAll;
+    const printDate = App.getLocalDateString();
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>كشف رواتب ومستحقات العمال - DARI LUXE</title>
+        <style>
+          body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; padding: 15mm 12mm; color: #0F172A; font-size: 9.5pt; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+          th { background: #0B132B; color: #FFFFFF; border: 1px solid #0B132B; padding: 8px 6px; font-weight: bold; font-size: 9pt; }
+          td { border: 1px solid #CBD5E1; padding: 7px 6px; }
+          .summary-grid { display: flex; justify-content: space-between; gap: 15px; margin-top: 20px; }
+          .summary-card { flex: 1; border: 1px solid #CBD5E1; border-radius: 8px; padding: 10px 14px; background: #F8FAFC; text-align: center; }
+          .summary-card.highlight { border-color: #B45309; background: #FFFBEB; }
+          .signature-box { margin-top: 40px; display: flex; justify-content: space-between; }
+          .sig-line { width: 220px; text-align: center; border-top: 1px dashed #64748B; padding-top: 8px; font-weight: bold; font-size: 9pt; }
+          @media print {
+            body { padding: 5mm; }
+            button { display: none !important; }
+          }
+        </style>
+      </head>
+      <body>
+        ${App.getCompanyPrintHeaderHTML('كشف أجور ومستحقات فريق العمل', 'ÉTAT RÉCAPITULATIF DES SALAIRES & ACOMPTES', 'ETAT-PAIE-' + printDate.replace(/-/g,''), printDate)}
+
+        <div style="background: #F1F5F9; border-right: 4px solid #D4AF37; padding: 8px 12px; border-radius: 4px; margin-bottom: 12px; font-size: 9pt;">
+          <strong>بيان الصرف:</strong> كشف حساب شامل لأيام العمل الفعلية، التسبيقات النقدية المسددة، والرصيد الصافي المستحق الدفع لعمال الورشات ومشاريع DARI LUXE.
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 4%;">#</th>
+              <th style="width: 22%;">اسم العامل والصفة</th>
+              <th style="width: 14%;">المهنة / التخصص</th>
+              <th style="width: 11%;">الأجر اليومي</th>
+              <th style="width: 9%;">أيام العمل</th>
+              <th style="width: 13%;">المستحق الكلي</th>
+              <th style="width: 12%;">التسبيقات</th>
+              <th style="width: 15%;">الصافي المتبقي</th>
+              <th style="width: 10%;">توقيع المستلم</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${workerRows}
+          </tbody>
+        </table>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <span style="font-size: 8.5pt; color: #64748B; display: block;">إجمالي أجور العمل المستحقة</span>
+            <strong style="font-size: 13pt; color: #0F172A; font-family: monospace;">${totalWagesAll.toLocaleString('fr-FR')} دج</strong>
+          </div>
+          <div class="summary-card">
+            <span style="font-size: 8.5pt; color: #64748B; display: block;">إجمالي التسبيقات المسددة</span>
+            <strong style="font-size: 13pt; color: #DC2626; font-family: monospace;">${totalAdvancesAll.toLocaleString('fr-FR')} دج</strong>
+          </div>
+          <div class="summary-card highlight">
+            <span style="font-size: 8.5pt; color: #B45309; display: block; font-weight: bold;">صافي المبلغ المتبقي للصرف</span>
+            <strong style="font-size: 14pt; color: #B45309; font-family: monospace;">${netRemainingAll.toLocaleString('fr-FR')} دج</strong>
+            <div style="font-size: 8pt; color: #78350F; margin-top: 2px;">(${App.formatCentimes(netRemainingAll)})</div>
+          </div>
+        </div>
+
+        <div class="signature-box">
+          <div class="sig-line">
+            تأشيرة وتوقيع إدارة DARI LUXE
+          </div>
+          <div class="sig-line">
+            تأشيرة المسؤول المالي والمشرف
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="background:#B45309; color:#FFF; border:none; padding:10px 24px; border-radius:6px; font-weight:bold; cursor:pointer; font-family:'Cairo'; font-size:10pt;">
+            🖨️ طباعة الكشف الآن (A4 Print)
+          </button>
+        </div>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  },
+
+  async printWorkerIndividualPayslipA4(workerId) {
+    this.playClickSound();
+    const w = await DB.getById('workers', workerId);
+    if (!w) return;
+    const attendances = (await DB.getAll('worker_attendance')).filter(a => a.worker_id === workerId);
+    const payments = (await DB.getAll('worker_payments')).filter(p => p.worker_id === workerId);
+    const projects = await DB.getAll('projects');
+    const summary = CalculationEngine.computeWorkerFinancialSummary(workerId, attendances, payments);
+
+    const printDate = App.getLocalDateString();
+
+    const attendanceRows = attendances.map((a, i) => {
+      const p = projects.find(prj => prj.id === a.project_id) || { name: 'ورشة عامة' };
+      const dayWage = (w.daily_wage || 0) * (a.multiplier || 1.0);
+      return `
+        <tr>
+          <td style="text-align: center;">${i+1}</td>
+          <td>${a.date}</td>
+          <td>${p.name}</td>
+          <td style="text-align: center;">${a.multiplier === 1 ? 'يوم كامل (1.0)' : (a.multiplier === 0.5 ? 'نصف يوم (0.5)' : 'أخرى')}</td>
+          <td style="text-align: left; font-family: monospace; font-weight: bold;">${dayWage.toLocaleString('fr-FR')} دج</td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="5" style="text-align:center; color:#94A3B8;">لا توجد سجلات حضور مسجلة</td></tr>';
+
+    const paymentRows = payments.map((p, i) => `
+      <tr>
+        <td style="text-align: center;">${i+1}</td>
+        <td>${p.payment_date}</td>
+        <td>${p.notes || 'تسبيق نقدي'}</td>
+        <td style="text-align: left; font-family: monospace; color:#DC2626; font-weight: bold;">${parseFloat(p.amount || 0).toLocaleString('fr-FR')} دج</td>
+      </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center; color:#94A3B8;">لا توجد تسبيقات مسددة</td></tr>';
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>كشف حساب فردي - ${w.full_name}</title>
+        <style>
+          body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; padding: 15mm 12mm; color: #0F172A; font-size: 9.5pt; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 15px; }
+          th { background: #0B132B; color: #FFFFFF; border: 1px solid #0B132B; padding: 7px; font-weight: bold; font-size: 9pt; }
+          td { border: 1px solid #CBD5E1; padding: 6px; }
+          .info-box { background: #F8FAFC; border: 1px solid #CBD5E1; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+          .summary-card { border: 2px solid #B45309; background: #FFFBEB; padding: 12px; border-radius: 8px; text-align: left; margin-top: 15px; }
+          .signature-box { margin-top: 35px; display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        ${App.getCompanyPrintHeaderHTML('كشف حساب وأجور فردي لعامل', 'BULLETIN INDIVIDUEL DE PAIE', 'PAYSLIP-' + w.id.slice(0,6), printDate)}
+
+        <div class="info-box">
+          <table style="width: 100%; margin: 0; border: none;">
+            <tr style="border: none;">
+              <td style="border: none; width: 50%;"><strong>اسم العامل:</strong> ${w.full_name}</td>
+              <td style="border: none; width: 50%;"><strong>المهنة / الصفة:</strong> ${w.specialty || 'عامل تشطيب'}</td>
+            </tr>
+            <tr style="border: none;">
+              <td style="border: none;"><strong>رقم بطاقة التعريف (CIN):</strong> ${w.cin || '—'}</td>
+              <td style="border: none;"><strong>رقم الهاتف:</strong> ${w.phone || '—'}</td>
+            </tr>
+            <tr style="border: none;">
+              <td style="border: none;"><strong>الأجر اليومي المتفق عليه:</strong> ${(w.daily_wage || 0).toLocaleString('fr-FR')} دج / اليوم</td>
+              <td style="border: none;"><strong>الولاية:</strong> ${w.wilaya || 'عين الدفلى'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <h4 style="margin: 15px 0 5px 0; color: #0B132B;">1. تفاصيل أيام الحضور والعمل الفعلية:</h4>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 6%;">#</th>
+              <th style="width: 20%;">التاريخ</th>
+              <th style="width: 38%;">المشروع / الورشة</th>
+              <th style="width: 18%;">طبيعة اليومية</th>
+              <th style="width: 18%;">الأجر اليومي المحسوب</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${attendanceRows}
+          </tbody>
+        </table>
+
+        <h4 style="margin: 15px 0 5px 0; color: #0B132B;">2. تفاصيل التسبيقات النقدية المسددة:</h4>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 6%;">#</th>
+              <th style="width: 24%;">تاريخ التسليم</th>
+              <th style="width: 45%;">البيان / الملاحظة</th>
+              <th style="width: 25%;">المبلغ المستلم</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paymentRows}
+          </tbody>
+        </table>
+
+        <div class="summary-card">
+          <div style="display: flex; justify-content: space-between; font-size: 10.5pt; margin-bottom: 4px;">
+            <span>إجمالي مستحقات أيام العمل (${summary.totalDaysWorked} يوم):</span>
+            <strong style="font-family: monospace;">${summary.totalEarned.toLocaleString('fr-FR')} دج</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10.5pt; color: #DC2626; margin-bottom: 6px;">
+            <span>مجموع التسبيقات المستلمة نقداً:</span>
+            <strong style="font-family: monospace;">- ${summary.totalPaid.toLocaleString('fr-FR')} دج</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13pt; font-weight: 900; color: #B45309; border-top: 1px solid #FCD34D; padding-top: 6px;">
+            <span>الصافي المتبقي والمستحق للصرف:</span>
+            <span style="font-family: monospace;">${summary.balanceDue.toLocaleString('fr-FR')} دج</span>
+          </div>
+        </div>
+
+        <div class="signature-box">
+          <div style="text-align: center; width: 220px; border-top: 1px dashed #64748B; padding-top: 8px; font-size: 9pt;">
+            توقيع الإدارة وتأشيرة الصرف
+          </div>
+          <div style="text-align: center; width: 220px; border-top: 1px dashed #64748B; padding-top: 8px; font-size: 9pt;">
+            توقيع واستلام العامل: ${w.full_name}
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 25px;">
+          <button onclick="window.print()" style="background:#B45309; color:#FFF; border:none; padding:8px 20px; border-radius:6px; font-weight:bold; cursor:pointer; font-family:'Cairo'; font-size:10pt;">
+            🖨️ طباعة كشف الحساب الفردي A4
+          </button>
+        </div>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  },
+
+  // ============================================================
+  // QUICK MOBILE DAILY CHECK-IN MODAL (ALL WORKERS AT ONCE)
+  // ============================================================
+  async openQuickDailyCheckinModal() {
+    this.playClickSound();
+    const workers = (await DB.getAll('workers')).filter(w => w.status !== 'inactive');
+    const projects = await DB.getAll('projects');
+    const todayStr = App.getLocalDateString();
+    const todayAttendances = (await DB.getAll('worker_attendance')).filter(a => a.date === todayStr);
+
+    if (workers.length === 0) {
+      alert('لا يوجد عمال مسجلين في النظام. يرجى إضافة عمال أولاً.');
+      return;
+    }
+
+    const modalHTML = `
+      <div id="quick-checkin-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          
+          <!-- Modal Header -->
+          <div class="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-[#16161C]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-lg">
+                ⚡
+              </div>
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <span>تسجيل الحضور اليومي السريع لجميع العمال</span>
+                  <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono">${todayStr}</span>
+                </h3>
+                <p class="text-xs text-slate-400">حدد حالة حضور كل عامل مع إمكانية تسجيل تسبيق فوري بضغطة واحدة</p>
+              </div>
+            </div>
+            <button onclick="document.getElementById('quick-checkin-modal').remove()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center text-sm font-bold transition">
+              ✕
+            </button>
+          </div>
+
+          <!-- Workers List Body -->
+          <div class="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1">
+            <div class="text-[11px] text-slate-400 bg-white/[0.02] p-2.5 rounded-xl border border-white/5 flex items-center justify-between">
+              <span>عدد عمال المؤسسة: <strong class="text-white">${workers.length}</strong></span>
+              <span class="text-emerald-400">حاضرون مسجلون اليوم: <strong id="quick-present-counter">${todayAttendances.filter(a => a.multiplier > 0).length}</strong></span>
+            </div>
+
+            <div class="space-y-2.5" id="quick-workers-list">
+              ${workers.map(w => {
+                const existing = todayAttendances.find(a => a.worker_id === w.id);
+                const currentMult = existing ? existing.multiplier : 1.0;
+                const currentProjectId = existing ? existing.project_id : (projects[0] ? projects[0].id : '');
+
+                return `
+                  <div class="p-3.5 rounded-xl bg-[#16161C] border border-white/5 hover:border-white/10 transition flex flex-col md:flex-row items-start md:items-center justify-between gap-3" data-worker-id="${w.id}">
+                    <div class="flex items-center gap-3 min-w-[180px]">
+                      <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center font-bold text-xs shrink-0">
+                        ${(w.full_name || 'W')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <span class="text-xs font-bold text-white block">${w.full_name}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">${w.specialty || 'عامل'} • ${(w.daily_wage || 0).toLocaleString('fr-FR')} دج/يوم</span>
+                      </div>
+                    </div>
+
+                    <!-- Attendance Toggle Buttons -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <label class="cursor-pointer">
+                        <input type="radio" name="quick_status_${w.id}" value="1.0" ${currentMult === 1.0 ? 'checked' : ''} class="hidden peer">
+                        <span class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1 border-white/10 text-slate-400 peer-checked:bg-emerald-500/20 peer-checked:border-emerald-500/50 peer-checked:text-emerald-400">
+                          ✓ كامل (1.0)
+                        </span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="quick_status_${w.id}" value="0.5" ${currentMult === 0.5 ? 'checked' : ''} class="hidden peer">
+                        <span class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1 border-white/10 text-slate-400 peer-checked:bg-amber-500/20 peer-checked:border-amber-500/50 peer-checked:text-amber-400">
+                          ½ نصف (0.5)
+                        </span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="quick_status_${w.id}" value="0.0" ${currentMult === 0.0 ? 'checked' : ''} class="hidden peer">
+                        <span class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1 border-white/10 text-slate-400 peer-checked:bg-rose-500/20 peer-checked:border-rose-500/50 peer-checked:text-rose-400">
+                          ✗ غائب (0)
+                        </span>
+                      </label>
+                    </div>
+
+                    <!-- Project Selection -->
+                    <div class="w-full md:w-44">
+                      <select id="quick_project_${w.id}" class="w-full bg-[#121216] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:border-[#FF3B30]">
+                        ${projects.map(p => `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>${p.name}</option>`).join('') || '<option value="">لا توجد مشاريع</option>'}
+                      </select>
+                    </div>
+
+                    <!-- Advance input -->
+                    <div class="w-full md:w-32 flex items-center gap-1">
+                      <input type="number" id="quick_advance_${w.id}" placeholder="تسبيق دج" min="0" step="500" class="w-full bg-[#121216] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-600 focus:border-amber-400 text-left font-mono">
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="p-4 sm:p-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#16161C]">
+            <span class="text-xs text-slate-400">سيتم حفظ حضور جميع العمال تلقائياً وتحديث أجورهم وصندوق الشركة.</span>
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+              <button onclick="document.getElementById('quick-checkin-modal').remove()" class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+                إلغاء
+              </button>
+              <button onclick="App.saveQuickDailyCheckin()" class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-950/40 transition flex items-center justify-center gap-2 border border-emerald-400/30">
+                <span>✓</span>
+                <span>حفظ حضور اليوم للجميع</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
+  async saveQuickDailyCheckin() {
+    this.playClickSound();
+    const rows = document.querySelectorAll('#quick-workers-list > div[data-worker-id]');
+    const todayStr = App.getLocalDateString();
+    const existingAttendances = (await DB.getAll('worker_attendance')).filter(a => a.date === todayStr);
+    const partners = await DB.getAll('partners');
+    const defaultPartner = partners[0] || { id: 'PART-001', name: 'شريك DARI LUXE' };
+
+    let savedCount = 0;
+    let advancesCount = 0;
+
+    for (const row of rows) {
+      const workerId = row.dataset.workerId;
+      const multInput = row.querySelector(`input[name="quick_status_${workerId}"]:checked`);
+      const multiplier = multInput ? parseFloat(multInput.value) : 1.0;
+      const projectSelect = document.getElementById(`quick_project_${workerId}`);
+      const projectId = projectSelect ? projectSelect.value : '';
+      const advanceInput = document.getElementById(`quick_advance_${workerId}`);
+      const advanceVal = advanceInput ? parseFloat(advanceInput.value) || 0 : 0;
+
+      // Update or insert attendance
+      const existing = existingAttendances.find(a => a.worker_id === workerId);
+      if (existing) {
+        await DB.update('worker_attendance', existing.id, {
+          multiplier: multiplier,
+          project_id: projectId,
+          status: multiplier > 0 ? 'present' : 'absent',
+          notes: 'تسجيل سريع'
+        });
+      } else {
+        await DB.add('worker_attendance', {
+          id: 'ATT-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+          worker_id: workerId,
+          project_id: projectId,
+          date: todayStr,
+          multiplier: multiplier,
+          status: multiplier > 0 ? 'present' : 'absent',
+          notes: 'تسجيل سريع'
+        });
+      }
+      savedCount++;
+
+      // If advance entered, register worker payment
+      if (advanceVal > 0) {
+        await DB.add('worker_payments', {
+          id: 'WPAY-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+          worker_id: workerId,
+          project_id: projectId,
+          amount: advanceVal,
+          payment_date: todayStr,
+          paid_by_partner_id: defaultPartner.id,
+          paid_by_partner_name: defaultPartner.name,
+          notes: 'تسبيق يومي سريع'
+        });
+        advancesCount++;
+      }
+    }
+
+    const modal = document.getElementById('quick-checkin-modal');
+    if (modal) modal.remove();
+
+    alert(`✓ تم بنجاح حفظ الحضور اليومي لـ ${savedCount} عامل!${advancesCount > 0 ? `\n✓ تم تسجيل ${advancesCount} تسبيق نقدي في حساباتهم.` : ''}`);
+    this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+  },
+
+  // ============================================================
+  // REAL PROJECT PHOTOS & DOCUMENTS GALLERY ENGINE
+  // ============================================================
+  async openUploadProjectAttachmentModal(projectId) {
+    this.playClickSound();
+    const modalHTML = `
+      <div id="upload-attachment-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        <div class="bg-[#121216] border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>📸</span>
+              <span>إرفاق صورة أو مخطط للورشة</span>
+            </h3>
+            <button onclick="document.getElementById('upload-attachment-modal').remove()" class="text-slate-400 hover:text-white">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">مرحلة / صنف المرفق:</label>
+              <select id="attachment_stage" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white">
+                <option value="avant">📸 قبل بدء الأشغال (Avant travaux)</option>
+                <option value="en_cours">🔨 أثناء سير الأشغال (En cours d'exécution)</option>
+                <option value="apres">✨ بعد التشطيب النهائي (Après finition)</option>
+                <option value="plan">📐 مخطط تقني أو رسم هندسي (Plan technique)</option>
+                <option value="bon">🧾 وصل استلام أو فاتورة مواد (Bon d'achat)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">عنوان توضيحي للمرفق:</label>
+              <input type="text" id="attachment_title" placeholder="مثال: واجهة الصالون قبل البلاكو، مخطط السقف..." class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-white">
+            </div>
+
+            <div>
+              <label class="block text-slate-400 mb-1">اختر الصورة أو الملف (JPG, PNG, PDF):</label>
+              <input type="file" id="attachment_file_input" accept="image/*,application/pdf" class="w-full bg-[#16161C] border border-white/10 rounded-xl px-3 py-2 text-slate-300">
+            </div>
+
+            <div id="attachment_preview_container" class="hidden text-center pt-2">
+              <img id="attachment_img_preview" class="max-h-40 mx-auto rounded-lg border border-white/10 object-contain">
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+            <button onclick="document.getElementById('upload-attachment-modal').remove()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition">
+              إلغاء
+            </button>
+            <button onclick="App.saveProjectAttachment('${projectId}')" class="px-5 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold text-xs shadow-lg transition">
+              رفع وحفظ
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    const fileInput = document.getElementById('attachment_file_input');
+    const previewContainer = document.getElementById('attachment_preview_container');
+    const imgPreview = document.getElementById('attachment_img_preview');
+
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          imgPreview.src = evt.target.result;
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+  },
+
+  async saveProjectAttachment(projectId) {
+    const stage = document.getElementById('attachment_stage').value;
+    const title = (document.getElementById('attachment_title').value || '').trim();
+    const fileInput = document.getElementById('attachment_file_input');
+
+    if (!fileInput.files || fileInput.files.length === 0) {
+      alert('يرجى اختيار صورة أو ملف أولاً.');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const base64Url = e.target.result;
+      const newAtt = {
+        id: 'ATT-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 5),
+        project_id: projectId,
+        entity_type: stage,
+        file_name: title || file.name,
+        file_url: base64Url,
+        file_type: file.type.startsWith('image/') ? 'image' : 'pdf',
+        file_size: file.size,
+        uploaded_at: new Date().toISOString()
+      };
+
+      await DB.add('attachments', newAtt);
+      const modal = document.getElementById('upload-attachment-modal');
+      if (modal) modal.remove();
+
+      alert('✓ تم حفظ الصورة والمرفق بنجاح في سجل الورشة!');
+      const project = await DB.getById('projects', projectId);
+      if (project) {
+        App.renderProjectTabDocuments(project);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  },
+
+  async deleteProjectAttachment(attId, projectId) {
+    if (!confirm('هل أنت متأكد من حذف هذه الصورة / المرفق؟')) return;
+    this.playClickSound();
+    await DB.delete('attachments', attId);
+    const project = await DB.getById('projects', projectId);
+    if (project) {
+      App.renderProjectTabDocuments(project);
+    }
+  },
+
+  openImageViewerModal(imgSrc, title) {
+    const modalHTML = `
+      <div id="image-viewer-modal" onclick="this.remove()" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[120] flex items-center justify-center p-4 cursor-pointer">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+          <img src="${imgSrc}" class="max-w-full max-h-[82vh] object-contain rounded-xl border border-white/20 shadow-2xl">
+          <p class="text-white text-xs mt-3 font-bold bg-[#121216]/80 px-4 py-1.5 rounded-full border border-white/10">${title}</p>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  },
+
   async printQuotationA4(quotationId) {
     const q = await DB.getById('quotations', quotationId);
     if (!q) return;
@@ -4628,226 +8442,47 @@ async renderReportsView(container) {
     setTimeout(() => { win.print(); }, 250);
   },
 
-  // --- Modals Logic ---
+  // --- Modals Logic: Direct Navigation to Smart Views (Zero Popups) ---
   openNewProjectModal() {
-    const name = prompt('أدخل اسم المشروع الجديد:');
-    if (!name) return;
-    const client = prompt('اسم الزبون / صاحب المشروع:');
-    const contract = parseFloat(prompt('قيمة العقد المتفق عليها (بالدينار DZD):') || 0);
-    const model = prompt('النموذج التجاري:\n1. labor_only (أشغال يد فقط)\n2. labor_materials (توريد وتركيب)\n3. hybrid (هجين)', 'hybrid');
-
-    DB.add('projects', {
-      ref: 'PRJ-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900),
-      name: name.trim(),
-      client_name: (client || 'زبون جديد').trim(),
-      contract_value: contract,
-      commercial_model: model || 'hybrid',
-      status: 'in_progress',
-      start_date: App.getLocalDateString()
-    }).then(newP => {
-      alert('✓ تم إنشاء المشروع بنجاح!');
-      App.openProjectWorkspace(newP.id);
-    });
+    this.navigate('new_project');
   },
 
   async openNewFloorModal(projectId) {
-    const name = prompt('أدخل اسم الطابق الجديد (مثال: الطابق الأرضي، الطابق 2، السطح...):');
-    if (!name) return;
     const existingFloors = await DB.query('project_floors', f => String(f.project_id) === String(projectId));
-    const nextNumber = existingFloors.length + 1;
+    const nextNumber = existingFloors.length;
+    const floorNames = ['الطابق الأرضي (RDC)', 'الطابق الأول (1er Étage)', 'الطابق الثاني (2ème Étage)', 'الطابق الثالث (3ème Étage)', 'السطح والملحق (Terrasse)'];
+    const defaultName = floorNames[nextNumber] || ('طابق ' + (nextNumber + 1));
     await DB.add('project_floors', {
       project_id: projectId,
-      floor_name: name.trim(),
+      floor_name: defaultName,
       floor_number: nextNumber,
-      description: 'طابق'
+      description: 'مستوى بناية'
     });
-    App.renderActiveProjectTabContent();
+    this.playClickSound();
+    this.showToast('✓ تم بنجاح إضافة ' + defaultName + ' للمشروع بنقرة واحدة!', 'success');
+    this.renderActiveProjectTabContent();
   },
 
   async openNewRoomModal(projectId, defaultFloorId = null) {
-    const floors = await DB.query('project_floors', f => String(f.project_id) === String(projectId));
-    if (floors.length === 0) {
-      alert('يرجى إنشاء طابق أولاً قبل إضافة الغرف.');
-      return;
-    }
+    if (projectId) this.activeProjectId = projectId;
+    this.navigate('new_room', projectId);
+  },
 
-    const name = prompt('اسم الغرفة أو المكان (مثال: غرفة النوم الرئيسية، صالون، مطبخ...):');
-    if (!name) return;
-    const l = parseFloat(prompt('الطول بالمتر (مثال: 4.5):') || 4.0);
-    const w = parseFloat(prompt('العرض بالمتر (مثال: 3.8):') || 3.5);
-    const h = parseFloat(prompt('الارتفاع بالمتر (مثال: 2.58):') || 2.58);
+  async openNewWorkerModal() {
+    this.navigate('new_worker');
+  },
 
-    const floorId = defaultFloorId || floors[0].id;
+  async openNewExpenseModal(defaultProjectId = null) {
+    if (defaultProjectId) this.activeProjectId = defaultProjectId;
+    this.navigate('new_expense', defaultProjectId);
+  },
 
-    DB.add('project_rooms', {
-      project_id: projectId,
-      floor_id: floorId,
-      room_name: name.trim(),
-      length: l,
-      width: w,
-      height: h,
-      include_walls_paint: true,
-      include_ceiling_paint: true
-    }).then(() => {
-      App.renderActiveProjectTabContent();
-    });
+  openAddExpenseModal() {
+    this.navigate('new_expense');
   },
 
   async openNewAttendanceModal(defaultProjectId = null) {
     this.navigate('daily_checkin');
-  },
-
-  async openRecordWorkerPaymentModal(workerId, defaultPartnerId = null) {
-    const active = await this.getActivePartner();
-    const partnerId = defaultPartnerId || active.id;
-
-    const amount = parseFloat(prompt('أدخل المبلغ المسلم للعامل (دج DZD):') || 0);
-    if (!amount || amount <= 0) return;
-    const type = prompt('نوع الدفعة: advance (تسبيق) أو salary (تسوية أجر):', 'advance');
-
-    const whoPrompt = prompt(`من دفع للعامل من محفظته؟\n1. الشريك 1 (Admin 1)\n2. الشريك 2 (Admin 2)\n(الافتراضي: ${partnerId === 'USR-001' ? '1' : '2'})`, partnerId === 'USR-001' ? '1' : '2');
-    const finalPartnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
-    const finalPartnerName = finalPartnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-
-    await DB.add('worker_payments', {
-      worker_id: workerId,
-      partner_id: finalPartnerId,
-      amount,
-      payment_type: type || 'advance',
-      date: App.getLocalDateString(),
-      payment_method: 'cash',
-      notes: `دفعه للعامل: ${finalPartnerName} من محفظته`
-    });
-
-    alert(`✓ تم تسجيل دفعة العامل وخصمها من دخل الشركة بالكامل (المسدد: ${finalPartnerName})`);
-    await this.updateGlobalHeaderStats();
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    } else {
-      App.renderCurrentView();
-    }
-  },
-
-  async openNewMaterialPurchaseModal(defaultProjectId = null, defaultPartnerId = null) {
-    const active = await this.getActivePartner();
-    const partnerId = defaultPartnerId || active.id;
-
-    const name = prompt('اسم المادة أو العتاد المشترى:');
-    if (!name) return;
-    const qty = parseFloat(prompt('الكمية المشتراة:') || 1);
-    const price = parseFloat(prompt('سعر الوحدة بالدينار (DZD):') || 0);
-    const source = prompt('مصدر المادة:\n1. company (شراء على عاتق الشركة من المحفظة)\n2. customer (موردة من الزبون - تكلفة صفر)', 'company');
-
-    let finalPartnerId = partnerId;
-    if (source !== 'customer') {
-      const whoPrompt = prompt(`من قام بدفع قيمة المادة من محفظته؟\n1. الشريك 1 (Admin 1)\n2. الشريك 2 (Admin 2)\n(الافتراضي: ${partnerId === 'USR-001' ? '1' : '2'})`, partnerId === 'USR-001' ? '1' : '2');
-      finalPartnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
-    }
-    const finalPartnerName = finalPartnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-    const totalCost = source === 'customer' ? 0 : (qty * price);
-
-    await DB.add('material_purchases', {
-      material_id: 'MAT_CUSTOM_' + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now()),
-      material_name: name.trim(),
-      project_id: defaultProjectId || '',
-      partner_id: finalPartnerId,
-      quantity: qty,
-      unit_price: source === 'customer' ? 0 : price,
-      total_cost: totalCost,
-      material_source: source || 'company',
-      purchase_date: App.getLocalDateString(),
-      payment_status: 'paid',
-      notes: source === 'customer' ? 'موردة من الزبون' : `المشتري: ${finalPartnerName} من محفظته`
-    });
-
-    alert(`✓ تم تسجيل شراء المادة وخصمها من صندوق الشركة بالكامل (المشتري: ${finalPartnerName})`);
-    await this.updateGlobalHeaderStats();
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    } else {
-      App.renderCurrentView();
-    }
-  },
-
-  async openNewExpenseModal(defaultProjectId = null, defaultPartnerId = null) {
-    const active = await this.getActivePartner();
-    const partnerId = defaultPartnerId || active.id;
-    const partnerName = partnerId === 'USR-001' ? 'الشريك 1 (Admin 1)' : 'الشريك 2 (Admin 2)';
-
-    const title = prompt(`تسجيل نفقة جديدة لحساب: ${partnerName}\nبيان النفقة / المصروف (مثال: وجبة غداء عمال الورشة، شراء مفكات، وقود، إلخ):`);
-    if (!title) return;
-    const amount = parseFloat(prompt('المبلغ المسدد نقداً (دج DZD):') || 0);
-    if (!amount || amount <= 0) return;
-
-    const catPrompt = prompt(
-      'اختر تصنيف النفقة:\n1. food (غذاء ووجبات الورشة)\n2. tools (شراء أدوات وعتاد يدوي)\n3. transport (وقود ونقل)\n4. equipment_rental (كراء عتاد)\n5. admin (مصاريف إدارية)\n6. other (أخرى):',
-      'food'
-    );
-    let category = 'other';
-    if (catPrompt === '1' || catPrompt === 'food') category = 'food';
-    else if (catPrompt === '2' || catPrompt === 'tools') category = 'tools';
-    else if (catPrompt === '3' || catPrompt === 'transport') category = 'transport';
-    else if (catPrompt === '4' || catPrompt === 'equipment_rental') category = 'equipment_rental';
-    else if (catPrompt === '5' || catPrompt === 'admin') category = 'admin';
-
-    // Who paid?
-    const whoPrompt = prompt(`من قام بالدفع من محفظته؟\n1. الشريك 1 (Admin 1)\n2. الشريك 2 (Admin 2)\n(الافتراضي: ${partnerId === 'USR-001' ? '1' : '2'})`, partnerId === 'USR-001' ? '1' : '2');
-    const finalPartnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
-    const finalPartnerName = finalPartnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-
-    await DB.add('expenses', {
-      project_id: defaultProjectId || '',
-      partner_id: finalPartnerId,
-      title: title.trim(),
-      amount,
-      category,
-      date: App.getLocalDateString(),
-      payment_method: 'cash',
-      notes: `دفعها: ${finalPartnerName} من محفظته`
-    });
-
-    alert(`✓ تم تسجيل المصروف وخصمه من صندوق الشركة بالكامل (المشتري: ${finalPartnerName})`);
-    await this.updateGlobalHeaderStats();
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    } else {
-      App.renderCurrentView();
-    }
-  },
-
-  async openNewCustomerPaymentModal(defaultProjectId = null, defaultPartnerId = null) {
-    const projects = await DB.getAll('projects');
-    const pId = defaultProjectId || (projects[0] ? projects[0].id : null);
-    if (!pId) { alert('يرجى إنشاء مشروع أولاً.'); return; }
-
-    const active = await this.getActivePartner();
-    const partnerId = defaultPartnerId || active.id;
-
-    const amount = parseFloat(prompt('المبلغ المستلم من الزبون (دج DZD):') || 0);
-    if (!amount || amount <= 0) return;
-    const rec = prompt('رقم الإيصال أو الشيك:', 'REC-' + Date.now().toString().slice(-4));
-
-    const whoPrompt = prompt(`من استلم المبلغ في محفظته؟\n1. الشريك 1 (Admin 1)\n2. الشريك 2 (Admin 2)\n(الافتراضي: ${partnerId === 'USR-001' ? '1' : '2'})`, partnerId === 'USR-001' ? '1' : '2');
-    const finalPartnerId = (whoPrompt === '2' || whoPrompt === 'USR-002') ? 'USR-002' : 'USR-001';
-    const finalPartnerName = finalPartnerId === 'USR-001' ? 'الشريك 1' : 'الشريك 2';
-
-    await DB.add('customer_payments', {
-      project_id: pId,
-      partner_id: finalPartnerId,
-      amount,
-      payment_date: App.getLocalDateString(),
-      payment_type: 'progress',
-      receipt_number: (rec || 'REC-' + Date.now()).trim(),
-      notes: `استلمها في محفظته: ${finalPartnerName}`
-    });
-
-    alert(`✓ تم تسجيل دفعة الزبون وإضافتها إلى صندوق الشركة بالكامل (المستلم: ${finalPartnerName})`);
-    await this.updateGlobalHeaderStats();
-    if (this.currentView === 'wallets') {
-      await this.renderWalletsView();
-    } else {
-      App.renderCurrentView();
-    }
   },
 
   // Database Backup / Restore / Reset
@@ -5059,7 +8694,7 @@ async renderReportsView(container) {
       const modal = document.getElementById('supabase-config-modal');
       if (modal) modal.remove();
       this.updateSupabaseUIState();
-      this.renderCurrentView();
+      this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
     } catch (err) {
       alert('خطأ في الاتصال بـ Supabase:\n' + err.message);
       if (btn) btn.innerHTML = '<span>⚡ اختبار وحفظ الاتصال</span>';
@@ -5073,7 +8708,7 @@ async renderReportsView(container) {
       const modal = document.getElementById('supabase-config-modal');
       if (modal) modal.remove();
       this.updateSupabaseUIState();
-      this.renderCurrentView();
+      this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
     }
   },
 

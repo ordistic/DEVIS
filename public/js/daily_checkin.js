@@ -102,6 +102,7 @@ const DailyCheckin = {
     });
 
     const isConnected = DB.isSupabaseConnected;
+    const isFr = (typeof I18N !== "undefined") && I18N.currentLang === "fr";
 
     container.innerHTML = `
       <div class="space-y-6">
@@ -116,7 +117,7 @@ const DailyCheckin = {
             <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-xl">⏱️</div>
             <div>
               <div class="flex items-center gap-3 flex-wrap">
-                <h2 class="text-base font-black text-white">Cockpit Pointage Journalier des Ouvriers / التحضير اليومي السريع</h2>
+                <h2 class="text-base font-black text-white">${isFr ? "Pointage Journalier des Ouvriers" : "التحضير اليومي وتسجيل الحضور"}</h2>
                 <span class="px-2.5 py-0.5 rounded-full ${isConnected ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'} text-[10px] font-bold flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}"></span>
                   <span>${isConnected ? 'Supabase Cloud Connecté' : 'Mode Local Permanent'}</span>
@@ -223,8 +224,95 @@ const DailyCheckin = {
           </div>
         </div>
 
-        <!-- Workers Checkin Interactive Table -->
-        <div class="kpi-card rounded-2xl overflow-hidden shadow-xl">
+        <!-- Mobile Attendance Cards (< 768px) -->
+        <div class="block md:hidden space-y-3">
+          ${workers.map(w => {
+            const item = this.state[w.id] || {
+              workday_type: 'normal',
+              multiplier: 1.0,
+              daily_wage: w.daily_wage,
+              calculated_amount: w.daily_wage,
+              project_id: projects[0] ? projects[0].id : '',
+              advance_given: 0,
+              commission: 0,
+              work_description: ''
+            };
+            const mult = item.multiplier;
+            return `
+              <div class="mobile-card space-y-3">
+                <div class="flex items-center justify-between gap-2.5">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 font-extrabold flex items-center justify-center text-sm shrink-0">
+                      ${(w.full_name || 'ع').trim()[0]}
+                    </div>
+                    <div class="min-w-0">
+                      <h4 class="font-extrabold text-white text-xs truncate">${escapeHtml(w.full_name)}</h4>
+                      <span class="text-[10px] text-slate-400 block truncate">${escapeHtml(w.specialty || 'عامل')} • ${App.formatCurrency(w.daily_wage)} / يوم</span>
+                    </div>
+                  </div>
+                  <div class="text-left shrink-0">
+                    <span class="text-[9px] text-slate-400 block">المستحق اليوم</span>
+                    <span class="text-xs font-mono font-black text-emerald-400">${App.formatCurrency(item.calculated_amount)}</span>
+                  </div>
+                </div>
+
+                <!-- 4 Quick Tap Multiplier Pills -->
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button type="button" onclick="DailyCheckin.setWorkerStatus('${w.id}', 'normal')"
+                    class="att-mult-btn ${mult === 1.0 ? 'active-full' : ''}">
+                    <span class="text-xs">حاضر</span>
+                    <span class="text-[9px] opacity-75">1.0</span>
+                  </button>
+
+                  <button type="button" onclick="DailyCheckin.setWorkerStatus('${w.id}', 'half')"
+                    class="att-mult-btn ${mult === 0.5 ? 'active-half' : ''}">
+                    <span class="text-xs">نصف</span>
+                    <span class="text-[9px] opacity-75">0.5</span>
+                  </button>
+
+                  <button type="button" onclick="DailyCheckin.setWorkerStatus('${w.id}', 'double')"
+                    class="att-mult-btn ${mult === 2.0 ? 'active-double' : ''}">
+                    <span class="text-xs">مضاعف</span>
+                    <span class="text-[9px] opacity-75">2.0</span>
+                  </button>
+
+                  <button type="button" onclick="DailyCheckin.setWorkerStatus('${w.id}', 'absent')"
+                    class="att-mult-btn ${mult === 0 ? 'active-absent' : ''}">
+                    <span class="text-xs">غائب</span>
+                    <span class="text-[9px] opacity-75">0.0</span>
+                  </button>
+                </div>
+
+                <!-- Worksite & Advance Input -->
+                <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div>
+                    <label class="text-[9px] text-slate-400 block mb-1">الورشة</label>
+                    <select onchange="DailyCheckin.updateWorkerField('${w.id}', 'project_id', this.value)" class="w-full bg-[#181822] border border-white/10 rounded-xl px-2 py-2 text-white text-xs truncate">
+                      ${projects.map(p => `<option value="${p.id}" ${item.project_id === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-[9px] text-amber-400 block mb-1">تسبيق نقدي (دج)</label>
+                    <input type="number" step="100" min="0" value="${item.advance_given || 0}"
+                      onchange="DailyCheckin.updateWorkerField('${w.id}', 'advance_given', this.value)"
+                      class="w-full bg-[#181822] border border-amber-500/30 rounded-xl px-2 py-2 text-amber-300 font-mono text-xs font-bold text-center">
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+
+          <!-- Floating Save Checkin Button on Mobile -->
+          <div class="pt-2">
+            <button onclick="DailyCheckin.saveCheckin()" class="w-full py-3.5 rounded-2xl bg-emerald-600 active:bg-emerald-700 text-white font-black text-sm shadow-xl shadow-emerald-950/50 flex items-center justify-center gap-2">
+              <span>💾</span>
+              <span>حفظ التحضير اليومي فوراً</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Desktop Table (>= 768px) -->
+        <div class="hidden md:block kpi-card rounded-2xl overflow-hidden shadow-xl">
           <div class="overflow-x-auto">
             <table class="w-full text-xs text-right">
               <thead>
@@ -335,7 +423,7 @@ const DailyCheckin = {
     `;
   },
 
-  setWorkerStatus(workerId, type) {
+  async setWorkerStatus(workerId, type) {
     if (!this.state[workerId]) return;
     const baseWage = parseFloat(this.state[workerId].daily_wage) || 0;
     const comm = parseFloat(this.state[workerId].commission) || 0;
@@ -351,10 +439,12 @@ const DailyCheckin = {
     this.state[workerId].multiplier = multiplier;
     this.state[workerId].calculated_amount = (baseWage * multiplier) + comm;
 
-    this.renderView(document.getElementById('main-content-view'));
+    const _savedY = window.scrollY || document.documentElement.scrollTop;
+    await this.renderView(document.getElementById('main-content-view'));
+    window.scrollTo(0, _savedY);
   },
 
-  updateWorkerCommission(workerId, commVal) {
+  async updateWorkerCommission(workerId, commVal) {
     if (!this.state[workerId]) return;
     const comm = Math.max(0, parseFloat(commVal) || 0);
     this.state[workerId].commission = comm;
@@ -368,7 +458,7 @@ const DailyCheckin = {
     this.renderView(document.getElementById('main-content-view'));
   },
 
-  updateWorkerField(workerId, field, val) {
+  async updateWorkerField(workerId, field, val) {
     if (!this.state[workerId]) return;
     this.state[workerId][field] = val;
     if (field === 'advance_given') {
@@ -376,7 +466,7 @@ const DailyCheckin = {
     }
   },
 
-  markAllFullDay() {
+  async markAllFullDay() {
     Object.values(this.state).forEach(st => {
       st.workday_type = 'normal';
       st.multiplier = 1.0;

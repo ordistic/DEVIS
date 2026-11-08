@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>DARI LUXE — Rénovation, Décoration & Aménagement | نظام إدارة المؤسسة والورشات</title>
   
   <!-- Favicon / Logo -->
@@ -63,19 +63,46 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- App Custom Stylesheet (Dark Cockpit Locked) -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=26">
+
+  <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let reg of regs) {
+          reg.update();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => {
+            if (k !== 'dariluxe-erp-v26') {
+              console.log('Purging old cache on phone:', k);
+              caches.delete(k);
+            }
+          });
+        });
+      }
+    }
+  </script>
+
 </head>
-<body class="bg-[#0A0A0C] text-slate-100 flex min-h-screen overflow-x-hidden antialiased selection:bg-[#FF3B30] selection:text-white">
+<body class="bg-[#0A0A0C] text-slate-100 overflow-x-hidden antialiased selection:bg-[#FF3B30] selection:text-white">
+
+  <!-- Main Layout Wrapper -->
+  <div id="app-layout" class="flex min-h-screen w-full bg-[#0A0A0C]">
 
   <!-- Mobile Sidebar Backdrop -->
   <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-md z-40 hidden lg:hidden"></div>
 
   <!-- Sidebar (OPDISTIC Cockpit Style with DARI LUXE Branding) -->
-  <aside id="main-sidebar" class="fixed lg:static inset-y-0 right-0 w-72 bg-[#0C0C10] border-l border-white/5 z-50 flex flex-col justify-between transition-all duration-200 transform translate-x-full lg:translate-x-0 shadow-2xl relative select-none">
+  <aside id="main-sidebar" class="hidden lg:flex bg-[#0C0C10] z-50 flex-col justify-between shadow-2xl select-none">
     
     <!-- Collapsible Toggle Button right on border (as in screenshot) -->
     <button id="sidebar-toggle-btn" onclick="App.toggleSidebarCollapse()" class="sidebar-collapse-toggle hidden lg:flex" title="طي / توسيع القائمة (Collapse / Expand)">
-      ❮
+      <svg class="w-3.5 h-3.5 transition-transform duration-200" id="sidebar-toggle-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
     </button>
 
     <div class="p-4 flex flex-col h-full overflow-y-auto">
@@ -83,7 +110,7 @@
       <!-- Brand Logo Header (DARI LUXE) -->
       <div class="flex flex-col pb-4 border-b border-white/5">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3 brand-container">
             <div class="w-12 h-12 rounded-xl bg-[#121216] p-1 flex items-center justify-center border border-amber-500/30 shadow-lg shadow-amber-950/20">
               <img src="dari_luxe_logo.png" alt="DARI LUXE Logo" class="max-w-full max-h-full object-contain filter drop-shadow">
             </div>
@@ -114,7 +141,7 @@
         </div>
 
         <!-- Company Coordinates Strip -->
-        <div class="sidebar-text mt-3 pt-2 border-t border-white/5 space-y-1 text-[10px]">
+        <div class="sidebar-text sidebar-company-coords mt-3 pt-2 border-t border-white/5 space-y-1 text-[10px]">
           <div class="flex items-center gap-1.5 text-amber-400 font-bold font-mono">
             <span>📞</span>
             <span dir="ltr">0550 60 09 09</span>
@@ -130,13 +157,20 @@
         </div>
       </div>
 
-      <!-- Main Cockpit Navigation Menu -->
+            <!-- Main Cockpit Navigation Menu -->
       <nav class="mt-4 space-y-4 text-xs font-semibold flex-1">
         
         <!-- Top Main View: Tableau de bord -->
         <div class="space-y-1">
-          <a href="javascript:void(0)" onclick="App.navigate('dashboard')" data-view="dashboard" class="nav-link active flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📊</span>
+          <a href="javascript:void(0)" onclick="App.navigate('dashboard')" data-view="dashboard" class="nav-link active flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Tableau de bord / لوحة التحكم والرقابة">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="7" height="9" x="3" y="3" rx="1.5"/>
+                <rect width="7" height="5" x="14" y="3" rx="1.5"/>
+                <rect width="7" height="9" x="14" y="12" rx="1.5"/>
+                <rect width="7" height="5" x="3" y="16" rx="1.5"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Tableau de bord</span>
               <span class="text-[10px] text-slate-400">لوحة التحكم والرقابة</span>
@@ -148,27 +182,45 @@
         <div class="space-y-1">
           <div class="sidebar-category-header">
             <span class="sidebar-category-title">Projets & Chantiers</span>
-            <span class="text-[10px] text-slate-600">▾</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
           </div>
           
-          <a href="javascript:void(0)" onclick="App.navigate('projects')" data-view="projects" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">🏗️</span>
+          <a href="javascript:void(0)" onclick="App.navigate('projects')" data-view="projects" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Tous les chantiers / سجل الورشات والمشاريع">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+                <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Tous les chantiers</span>
               <span class="text-[10px] text-slate-400">سجل الورشات والمشاريع</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('building_structure')" data-view="building_structure" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📐</span>
+          <a href="javascript:void(0)" onclick="App.navigate('building_structure')" data-view="building_structure" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Bâtiments & Mesures / الهيكل، الغرف، والقياسات التقنية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.3 15.3 8.7 2.7a2.4 2.4 0 0 0-3.4 0L2.7 5.3a2.4 2.4 0 0 0 0 3.4l12.6 12.6a2.4 2.4 0 0 0 3.4 0l2.6-2.6a2.4 2.4 0 0 0 0-3.4Z"/>
+                <path d="m14.5 4.5 5 5"/><path d="m7.5 11.5 2 2"/><path d="m10.5 8.5 2 2"/><path d="m13.5 5.5 2 2"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Bâtiments & Mesures</span>
               <span class="text-[10px] text-slate-400">الهيكل، الغرف، والقياسات التقنية</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('activities')" data-view="activities" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📋</span>
+          <a href="javascript:void(0)" onclick="App.navigate('activities')" data-view="activities" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Catalogue Travaux / دليل بنود وأنشطة الأشغال">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1"/>
+                <path d="M9 12h6"/><path d="M9 16h6"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Catalogue Travaux</span>
               <span class="text-[10px] text-slate-400">دليل بنود وأنشطة الأشغال</span>
@@ -180,11 +232,16 @@
         <div class="space-y-1">
           <div class="sidebar-category-header">
             <span class="sidebar-category-title">Pointage & Équipe</span>
-            <span class="text-[10px] text-slate-600">▾</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
           </div>
 
-          <a href="javascript:void(0)" onclick="App.navigate('daily_checkin')" data-view="daily_checkin" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">⏱️</span>
+          <a href="javascript:void(0)" onclick="App.navigate('daily_checkin')" data-view="daily_checkin" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Pointage Journalier / التحضير اليومي وتسبيقات العمال">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <div class="flex items-center gap-2">
                 <span class="font-extrabold text-amber-300">Pointage Journalier</span>
@@ -194,8 +251,15 @@
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('workers')" data-view="workers" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">👷</span>
+          <a href="javascript:void(0)" onclick="App.navigate('workers')" data-view="workers" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Équipe & Salaires / سجل العمال، اليوميات والأجور">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Équipe & Salaires</span>
               <span class="text-[10px] text-slate-400">سجل العمال، اليوميات والأجور</span>
@@ -207,19 +271,30 @@
         <div class="space-y-1">
           <div class="sidebar-category-header">
             <span class="sidebar-category-title">Métré & Devis</span>
-            <span class="text-[10px] text-slate-600">▾</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
           </div>
 
-          <a href="javascript:void(0)" onclick="App.navigate('quotations_invoices')" data-view="quotations_invoices" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📄</span>
+          <a href="javascript:void(0)" onclick="App.navigate('quotations_invoices')" data-view="quotations_invoices" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Devis & Factures / عروض الأسعار والفواتير الرسمية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Devis & Factures</span>
               <span class="text-[10px] text-slate-400">عروض الأسعار والفواتير الرسمية</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('test_scenarios')" data-view="test_scenarios" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">🧪</span>
+          <a href="javascript:void(0)" onclick="App.navigate('test_scenarios')" data-view="test_scenarios" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Scénarios (A, B, C, D) / اختبار النماذج التجارية والتسعير">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold text-emerald-400">Scénarios (A, B, C, D)</span>
               <span class="text-[10px] text-emerald-300/80">اختبار النماذج التجارية والتسعير</span>
@@ -231,36 +306,57 @@
         <div class="space-y-1">
           <div class="sidebar-category-header">
             <span class="sidebar-category-title">Finances & Stock</span>
-            <span class="text-[10px] text-slate-600">▾</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
           </div>
 
-          
-          <a href="javascript:void(0)" onclick="App.navigate('wallets')" data-view="wallets" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">💼</span>
+          <a href="javascript:void(0)" onclick="App.navigate('wallets')" data-view="wallets" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Caisse & Partage Bénéfices / صندوق الشركة وتقاسم الأرباح">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Caisse & Partage Bénéfices</span>
               <span class="text-[10px] text-slate-400">صندوق الشركة وتقاسم الأرباح</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('finances')" data-view="finances" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">💰</span>
+          <a href="javascript:void(0)" onclick="App.navigate('finances')" data-view="finances" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Finances & Rentabilité / المركز المالي والأرباح الحقيقية">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+                <polyline points="16 7 22 7 22 13"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Finances & Rentabilité</span>
               <span class="text-[10px] text-slate-400">المركز المالي والأرباح الحقيقية</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('materials')" data-view="materials" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📦</span>
+          <a href="javascript:void(0)" onclick="App.navigate('materials')" data-view="materials" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Matériaux & Fournisseurs / المواد والمخزون والموردين">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7.5 4.27 9 5.15"/>
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                <path d="m3.3 7 8.7 5 8.7-5"/>
+                <path d="M12 22V12"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Matériaux & Fournisseurs</span>
               <span class="text-[10px] text-slate-400">المواد والمخزون والموردين</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('expenses')" data-view="expenses" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">💳</span>
+          <a href="javascript:void(0)" onclick="App.navigate('expenses')" data-view="expenses" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Dépenses & Caisses / المصاريف النثرية والعهد">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="14" x="2" y="5" rx="2"/>
+                <line x1="2" x2="22" y1="10" x2="10"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Dépenses & Caisses</span>
               <span class="text-[10px] text-slate-400">المصاريف النثرية والعهد</span>
@@ -272,19 +368,30 @@
         <div class="space-y-1">
           <div class="sidebar-category-header">
             <span class="sidebar-category-title">Système & Paramètres</span>
-            <span class="text-[10px] text-slate-600">▾</span>
+            <span class="sidebar-category-arrow text-[10px] text-slate-600">▾</span>
           </div>
 
-          <a href="javascript:void(0)" onclick="App.navigate('reports')" data-view="reports" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">📑</span>
+          <a href="javascript:void(0)" onclick="App.navigate('reports')" data-view="reports" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Rapports & Impression / التقارير الشاملة والطباعة A4">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect width="12" height="8" x="6" y="14"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Rapports & Impression</span>
               <span class="text-[10px] text-slate-400">التقارير الشاملة والطباعة A4</span>
             </div>
           </a>
 
-          <a href="javascript:void(0)" onclick="App.navigate('settings')" data-view="settings" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition">
-            <span class="text-base">⚙️</span>
+          <a href="javascript:void(0)" onclick="App.navigate('settings')" data-view="settings" class="nav-link flex items-center gap-3 px-3 py-2 rounded-xl transition group" title="Paramètres & Entreprise / إعدادات داري لوكس والسحابة">
+            <span class="nav-icon-box w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </span>
             <div class="sidebar-text flex flex-col">
               <span class="font-bold">Paramètres & Entreprise</span>
               <span class="text-[10px] text-slate-400">إعدادات داري لوكس والسحابة</span>
@@ -294,13 +401,15 @@
 
       </nav>
 
-      <!-- Bottom Supabase Cloud Connection Widget (Deep Obsidian) -->
+            <!-- Bottom Supabase Cloud Connection Widget (Deep Obsidian) -->
       <div class="sidebar-footer-info mt-6 p-3.5 rounded-2xl bg-[#121216] border border-white/5 shadow-xl space-y-2.5">
         <div class="flex items-center gap-3">
-          <div id="sidebar-supabase-icon" class="w-8 h-8 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center font-bold text-sm border border-blue-500/20">
-            ☁️
+          <div id="sidebar-supabase-icon" class="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center font-bold text-sm border border-blue-500/20 shrink-0" title="Supabase Cloud: Connecté">
+            <svg class="w-5 h-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+            </svg>
           </div>
-          <div class="flex-1 min-w-0">
+          <div class="footer-details flex-1 min-w-0">
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-white truncate">Supabase Cloud</span>
               <span id="sidebar-db-status-pill" class="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
@@ -308,56 +417,40 @@
                 <span>Connecté</span>
               </span>
             </div>
-            <p id="sidebar-db-subtitle" class="text-[9px] text-slate-400 truncate">PostgreSQL Database</p>
+            <div class="text-[9px] text-slate-500 font-mono mt-0.5 truncate" title="ileqivegtkvcaawlugsj.supabase.co">
+              ileqivegtkvcaawlugsj.supabase.co
+            </div>
           </div>
         </div>
-
-        <div class="w-full bg-[#181820] h-1.5 rounded-full overflow-hidden">
-          <div id="sidebar-db-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-500" style="width: 100%"></div>
-        </div>
-
-        <div class="flex items-center justify-between pt-1 text-[10px]">
-          <button onclick="App.openSupabaseConfigModal()" class="text-blue-400 hover:text-blue-300 font-bold hover:underline flex items-center gap-1">
-            <span>⚙️ Configurer</span>
-          </button>
-          <button onclick="App.exportDatabaseFile()" class="text-slate-400 hover:text-white font-medium" title="تنزيل نسخة احتياطية">
-            💾 Sauvegarder
-          </button>
-        </div>
       </div>
-
     </div>
   </aside>
 
   <!-- Main Application Wrapper -->
-  <div class="flex-1 flex flex-col min-h-screen overflow-y-auto">
+  <div id="main-app-container" class="flex-1 flex flex-col min-h-screen w-full min-w-0 max-w-full overflow-x-hidden">
     
     <!-- Top Cockpit Header Bar (Exact match to reference screenshot) -->
-    <header class="h-20 bg-[#0C0C10] border-b border-white/5 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-lg">
+    <header class="h-14 sm:h-20 bg-[#0C0C10] border-b border-white/5 sticky top-0 z-30 px-3 sm:px-6 flex items-center justify-between shadow-lg w-full max-w-full min-w-0 overflow-hidden">
       
       <!-- Left Section: Logo & Operational Subtitle -->
-      <div class="flex items-center gap-3.5">
+      <div class="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 overflow-hidden">
         <!-- Hamburger button for mobile -->
-        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-[#16161C] text-slate-300 hover:text-white transition">
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-[#16161C] text-slate-300 hover:text-white transition shrink-0" aria-label="القائمة">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
 
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-[#121216] border border-amber-500/20 p-1 hidden sm:flex items-center justify-center">
+        <div id="header-breadcrumbs-container" class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#121216] border border-amber-500/20 p-1 hidden sm:flex items-center justify-center cursor-pointer hover:border-amber-400/50 transition shrink-0" onclick="App.navigate('dashboard')" title="لوحة التحكم الرئيسية / Accueil">
             <img src="dari_luxe_logo.png" alt="DARI LUXE" class="max-w-full max-h-full object-contain">
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h2 class="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 leading-tight">DARI LUXE</h2>
-              <span class="text-[11px] font-bold text-slate-400 hidden md:inline">Gestion des chantiers et contrôle opérationnel</span>
-            </div>
-            <p class="text-[10px] text-slate-500 hidden sm:block">تسيير الورشات، الرقابة الميدانية، Métré، Devis ومتابعة التكاليف في الوقت الفعلي</p>
+          <div id="header-breadcrumbs-text" class="flex flex-col justify-center min-w-0 flex-1 overflow-hidden">
+            <!-- Dynamically populated by App.updateHeaderBreadcrumbs() -->
           </div>
         </div>
       </div>
 
       <!-- Center & Right Utility Actions (Clock, Status, Sound, Notifications, Avatar, CTA) -->
-      <div class="flex items-center gap-2.5 sm:gap-3">
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
         
         <!-- Status Pill: Système connecté | Realtime Active -->
         <div class="hidden xl:flex items-center gap-2 bg-[#121216] border border-white/10 px-3.5 py-1.5 rounded-full text-xs text-slate-200">
@@ -368,13 +461,13 @@
         </div>
 
         <!-- Live Digital Clock: 🕒 17:50:24 DZ -->
-        <div class="flex items-center gap-2 bg-[#121216] border border-white/10 px-3 py-1.5 rounded-full text-xs font-mono font-bold text-slate-200 shadow-inner">
+        <div class="hidden lg:flex items-center gap-2 bg-[#121216] border border-white/10 px-3 py-1.5 rounded-full text-xs font-mono font-bold text-slate-200 shadow-inner">
           <span class="text-[#FF3B30] text-sm">🕒</span>
           <span id="cockpit-live-clock">17:50:24 DZ</span>
         </div>
 
         <!-- Audio feedback icon -->
-        <button onclick="App.toggleSound()" id="sound-toggle-btn" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-amber-400/50 flex items-center justify-center text-amber-400 text-xs transition" title="الصوت التفاعلي / Audio Feedback">
+        <button onclick="App.toggleSound()" id="sound-toggle-btn" class="w-9 h-9 rounded-full bg-[#121216] border border-white/10 hover:border-amber-400/50 hidden lg:flex items-center justify-center text-amber-400 text-xs transition" title="الصوت التفاعلي / Audio Feedback">
           🔊
         </button>
 
@@ -402,7 +495,7 @@
         </button>
 
         <!-- Green CTA Button (Exact match: Ouvrir Inscriptions / + Nouveau Chantier) -->
-        <button onclick="App.openNewProjectModal()" class="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition flex items-center gap-2 shadow-sm whitespace-nowrap">
+        <button onclick="App.openNewProjectModal()" class="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition hidden md:flex items-center gap-2 shadow-sm whitespace-nowrap">
           <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
           <span class="hidden sm:inline">+ Nouveau Chantier / Ouvrir Inscriptions</span>
           <span class="sm:hidden">+ ورشة</span>
@@ -415,31 +508,112 @@
       <!-- Dynamic View Inserted by App.js -->
     </main>
 
-  </div>
+  </div><!-- /#main-app-container -->
+
+  </div><!-- /#app-layout -->
 
   <!-- Notification Toast Container -->
   <div id="toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- Mobile Sidebar Toggle Helper -->
+  
   <script>
     function toggleMobileSidebar() {
       const sidebar = document.getElementById('main-sidebar');
       const backdrop = document.getElementById('mobile-sidebar-backdrop');
-      if (sidebar.classList.contains('translate-x-full')) {
-        sidebar.classList.remove('translate-x-full');
-        backdrop.classList.remove('hidden');
+      if (!sidebar) return;
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
       } else {
-        sidebar.classList.add('translate-x-full');
-        backdrop.classList.add('hidden');
+        sidebar.classList.add('open');
+        if (backdrop) backdrop.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
       }
+    }
+    function closeMobileSidebar() {
+      const sidebar = document.getElementById('main-sidebar');
+      const backdrop = document.getElementById('mobile-sidebar-backdrop');
+      if (sidebar) sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.style.overflow = '';
     }
   </script>
 
   <!-- Core Scripts -->
-  <script src="js/calculations.js"></script>
-  <script src="js/db.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/daily_checkin.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/i18n.js?v=26"></script>
+  <script src="js/calculations.js?v=26"></script>
+  <script src="js/db.js?v=26"></script>
+  <script src="js/charts.js?v=26"></script>
+  <script src="js/daily_checkin.js?v=26"></script>
+  <script src="js/app.js?v=26"></script>
+
+  <!-- =====================================================
+       MOBILE BOTTOM NAVIGATION BAR (Field Workers)
+       ===================================================== -->
+  <nav id="mobile-bottom-nav" role="navigation" aria-label="Navigation principale mobile">
+    <!-- Home / Dashboard -->
+    <button onclick="App.navigate('dashboard')" data-mobile-nav="dashboard"
+      class="mobile-nav-item" id="mob-nav-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1.5"/>
+        <rect width="7" height="5" x="14" y="3" rx="1.5"/>
+        <rect width="7" height="9" x="14" y="12" rx="1.5"/>
+        <rect width="7" height="5" x="3" y="16" rx="1.5"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_home">الرئيسية</span>
+    </button>
+
+    <!-- Chantiers / Projects -->
+    <button onclick="App.navigate('projects')" data-mobile-nav="projects"
+      class="mobile-nav-item" id="mob-nav-projects">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+        <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
+        <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+        <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_projects">الورشات</span>
+    </button>
+
+    <!-- FAB: Quick Check-in (CENTER ELEVATED) -->
+    <div class="mobile-nav-fab-wrap">
+      <button onclick="App.navigate('daily_checkin')" id="mob-nav-checkin"
+        class="mobile-nav-fab" aria-label="تسجيل الحضور / Pointage rapide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </button>
+      <span class="mobile-nav-fab-label" data-mob-i18n="mob_nav_checkin">التحضير</span>
+    </div>
+
+    <!-- Expenses / Dépenses -->
+    <button onclick="App.navigate('expenses')" data-mobile-nav="expenses"
+      class="mobile-nav-item" id="mob-nav-expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_expenses">المصاريف</span>
+    </button>
+
+    <!-- Menu / More -->
+    <button onclick="toggleMobileSidebar()" data-mobile-nav="menu"
+      class="mobile-nav-item" id="mob-nav-menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+      <span data-mob-i18n="mob_nav_menu">القائمة</span>
+    </button>
+  </nav>
+
 </body>
 </html>
