@@ -1251,36 +1251,139 @@ const App = {
     const proj = await DB.getById('projects', projectId);
     if (!proj) return;
 
-    const newName = prompt('تعديل اسم المشروع:', proj.name);
-    if (!newName) return;
-    const newClient = prompt('اسم الزبون / المالك:', proj.client_name || '');
-    const newPhone = prompt('رقم هاتف الزبون:', proj.client_phone || '') || proj.client_phone;
-    const newAddress = prompt('العنوان / الولاية:', proj.address || proj.wilaya || 'عين الدفلى') || proj.address;
-    
-    // Separated contract value and internal initial budget
-    const contractInput = prompt('قيمة العقد المتفق عليها مع الزبون (دج):', proj.contract_value || 0);
-    const newContractValue = contractInput !== null ? (parseFloat(contractInput) || proj.contract_value || 0) : proj.contract_value;
-    const budgetInput = prompt('الميزانية الداخلية المقدرة للمشروع (دج):', proj.initial_budget || 0);
-    const newInitialBudget = budgetInput !== null ? (parseFloat(budgetInput) || proj.initial_budget || 0) : proj.initial_budget;
+    const wilayaOptions = this.algerianWilayas.map(w =>
+      `<option value="${this.escapeHtml(w)}"${(proj.wilaya && w.includes(proj.wilaya)) || (!proj.wilaya && w.includes('44')) ? ' selected' : ''}>${this.escapeHtml(w)}</option>`
+    ).join('');
 
-    const newModel = prompt('النموذج التجاري (labor_only / labor_materials / hybrid):', proj.commercial_model || 'hybrid') || proj.commercial_model;
-    const newStatus = prompt('حالة المشروع (in_progress / completed / planning / on_hold):', proj.status || 'in_progress') || proj.status;
+    const existing = document.getElementById('edit-project-sheet');
+    if (existing) existing.remove();
+
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-project-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:620px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);" id="edit-project-inner">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">✏️</span>
+            <span style="font-weight:900;color:#fff;font-size:1rem;">تعديل بيانات الورشة</span>
+          </div>
+          <button onclick="document.getElementById('edit-project-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم الورشة / المشروع *</label>
+            <input id="ep-name" type="text" value="${this.escapeHtml(proj.name || '')}" placeholder="مثال: فيلا الياسمين - تشطيب كامل" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم الزبون / المالك</label>
+              <input id="ep-client" type="text" value="${this.escapeHtml(proj.client_name || '')}" placeholder="اسم صاحب الملك" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهاتف</label>
+              <input id="ep-phone" type="tel" value="${this.escapeHtml(proj.client_phone || '')}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الولاية</label>
+            <select id="ep-wilaya" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              ${wilayaOptions}
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">العنوان التفصيلي (حي، شارع، رقم)</label>
+            <input id="ep-address" type="text" value="${this.escapeHtml(proj.address || '')}" placeholder="مثال: حي السلام، شارع الوحدة، رقم 12" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">قيمة العقد مع الزبون (دج)</label>
+              <input id="ep-contract" type="number" value="${proj.contract_value || 0}" min="0" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الميزانية الداخلية المقدرة (دج)</label>
+              <input id="ep-budget" type="number" value="${proj.initial_budget || 0}" min="0" step="1000" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">نموذج العقد التجاري</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="labor_only" ${(proj.commercial_model === 'labor_only') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(59,130,246,0.25)'">
+                <div class="ep-model-btn" style="background:${proj.commercial_model==='labor_only'?'rgba(59,130,246,0.25)':'#0f0f17'};border:1px solid rgba(59,130,246,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">👷</div>
+                  <div style="color:#60a5fa;font-weight:700;font-size:0.75rem;margin-top:3px;">عمل فقط</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Travail uniquement</div>
+                </div>
+              </label>
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="labor_materials" ${(proj.commercial_model === 'labor_materials') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(16,185,129,0.25)'">
+                <div class="ep-model-btn" style="background:${proj.commercial_model==='labor_materials'?'rgba(16,185,129,0.25)':'#0f0f17'};border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🏗️</div>
+                  <div style="color:#34d399;font-weight:700;font-size:0.75rem;margin-top:3px;">عمل + سلعة</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Travail & Matériaux</div>
+                </div>
+              </label>
+              <label style="flex:1;min-width:130px;cursor:pointer;">
+                <input type="radio" name="ep-model" value="hybrid" ${(!proj.commercial_model || proj.commercial_model === 'hybrid') ? 'checked' : ''} style="display:none;" onchange="document.querySelectorAll('.ep-model-btn').forEach(b=>b.style.background='#0f0f17');this.closest('label').querySelector('.ep-model-btn').style.background='rgba(245,158,11,0.25)'">
+                <div class="ep-model-btn" style="background:${(!proj.commercial_model||proj.commercial_model==='hybrid')?'rgba(245,158,11,0.25)':'#0f0f17'};border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:10px;text-align:center;">
+                  <div style="font-size:1.2rem;">🔀</div>
+                  <div style="color:#fbbf24;font-weight:700;font-size:0.75rem;margin-top:3px;">هجين</div>
+                  <div style="color:#64748b;font-size:0.65rem;">Hybride</div>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">حالة الورشة</label>
+            <select id="ep-status" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              <option value="planning" ${proj.status==='planning'?'selected':''}>📋 تخطيط / Planification</option>
+              <option value="in_progress" ${(!proj.status||proj.status==='in_progress')?'selected':''}>🔧 جارٍ التنفيذ / En cours</option>
+              <option value="on_hold" ${proj.status==='on_hold'?'selected':''}>⏸️ متوقف مؤقتاً / En pause</option>
+              <option value="completed" ${proj.status==='completed'?'selected':''}>✅ منجز / Terminé</option>
+            </select>
+          </div>
+          <button onclick="App._saveEditProject('${projectId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ التعديلات
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => { document.getElementById('ep-name')?.focus(); }, 100);
+  },
+
+  async _saveEditProject(projectId) {
+    const name = document.getElementById('ep-name')?.value?.trim();
+    if (!name) { this.showToast('اسم الورشة مطلوب', 'error'); return; }
+    const client = document.getElementById('ep-client')?.value?.trim() || '';
+    const phone = document.getElementById('ep-phone')?.value?.trim() || '';
+    const wilaya = document.getElementById('ep-wilaya')?.value?.trim() || 'عين الدفلى';
+    const address = document.getElementById('ep-address')?.value?.trim() || wilaya;
+    const contractVal = parseFloat(document.getElementById('ep-contract')?.value) || 0;
+    const budget = parseFloat(document.getElementById('ep-budget')?.value) || 0;
+    const model = document.querySelector('input[name="ep-model"]:checked')?.value || 'hybrid';
+    const status = document.getElementById('ep-status')?.value || 'in_progress';
+    // Extract plain wilaya name (after dash)
+    const wilayaPlain = wilaya.replace(/^\d+\s*-\s*/, '').split('(')[0].trim();
 
     await DB.update('projects', projectId, {
-      name: newName.trim(),
-      client_name: (newClient || proj.client_name).trim(),
-      client_phone: newPhone ? newPhone.trim() : proj.client_phone,
-      address: newAddress ? newAddress.trim() : proj.address,
-      wilaya: newAddress.includes('عين الدفلى') ? 'عين الدفلى' : (newAddress.includes('الجزائر') ? 'الجزائر' : 'عين الدفلى'),
-      contract_value: newContractValue,
-      initial_budget: newInitialBudget,
-      commercial_model: newModel.trim(),
-      status: newStatus.trim()
+      name,
+      client_name: client,
+      client_phone: phone,
+      address: address || wilayaPlain,
+      wilaya: wilayaPlain,
+      contract_value: contractVal,
+      initial_budget: budget,
+      commercial_model: model,
+      status
     });
 
+    document.getElementById('edit-project-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تحديث بيانات المشروع بنجاح!');
-    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+    this.showToast('✓ تم تحديث بيانات الورشة بنجاح!', 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   // 2. Building Structure (Floors & Rooms) CRUD
@@ -1318,24 +1421,99 @@ const App = {
   async editWorker(workerId) {
     const w = await DB.getById('workers', workerId);
     if (!w) return;
-    const newName = prompt('اسم العامل بالكامل:', w.full_name);
-    if (!newName) return;
-    const newSpec = prompt('التخصص:', w.specialty || 'عامل متعدد');
-    const newWage = parseFloat(prompt('الأجر اليومي الأساسي (دج DZD):', w.daily_wage || 3500)) || w.daily_wage;
-    const newPhone = prompt('رقم الهاتف:', w.phone || '') || w.phone;
-    const newWilaya = prompt('الولاية:', w.wilaya || 'عين الدفلى') || w.wilaya;
+
+    const wilayaOptions = this.algerianWilayas.map(wl =>
+      `<option value="${this.escapeHtml(wl)}"${(w.wilaya && wl.includes(w.wilaya)) || (!w.wilaya && wl.includes('44')) ? ' selected' : ''}>${this.escapeHtml(wl)}</option>`
+    ).join('');
+
+    const existing = document.getElementById('edit-worker-sheet');
+    if (existing) existing.remove();
+
+    const sheet = document.createElement('div');
+    sheet.id = 'edit-worker-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.3rem;">👷</span>
+            <span style="font-weight:900;color:#fff;font-size:1rem;">تعديل بيانات العامل</span>
+          </div>
+          <button onclick="document.getElementById('edit-worker-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الاسم الكامل للعامل *</label>
+            <input id="ew-name" type="text" value="${this.escapeHtml(w.full_name || '')}" placeholder="الاسم واللقب" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">التخصص / الحرفة</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;" id="ew-spec-chips">
+              ${['جباس','دهان','كهربائي','سباك','نجار','بناء','بلاط','عامل متعدد'].map(sp => `
+                <button type="button" onclick="document.querySelectorAll('.ew-spec-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(255,59,48,0.25)';document.getElementById('ew-spec').value='${sp}'" class="ew-spec-chip" style="padding:7px 13px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${(w.specialty||'').includes(sp)?'rgba(255,59,48,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${sp}</button>
+              `).join('')}
+            </div>
+            <input id="ew-spec" type="text" value="${this.escapeHtml(w.specialty || '')}" placeholder="أو اكتب التخصص يدوياً" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;margin-top:8px;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الأجر اليومي الأساسي (دج)</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+              ${[3000,3500,4000,4500,5000,6000].map(wg => `
+                <button type="button" onclick="document.querySelectorAll('.ew-wage-chip').forEach(c=>c.style.background='#0f0f17');this.style.background='rgba(16,185,129,0.25)';document.getElementById('ew-wage').value=${wg}" class="ew-wage-chip" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(16,185,129,0.2);background:${(w.daily_wage||3500)==wg?'rgba(16,185,129,0.25)':'#0f0f17'};color:#34d399;font-size:0.78rem;cursor:pointer;">${wg.toLocaleString('fr-FR')} دج</button>
+              `).join('')}
+            </div>
+            <input id="ew-wage" type="number" value="${w.daily_wage || 3500}" min="1000" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهاتف</label>
+              <input id="ew-phone" type="tel" value="${this.escapeHtml(w.phone || '')}" placeholder="0550 xx xx xx" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">رقم الهوية الوطنية</label>
+              <input id="ew-cin" type="text" value="${this.escapeHtml(w.cin || '')}" placeholder="CIN رقم" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">الولاية</label>
+            <select id="ew-wilaya" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.85rem;box-sizing:border-box;outline:none;">
+              ${wilayaOptions}
+            </select>
+          </div>
+          <button onclick="App._saveEditWorker('${workerId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            💾 حفظ تعديلات العامل
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => { document.getElementById('ew-name')?.focus(); }, 100);
+  },
+
+  async _saveEditWorker(workerId) {
+    const name = document.getElementById('ew-name')?.value?.trim();
+    if (!name) { this.showToast('اسم العامل مطلوب', 'error'); return; }
+    const spec = document.getElementById('ew-spec')?.value?.trim() || 'عامل متعدد';
+    const wage = parseFloat(document.getElementById('ew-wage')?.value) || 3500;
+    const phone = document.getElementById('ew-phone')?.value?.trim() || '';
+    const cin = document.getElementById('ew-cin')?.value?.trim() || '';
+    const wilayaRaw = document.getElementById('ew-wilaya')?.value?.trim() || 'عين الدفلى';
+    const wilaya = wilayaRaw.replace(/^\d+\s*-\s*/, '').split('(')[0].trim();
 
     await DB.update('workers', workerId, {
-      full_name: newName.trim(),
-      specialty: (newSpec || w.specialty).trim(),
-      daily_wage: newWage,
-      phone: newPhone.trim(),
-      wilaya: newWilaya.trim()
+      full_name: name,
+      specialty: spec,
+      daily_wage: wage,
+      phone,
+      cin,
+      wilaya
     });
 
+    document.getElementById('edit-worker-sheet')?.remove();
     this.playClickSound();
-    alert('✓ تم تحديث بيانات العامل بنجاح!');
-    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+    this.showToast('✓ تم تحديث بيانات العامل بنجاح!', 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   openWorkerPaymentModal(workerId) {
@@ -1430,25 +1608,84 @@ const App = {
 
   // 4. Materials CRUD
   async openNewMaterialModal() {
-    const name = prompt('اسم المادة أو العتاد:');
-    if (!name) return;
-    const category = prompt('الفئة (plasterboard, electrical, painting, plumbing, general):', 'plasterboard');
-    const unit = prompt('الوحدة (piece, m2, m, kg, sac, litre):', 'piece');
-    const buyPrice = parseFloat(prompt('سعر الشراء الافتراضي (دج DZD):', '1000')) || 0;
-    const sellPrice = parseFloat(prompt('سعر البيع/التركيب الافتراضي (دج DZD):', '1400')) || buyPrice;
+    const existing = document.getElementById('new-material-sheet');
+    if (existing) existing.remove();
+    const sheet = document.createElement('div');
+    sheet.id = 'new-material-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);';
+    sheet.innerHTML = `
+      <div style="background:#1a1a24;border-radius:20px 20px 0 0;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:0 0 32px 0;box-shadow:0 -20px 60px rgba(0,0,0,0.6);">
+        <div style="position:sticky;top:0;background:#1a1a24;padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;z-index:10;">
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:1.3rem;">📦</span><span style="font-weight:900;color:#fff;font-size:1rem;">إضافة مادة جديدة للكتالوج</span></div>
+          <button onclick="document.getElementById('new-material-sheet').remove()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;border-radius:50%;width:32px;height:32px;font-size:1.1rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">اسم المادة أو العتاد *</label>
+            <input id="nm-name" type="text" placeholder="مثال: بلاطة رخام 60×60، دهان أبيض، كيبل 2.5mm" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">الفئة / التصنيف</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              ${[
+                {v:'plasterboard',l:'🧱 جبس وBA13'},
+                {v:'painting',l:'🎨 دهان وصباغة'},
+                {v:'electrical',l:'⚡ كهرباء'},
+                {v:'plumbing',l:'🔧 صرف وسباكة'},
+                {v:'tiling',l:'🪵 بلاط وأرضيات'},
+                {v:'general',l:'📦 عام'},
+              ].map(c => `<button type="button" onclick="document.querySelectorAll('.nm-cat-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='rgba(255,59,48,0.25)';document.getElementById('nm-cat').value='${c.v}'" class="nm-cat-btn" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);background:${c.v==='plasterboard'?'rgba(255,59,48,0.25)':'#0f0f17'};color:#e2e8f0;font-size:0.78rem;cursor:pointer;">${c.l}</button>`).join('')}
+            </div>
+            <input id="nm-cat" type="hidden" value="plasterboard" />
+          </div>
+          <div>
+            <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:7px;font-weight:700;">وحدة القياس</label>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;">
+              ${['قطعة (piece)','م² (m2)','م طولي (ml)','كيلو (kg)','كيس (sac)','لتر (litre)','طقم (ens)','جملة (forfait)'].map((u,i) => {
+                const vals = ['piece','m2','ml','kg','sac','litre','ens','forfait'];
+                return `<button type="button" onclick="document.querySelectorAll('.nm-unit-btn').forEach(b=>b.style.background='#0f0f17');this.style.background='rgba(59,130,246,0.25)';document.getElementById('nm-unit').value='${vals[i]}'" class="nm-unit-btn" style="padding:7px 12px;border-radius:20px;border:1px solid rgba(59,130,246,0.15);background:${i===0?'rgba(59,130,246,0.25)':'#0f0f17'};color:#93c5fd;font-size:0.75rem;cursor:pointer;">${u}</button>`;
+              }).join('')}
+            </div>
+            <input id="nm-unit" type="hidden" value="piece" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر الشراء الافتراضي (دج)</label>
+              <input id="nm-buy" type="number" value="1000" min="0" step="100" oninput="const b=parseFloat(this.value)||0;document.getElementById('nm-sell').value=Math.round(b*1.4)" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;color:#94a3b8;margin-bottom:5px;font-weight:700;">سعر البيع / التركيب (دج)</label>
+              <input id="nm-sell" type="number" value="1400" min="0" step="100" style="width:100%;background:#0f0f17;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:#fff;font-size:0.9rem;box-sizing:border-box;outline:none;direction:ltr;" />
+            </div>
+          </div>
+          <button onclick="App._saveNewMaterial()" style="width:100%;padding:14px;background:linear-gradient(135deg,#FF3B30,#c0392b);border:none;border-radius:14px;color:#fff;font-weight:900;font-size:0.95rem;cursor:pointer;margin-top:4px;box-shadow:0 4px 20px rgba(255,59,48,0.35);">
+            ➕ إضافة المادة للكتالوج
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+    setTimeout(() => document.getElementById('nm-name')?.focus(), 100);
+  },
 
+  async _saveNewMaterial() {
+    const name = document.getElementById('nm-name')?.value?.trim();
+    if (!name) { this.showToast('اسم المادة مطلوب', 'error'); return; }
+    const category = document.getElementById('nm-cat')?.value || 'general';
+    const unit = document.getElementById('nm-unit')?.value || 'piece';
+    const buyPrice = parseFloat(document.getElementById('nm-buy')?.value) || 0;
+    const sellPrice = parseFloat(document.getElementById('nm-sell')?.value) || buyPrice;
     await DB.add('materials', {
-      name: name.trim(),
-      category: category.trim(),
-      unit: unit.trim(),
+      name, category, unit,
       default_purchase_price: buyPrice,
       default_selling_price: sellPrice,
       sku: 'MAT-' + Date.now().toString().slice(-4)
     });
-
-    alert(`✓ تم إضافة المادة "${name}" إلى دليل المواد بنجاح!`);
+    document.getElementById('new-material-sheet')?.remove();
     this.playClickSound();
-    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
+    this.showToast(`✓ تم إضافة "${name}" للكتالوج`, 'success');
+    await this.renderCurrentView(); this.updateMobileNavState(this.currentView);
   },
 
   async deleteMaterial(materialId) {
