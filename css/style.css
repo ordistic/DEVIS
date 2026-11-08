@@ -41,6 +41,9 @@
 html {
   color-scheme: dark;
   background-color: var(--bg-main);
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100vw !important;
 }
 
 body {
@@ -50,6 +53,10 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  position: relative;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -576,7 +583,25 @@ body {
 
 /* Mobile (< 1024px): Fixed off-canvas drawer from LEFT (IMMUNE TO LAYOUT SQUISHING) */
 @media (max-width: 1023px) {
+  #app-layout {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  #main-app-container {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
   #main-sidebar {
+    display: none !important;
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -584,23 +609,17 @@ body {
     bottom: 0 !important;
     height: 100% !important;
     height: 100dvh !important;
-    max-width: 82vw !important;
+    max-width: 85vw !important;
     width: 288px !important;
-    z-index: 75 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    transform: translateX(-100%) !important;
+    z-index: 9999 !important;
     border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-left: none !important;
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s !important;
   }
 
-  /* Open: slides in from left */
+  /* Open: slides in / displays as overlay drawer */
   #main-sidebar.open {
-    visibility: visible !important;
-    pointer-events: auto !important;
-    transform: translateX(0) !important;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.85) !important;
+    display: flex !important;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.95) !important;
   }
 
   /* Backdrop */
@@ -612,16 +631,31 @@ body {
   header {
     height: var(--mobile-header-height) !important;
     min-height: var(--mobile-header-height) !important;
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   /* Main Dynamic Content Container on mobile */
   #main-content-view {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
     padding-top: 10px !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
     padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 8px) + 24px) !important;
+  }
+
+  .kpi-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 

@@ -3581,16 +3581,14 @@ const App = {
     }
 
     container.innerHTML = `
-      <div class="flex items-center gap-2 flex-wrap">
-        <a href="javascript:void(0)" onclick="App.navigate('dashboard')" class="font-black text-sm tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 leading-tight hover:opacity-80 transition">
+      <div class="flex items-center gap-1.5 min-w-0 overflow-hidden">
+        <a href="javascript:void(0)" onclick="App.navigate('dashboard')" class="font-black text-xs sm:text-sm tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 leading-tight hover:opacity-80 transition shrink-0">
           DARI LUXE
         </a>
-        <span class="text-slate-600 text-xs">${arrow}</span>
-        <span class="text-[11px] font-bold text-slate-400 hidden sm:inline">${currentMeta.hub}</span>
-        <span class="text-slate-600 text-xs hidden sm:inline">${arrow}</span>
-        <h1 class="text-xs sm:text-sm font-black text-white flex items-center gap-1.5">
-          <span>${currentMeta.icon}</span>
-          <span>${currentMeta.title}</span>
+        <span class="text-slate-600 text-xs shrink-0">${arrow}</span>
+        <h1 class="text-xs sm:text-sm font-black text-white flex items-center gap-1 min-w-0 truncate">
+          <span class="shrink-0">${currentMeta.icon}</span>
+          <span class="truncate">${currentMeta.title}</span>
         </h1>
         ${projectBreadcrumb}
       </div>
@@ -3693,13 +3691,10 @@ const App = {
     });
 
     if (typeof closeMobileSidebar === "function") closeMobileSidebar();
-    // Close mobile sidebar if open
     const sidebar = document.getElementById('main-sidebar');
     const backdrop = document.getElementById('mobile-sidebar-backdrop');
-    if (sidebar && !sidebar.classList.contains('translate-x-full')) {
-      sidebar.classList.add('translate-x-full');
-      if (backdrop) backdrop.classList.add('hidden');
-    }
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.add('hidden');
 
     // Update active sidebar nav link
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -3961,70 +3956,70 @@ const App = {
         </div>
 
         <!-- 6 Live Metric / KPI Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div class="kpi-card metric-box-blue p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_total_projects')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-extrabold">TOTAL</span>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full">
+          <div class="kpi-card metric-box-blue p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_total_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-extrabold shrink-0">TOTAL</span>
             </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-white font-mono">${totalProjects}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_total_projects_sub')}</span>
-            </div>
-          </div>
-
-          <div class="kpi-card metric-box-green p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_active_projects')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold">ACTIVE</span>
-            </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-emerald-400 font-mono">${activeProjects}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_active_projects_sub')}</span>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-white font-mono">${totalProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_total_projects_sub')}</span>
             </div>
           </div>
 
-          <div class="kpi-card metric-box-purple p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_pending_projects')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-extrabold">ÉTUDE</span>
+          <div class="kpi-card metric-box-green p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_active_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold shrink-0">ACTIVE</span>
             </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-purple-400 font-mono">${pendingProjects}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_pending_projects_sub')}</span>
-            </div>
-          </div>
-
-          <div class="kpi-card metric-box-cyan p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_completed_projects')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-extrabold">FIN</span>
-            </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-cyan-400 font-mono">${completedProjects}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_completed_projects_sub')}</span>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-emerald-400 font-mono">${activeProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_active_projects_sub')}</span>
             </div>
           </div>
 
-          <div class="kpi-card metric-box-amber p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_active_workers')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold">ÉQUIPE</span>
+          <div class="kpi-card metric-box-purple p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_pending_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-extrabold shrink-0">ÉTUDE</span>
             </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-amber-400 font-mono">${activeWorkers}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_active_workers_sub')}</span>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-purple-400 font-mono">${pendingProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_pending_projects_sub')}</span>
             </div>
           </div>
 
-          <div class="kpi-card metric-box-red p-3.5 rounded-2xl flex flex-col justify-between">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-bold text-slate-300">${t('kpi_today_attendance')}</span>
-              <span class="text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-extrabold">AUJOURD'HUI</span>
+          <div class="kpi-card metric-box-cyan p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_completed_projects')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-extrabold shrink-0">FIN</span>
             </div>
-            <div class="mt-2 flex items-baseline justify-between">
-              <span class="text-2xl font-black text-red-400 font-mono">${todayPresentWorkersCount}</span>
-              <span class="text-[9px] text-slate-400">${t('kpi_today_attendance_sub')}</span>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-cyan-400 font-mono">${completedProjects}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_completed_projects_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-amber p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_active_workers')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-extrabold shrink-0">ÉQUIPE</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-amber-400 font-mono">${activeWorkers}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_active_workers_sub')}</span>
+            </div>
+          </div>
+
+          <div class="kpi-card metric-box-red p-3 rounded-2xl flex flex-col justify-between min-w-0 overflow-hidden">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[10px] sm:text-[11px] font-bold text-slate-300 truncate">${t('kpi_today_attendance')}</span>
+              <span class="text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-extrabold shrink-0">AUJOURD'HUI</span>
+            </div>
+            <div class="mt-2 flex items-baseline justify-between gap-1">
+              <span class="text-xl sm:text-2xl font-black text-red-400 font-mono">${todayPresentWorkersCount}</span>
+              <span class="text-[8px] sm:text-[9px] text-slate-400 truncate">${t('kpi_today_attendance_sub')}</span>
             </div>
           </div>
         </div>
@@ -4066,7 +4061,7 @@ const App = {
         </div>
 
         <!-- Cockpit Filter Tags Strip -->
-        <div class="flex items-center justify-between gap-3 overflow-x-auto pb-1 no-scrollbar text-xs">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs w-full max-w-full">
           <div class="flex items-center gap-2 shrink-0">
             <button onclick="App.setCockpitFilterStatus('all')" class="filter-pill ${this.cockpitFilterStatus === 'all' ? 'active' : ''}">${t('filter_all')}</button>
             <button onclick="App.setCockpitFilterStatus('in_progress')" class="filter-pill ${this.cockpitFilterStatus === 'in_progress' ? 'active' : ''}">${t('filter_in_progress')}</button>
@@ -4093,16 +4088,16 @@ const App = {
 
         <!-- Cockpit Primary Data Table -->
         <div class="kpi-card rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
-          <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-[#0E0E12]">
-            <div class="flex items-center gap-3">
+          <div class="px-4 sm:px-5 py-4 border-b border-white/5 flex items-center justify-between bg-[#0E0E12]">
+            <div class="flex items-center gap-2.5">
               <span class="w-2.5 h-2.5 rounded-full bg-[#FF3B30]"></span>
-              <h3 class="text-sm font-black text-white">${t('table_title')}</h3>
+              <h3 class="text-xs sm:text-sm font-black text-white">${t('table_title')}</h3>
               <span class="text-xs text-slate-500 font-mono">(${projects.length})</span>
             </div>
             <div class="flex items-center gap-2 text-xs">
               <button onclick="App.exportProjectsCSV()" class="px-3 py-1.5 rounded-lg bg-[#16161C] hover:bg-slate-800 text-slate-300 font-semibold border border-white/5 flex items-center gap-1.5 transition">
                 <span>📥</span>
-                <span>${t('export')} CSV</span>
+                <span class="hidden sm:inline">${t('export')} CSV</span>
               </button>
               <button onclick="App.openNewProjectModal()" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1.5 transition">
                 <span>+</span>
@@ -4110,7 +4105,8 @@ const App = {
               </button>
             </div>
           </div>
-          <div class="overflow-x-auto">
+          <!-- Desktop Table View -->
+          <div class="hidden md:block overflow-x-auto">
             <table class="erp-table ${isFr ? 'text-left' : 'text-right'}">
               <thead>
                 <tr>
@@ -4127,6 +4123,10 @@ const App = {
                 ${cockpitRowsHTML}
               </tbody>
             </table>
+          </div>
+          <!-- Mobile Cards View for Phones -->
+          <div class="md:hidden p-3 space-y-3">
+            ${mobileCardsHTML}
           </div>
         </div>
       </div>

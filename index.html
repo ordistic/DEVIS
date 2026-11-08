@@ -63,7 +63,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- App Custom Stylesheet (Dark Cockpit Locked) -->
-  <link rel="stylesheet" href="css/style.css?v=24">
+  <link rel="stylesheet" href="css/style.css?v=26">
 
   <!-- PWA Cache Invalidation & Direct Refresh Trigger -->
   <script>
@@ -76,7 +76,7 @@
       if ('caches' in window) {
         caches.keys().then(keys => {
           keys.forEach(k => {
-            if (k !== 'dariluxe-erp-v24') {
+            if (k !== 'dariluxe-erp-v26') {
               console.log('Purging old cache on phone:', k);
               caches.delete(k);
             }
@@ -96,7 +96,7 @@
   <div id="mobile-sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-md z-40 hidden lg:hidden"></div>
 
   <!-- Sidebar (OPDISTIC Cockpit Style with DARI LUXE Branding) -->
-  <aside id="main-sidebar" class="bg-[#0C0C10] z-50 flex flex-col justify-between shadow-2xl select-none">
+  <aside id="main-sidebar" class="hidden lg:flex bg-[#0C0C10] z-50 flex-col justify-between shadow-2xl select-none">
     
     <!-- Collapsible Toggle Button right on border (as in screenshot) -->
     <button id="sidebar-toggle-btn" onclick="App.toggleSidebarCollapse()" class="sidebar-collapse-toggle hidden lg:flex" title="طي / توسيع القائمة (Collapse / Expand)">
@@ -430,27 +430,27 @@
   <div id="main-app-container" class="flex-1 flex flex-col min-h-screen w-full min-w-0 max-w-full overflow-x-hidden">
     
     <!-- Top Cockpit Header Bar (Exact match to reference screenshot) -->
-    <header class="h-20 bg-[#0C0C10] border-b border-white/5 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-lg">
+    <header class="h-14 sm:h-20 bg-[#0C0C10] border-b border-white/5 sticky top-0 z-30 px-3 sm:px-6 flex items-center justify-between shadow-lg w-full max-w-full min-w-0 overflow-hidden">
       
       <!-- Left Section: Logo & Operational Subtitle -->
-      <div class="flex items-center gap-3.5">
+      <div class="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1 overflow-hidden">
         <!-- Hamburger button for mobile -->
-        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-[#16161C] text-slate-300 hover:text-white transition">
+        <button onclick="toggleMobileSidebar()" class="lg:hidden p-2 rounded-xl bg-[#16161C] text-slate-300 hover:text-white transition shrink-0" aria-label="القائمة">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
 
-        <div id="header-breadcrumbs-container" class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-[#121216] border border-amber-500/20 p-1 hidden sm:flex items-center justify-center cursor-pointer hover:border-amber-400/50 transition shrink-0" onclick="App.navigate('dashboard')" title="لوحة التحكم الرئيسية / Accueil">
+        <div id="header-breadcrumbs-container" class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#121216] border border-amber-500/20 p-1 hidden sm:flex items-center justify-center cursor-pointer hover:border-amber-400/50 transition shrink-0" onclick="App.navigate('dashboard')" title="لوحة التحكم الرئيسية / Accueil">
             <img src="dari_luxe_logo.png" alt="DARI LUXE" class="max-w-full max-h-full object-contain">
           </div>
-          <div id="header-breadcrumbs-text" class="flex flex-col justify-center">
+          <div id="header-breadcrumbs-text" class="flex flex-col justify-center min-w-0 flex-1 overflow-hidden">
             <!-- Dynamically populated by App.updateHeaderBreadcrumbs() -->
           </div>
         </div>
       </div>
 
       <!-- Center & Right Utility Actions (Clock, Status, Sound, Notifications, Avatar, CTA) -->
-      <div class="flex items-center gap-2.5 sm:gap-3">
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
         
         <!-- Status Pill: Système connecté | Realtime Active -->
         <div class="hidden xl:flex items-center gap-2 bg-[#121216] border border-white/10 px-3.5 py-1.5 rounded-full text-xs text-slate-200">
@@ -543,12 +543,12 @@
   </script>
 
   <!-- Core Scripts -->
-  <script src="js/i18n.js?v=22"></script>
-  <script src="js/calculations.js?v=22"></script>
-  <script src="js/db.js?v=22"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/daily_checkin.js?v=22"></script>
-  <script src="js/app.js?v=22"></script>
+  <script src="js/i18n.js?v=26"></script>
+  <script src="js/calculations.js?v=26"></script>
+  <script src="js/db.js?v=26"></script>
+  <script src="js/charts.js?v=26"></script>
+  <script src="js/daily_checkin.js?v=26"></script>
+  <script src="js/app.js?v=26"></script>
 
   <!-- =====================================================
        MOBILE BOTTOM NAVIGATION BAR (Field Workers)
