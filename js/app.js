@@ -364,7 +364,7 @@ const App = {
     }
 
     this.playClickSound();
-    alert(`✓ تم بنجاح إنشاء ورشة "${name}" وربط بنود العمل وتجهيز الطابق الأرضي!`);
+    this.showToast(`✓ تم بنجاح إنشاء ورشة "${name}" وربط بنود العمل وتجهيز الطابق الأرضي!`, 'success');
     this.activeProjectId = newProj.id;
     this.navigate('project_workspace', newProj.id);
   },
@@ -724,7 +724,7 @@ const App = {
     }
 
     this.playClickSound();
-    alert(`✓ تم بنجاح حفظ قياسات "${name}" وإضافتها لملف الورشة!`);
+    this.showToast(`✓ تم بنجاح حفظ قياسات "${name}" وإضافتها لملف الورشة!`, 'success');
     this.activeProjectId = projId;
     this.navigate('project_workspace', projId);
   },
@@ -900,7 +900,7 @@ const App = {
     }
 
     this.playClickSound();
-    alert(`✓ تم بنجاح إضافة العامل "${name}" (${spec}) بأجر ${wage.toLocaleString('fr-FR')} دج/يوم!`);
+    this.showToast(`✓ تم بنجاح إضافة العامل "${name}" (${spec}) بأجر ${wage.toLocaleString('fr-FR')} دج/يوم!`, 'success');
     this.navigate('workers');
   },
 
@@ -1017,7 +1017,7 @@ const App = {
     });
 
     this.playClickSound();
-    alert(`✓ تم بنجاح تسجيل المصروف بقيمة ${amount.toLocaleString('fr-FR')} دج!`);
+    this.showToast(`✓ تم بنجاح تسجيل المصروف بقيمة ${amount.toLocaleString('fr-FR')} دج!`, 'success');
     this.navigate('expenses');
   },
 
@@ -1241,7 +1241,7 @@ const App = {
 
     await DB.delete('projects', projectId);
     this.playClickSound();
-    alert('✓ تم حذف المشروع وكافة ملحقاته بنجاح!');
+    this.showToast('✓ تم حذف المشروع وكافة ملحقاته بنجاح!', 'success');
     if (this.activeProjectId === projectId) this.activeProjectId = null;
     this.currentView = 'projects';
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
@@ -1390,7 +1390,7 @@ const App = {
   async deleteFloor(floorId) {
     if (!confirm('هل أنت متأكد من حذف هذا الطابق وجميع الغرف والأجهزة الموجودة بداخله؟')) return;
     await DB.delete('project_floors', floorId);
-    alert('✓ تم حذف الطابق وغرفه بنجاح!');
+    this.showToast('✓ تم حذف الطابق وغرفه بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1398,7 +1398,7 @@ const App = {
   async deleteRoom(roomId) {
     if (!confirm('هل أنت متأكد من حذف هذه الغرفة وجميع القياسات والفتحات والأجهزة التابعة لها؟')) return;
     await DB.delete('project_rooms', roomId);
-    alert('✓ تم حذف الغرفة بنجاح!');
+    this.showToast('✓ تم حذف الغرفة بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1414,7 +1414,7 @@ const App = {
     if (!confirm(`هل أنت متأكد من حذف العامل "${wName}" من سجل العمال نهائياً؟`)) return;
     await DB.delete('workers', workerId);
     this.playClickSound();
-    alert('✓ تم حذف العامل بنجاح!');
+    this.showToast('✓ تم حذف العامل بنجاح!', 'success');
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
@@ -1693,7 +1693,7 @@ const App = {
     const mName = m ? m.name : materialId;
     if (!confirm(`هل أنت متأكد من حذف المادة "${mName}" من الكتالوج؟`)) return;
     await DB.delete('materials', materialId);
-    alert('✓ تم حذف المادة بنجاح!');
+    this.showToast('✓ تم حذف المادة بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1701,7 +1701,7 @@ const App = {
   async deleteMaterialPurchase(purchaseId) {
     if (!confirm('هل أنت متأكد من إلغاء وحذف حركة شراء المادة هذه؟')) return;
     await DB.delete('material_purchases', purchaseId);
-    alert('✓ تم حذف حركة الشراء بنجاح!');
+    this.showToast('✓ تم حذف حركة الشراء بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1710,7 +1710,7 @@ const App = {
   async deleteExpense(expenseId) {
     if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
     await DB.delete('expenses', expenseId);
-    alert('✓ تم حذف المصروف بنجاح!');
+    this.showToast('✓ تم حذف المصروف بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1719,7 +1719,7 @@ const App = {
   async deleteCustomerPayment(paymentId) {
     if (!confirm('هل أنت متأكد من حذف سند الدفعة المالية هذه؟')) return;
     await DB.delete('customer_payments', paymentId);
-    alert('✓ تم حذف سند الدفعة وتحديث رصيد الصندوق بنجاح!');
+    this.showToast('✓ تم حذف سند الدفعة وتحديث رصيد الصندوق بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1728,7 +1728,7 @@ const App = {
   async deleteQuotation(quotationId) {
     if (!confirm('هل أنت متأكد من حذف هذا الكشف التقديري (Devis)؟')) return;
     await DB.delete('quotations', quotationId);
-    alert('✓ تم حذف الكشف التقديري بنجاح!');
+    this.showToast('✓ تم حذف الكشف التقديري بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -1736,7 +1736,7 @@ const App = {
   async deleteInvoice(invoiceId) {
     if (!confirm('هل أنت متأكد من حذف هذه الفاتورة (Facture)؟')) return;
     await DB.delete('invoices', invoiceId);
-    alert('✓ تم حذف الفاتورة بنجاح!');
+    this.showToast('✓ تم حذف الفاتورة بنجاح!', 'success');
     this.playClickSound();
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
@@ -2010,7 +2010,7 @@ const App = {
     if (!confirm(`هل أنت متأكد من حذف العمل "${actName}" من هذا المشروع نهائياً؟`)) return;
     await DB.delete('project_activities', activityId);
     this.playClickSound();
-    alert('✓ تم حذف العمل من المشروع بنجاح!');
+    this.showToast('✓ تم حذف العمل من المشروع بنجاح!', 'success');
     if (this.currentView === 'project_workspace') {
       this.renderActiveProjectTabContent();
     } else {
@@ -8459,7 +8459,7 @@ _شكراً لثقتكم في DARI LUXE_`;
       description: 'مستوى بناية'
     });
     this.playClickSound();
-    alert('✓ تم بنجاح إضافة ' + defaultName + ' للمشروع بنقرة واحدة وبدون نوافذ منبثقة!');
+    this.showToast('✓ تم بنجاح إضافة ' + defaultName + ' للمشروع بنقرة واحدة!', 'success');
     this.renderActiveProjectTabContent();
   },
 
