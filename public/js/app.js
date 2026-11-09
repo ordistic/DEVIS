@@ -6174,6 +6174,93 @@ const App = {
     `;
   },
 
+  renderMobileWorkerCards(workers, attendances, payments) {
+    if (!workers || workers.length === 0) {
+      return `
+        <div class="p-6 rounded-2xl bg-[#121216] border border-white/5 text-center space-y-3">
+          <div class="text-3xl">👷</div>
+          <h4 class="font-bold text-white text-sm">لا يوجد عمال مسجلون حالياً</h4>
+          <p class="text-xs text-slate-400">سجل عمالك لمتابعة الحضور اليومي، اليوميات، وتسبيقات الأجور.</p>
+          <button onclick="App.openNewWorkerModal()" class="w-full py-2.5 rounded-xl bg-[#FF3B30] text-white font-bold text-xs shadow-lg">
+            + إضافة عامل جديد
+          </button>
+        </div>
+      `;
+    }
+
+    const colors = ['avatar-red', 'avatar-amber', 'avatar-blue', 'avatar-emerald', 'avatar-purple', 'avatar-cyan'];
+
+    return workers.map((w, idx) => {
+      const summary = CalculationEngine.computeWorkerFinancialSummary(w.id, attendances, payments);
+      const letter = ((w.full_name || 'O').trim()[0] || 'O').toUpperCase();
+      const avatarColor = colors[idx % colors.length];
+      const specialty = w.specialty || 'عامل متعدد المهارات';
+      const wilaya = w.wilaya || 'عين الدفلى';
+      const phone = w.phone || '';
+      const dailyWage = parseFloat(w.daily_wage || 3500);
+
+      return `
+        <div class="mobile-worker-card mobile-card space-y-3 bg-[#121216] p-4 rounded-2xl border border-white/5 shadow-md" data-role="${specialty.toLowerCase()}" data-status="active" data-wilaya="${wilaya}">
+          <div class="flex items-start justify-between gap-2.5">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="avatar-circle ${avatarColor} shrink-0">
+                ${letter}
+              </div>
+              <div class="min-w-0">
+                <h4 class="font-extrabold text-white text-xs leading-snug truncate cursor-pointer hover:text-[#FF3B30]" onclick="App.openWorkerDetailsModal('${w.id}')">
+                  ${this.escapeHtml(w.full_name)}
+                </h4>
+                <span class="text-[10px] text-slate-400 font-mono block truncate">
+                  ID: #W-${w.id.slice(0, 8)} • ${w.cin || 'CIN Validée'}
+                </span>
+              </div>
+            </div>
+            <span class="badge-role-blue shrink-0">
+              ${specialty}
+            </span>
+          </div>
+
+          <!-- Financial & Attendance Strip -->
+          <div class="grid grid-cols-2 gap-2 text-[11px] bg-[#0A0A0C]/70 p-2.5 rounded-xl border border-white/5">
+            <div class="min-w-0">
+              <span class="text-[9px] text-slate-400 block">اليومية التعاقدية:</span>
+              <span class="font-bold text-emerald-400 font-mono text-xs block">${App.formatCurrency(dailyWage)}</span>
+              ${phone ? `<a href="tel:${phone}" class="text-amber-400 font-mono text-[10px] block mt-0.5 truncate">📞 ${phone}</a>` : ''}
+            </div>
+            <div class="text-left min-w-0">
+              <span class="text-[9px] text-slate-400 block">أيام العمل / المستحق:</span>
+              <span class="text-white font-mono font-bold text-xs block">${summary.totalDaysWorked} يوم عمل</span>
+              <span class="font-mono font-bold text-[10px] block ${summary.balanceDue > 0 ? 'text-amber-400' : 'text-slate-400'}">
+                المتبقي: ${App.formatCurrency(summary.balanceDue)}
+              </span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-1.5 pt-1 flex-wrap">
+            <button onclick="App.openWorkerDetailsModal('${w.id}')" class="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-[11px] border border-white/10 flex items-center justify-center gap-1 transition">
+              <span>👁</span>
+              <span>البطاقة</span>
+            </button>
+            <button onclick="App.openWorkerPaymentModal('${w.id}')" class="flex-1 py-1.5 px-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold text-[11px] border border-emerald-500/30 flex items-center justify-center gap-1 transition">
+              <span>💵</span>
+              <span>تسبيق</span>
+            </button>
+            <button onclick="App.printWorkerIndividualPayslipA4('${w.id}')" class="py-1.5 px-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-bold text-[11px] border border-teal-500/30 flex items-center justify-center gap-1 transition" title="كشف A4">
+              <span>🧾</span>
+            </button>
+            <button onclick="App.editWorker('${w.id}')" class="p-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold text-[11px] border border-blue-500/30 transition" title="تعديل">
+              <span>✏️</span>
+            </button>
+            <button onclick="App.deleteWorker('${w.id}')" class="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-[11px] border border-rose-500/30 transition" title="حذف">
+              <span>🗑️</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
   // 5. Global Workers View
   async renderWorkersView(container) {
     const workers = await DB.getAll('workers');
@@ -6194,6 +6281,8 @@ const App = {
     const todayStr = App.getLocalDateString();
     const todayAttendances = attendances.filter(a => a.date === todayStr);
     const activeTodayCount = todayAttendances.filter(a => (a.multiplier || 0) > 0).length || 5;
+
+    const mobileCardsHTML = this.renderMobileWorkerCards(workers, attendances, payments);
 
     // Build Cockpit Worker Table Rows
     const rowsHTML = workers.map((w, idx) => {

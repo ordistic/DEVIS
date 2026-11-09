@@ -3,7 +3,7 @@
  * Network-First for dynamic code & assets to prevent stale caching
  */
 
-const CACHE_NAME = 'dariluxe-erp-v27';
+const CACHE_NAME = 'dariluxe-erp-v28';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
