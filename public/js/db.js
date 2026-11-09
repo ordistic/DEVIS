@@ -79,6 +79,13 @@ const DB = {
       this.saveLocalCache();
     }
 
+    // Guarantee all registered tables exist in _cache
+    if (this._cache) {
+      this.tables.forEach(t => {
+        if (!this._cache[t]) this._cache[t] = [];
+      });
+    }
+
     // Set DARI LUXE branding defaults only if fields are empty/missing (never overwrite user edits)
     if (this._cache && this._cache.company_settings && this._cache.company_settings[0]) {
       const cur = this._cache.company_settings[0];
@@ -280,6 +287,11 @@ const DB = {
     return item ? { ...item } : null;
   },
 
+  // Alias for getById
+  async get(tableName, id) {
+    return this.getById(tableName, id);
+  },
+
   async query(tableName, filterFn) {
     if (!this._cache) await this.init();
     const list = this._cache[tableName] || [];
@@ -311,6 +323,11 @@ const DB = {
 
     this.logAudit('CREATE', tableName, newRecord.id, newRecord);
     return { ...newRecord };
+  },
+
+  // Alias for add
+  async create(tableName, record) {
+    return this.add(tableName, record);
   },
 
   async update(tableName, id, updates) {
