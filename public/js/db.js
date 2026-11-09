@@ -19,10 +19,16 @@ const DB = {
     'company_settings',
     'customers',
     'projects',
+    'project_buildings',
     'project_floors',
     'project_rooms',
+    'room_walls',
     'room_doors',
     'room_windows',
+    'room_lighting',
+    'room_electrical',
+    'room_decorations',
+    'room_attachments',
     'room_equipment',
     'work_categories',
     'activity_catalog',
@@ -364,6 +370,11 @@ const DB = {
       this._cache['room_doors'] = (this._cache['room_doors'] || []).filter(x => String(x.room_id) !== rId);
       this._cache['room_windows'] = (this._cache['room_windows'] || []).filter(x => String(x.room_id) !== rId);
       this._cache['room_equipment'] = (this._cache['room_equipment'] || []).filter(x => String(x.room_id) !== rId);
+      this._cache['room_walls'] = (this._cache['room_walls'] || []).filter(x => String(x.room_id) !== rId);
+      this._cache['room_lighting'] = (this._cache['room_lighting'] || []).filter(x => String(x.room_id) !== rId);
+      this._cache['room_electrical'] = (this._cache['room_electrical'] || []).filter(x => String(x.room_id) !== rId);
+      this._cache['room_decorations'] = (this._cache['room_decorations'] || []).filter(x => String(x.room_id) !== rId);
+      this._cache['room_attachments'] = (this._cache['room_attachments'] || []).filter(x => String(x.room_id) !== rId);
     }
 
     list.splice(index, 1);
@@ -577,11 +588,17 @@ const DB = {
         'workers',
         'activity_progress',
         'project_activities',
+        'room_attachments',
+        'room_decorations',
+        'room_electrical',
+        'room_lighting',
+        'room_walls',
         'room_equipment',
         'room_windows',
         'room_doors',
         'project_rooms',
         'project_floors',
+        'project_buildings',
         'projects',
         'customers',
         'partner_transfers',

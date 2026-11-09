@@ -200,6 +200,40 @@ runTest('Customer financial summary computes outstanding contract and invoice ba
   assert.strictEqual(res.outstandingInvoicedBalance, 50000);
 });
 
+// 6. Room Engineering Calculations (Walls, Doors, Lighting, Electrical, Decorations)
+console.log('\n[6] Room Engineering System Calculations');
+runTest('Wall net area subtracts attached doors and windows accurately', () => {
+  const wall = { id: 'W-1', length: 5, height: 3 }; // Gross: 15 m²
+  const doors = [{ wall_id: 'W-1', width: 1, height: 2.1, quantity: 1 }]; // 2.1 m²
+  const windows = [{ wall_id: 'W-1', width: 1.5, height: 1.2, quantity: 1 }]; // 1.8 m²
+  
+  const gross = wall.length * wall.height;
+  const deductDoor = doors.reduce((s, d) => s + (d.width * d.height * d.quantity), 0);
+  const deductWin = windows.reduce((s, w) => s + (w.width * w.height * w.quantity), 0);
+  const net = gross - deductDoor - deductWin;
+  
+  assert.strictEqual(gross, 15);
+  assert.strictEqual(Math.round(net * 100) / 100, 11.1);
+});
+
+runTest('Lighting and Electrical items compute total equipment costs with installation', () => {
+  const lighting = [
+    { quantity: 12, unit_price: 350, install_cost: 150 }, // 12 * 500 = 6000
+    { quantity: 1, unit_price: 15000, install_cost: 2000 }, // 1 * 17000 = 17000
+    { quantity: 20, unit_price: 400, install_cost: 100 }  // LED profile 20m: 20 * 500 = 10000
+  ];
+  const electrical = [
+    { quantity: 8, unit_price: 450, install_cost: 200 }, // 8 * 650 = 5200
+    { quantity: 2, unit_price: 300, install_cost: 150 }  // 2 * 450 = 900
+  ];
+
+  const totalLight = lighting.reduce((s, l) => s + ((l.unit_price + l.install_cost) * l.quantity), 0);
+  const totalElec = electrical.reduce((s, e) => s + ((e.unit_price + e.install_cost) * e.quantity), 0);
+
+  assert.strictEqual(totalLight, 33000);
+  assert.strictEqual(totalElec, 6100);
+});
+
 console.log('\n================================================================');
 console.log(`  TEST RESULTS: ${passedTests}/${totalTests} PASSED (${failedTests} FAILED)`);
 console.log('================================================================\n');

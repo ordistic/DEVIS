@@ -3711,6 +3711,12 @@ const App = {
     await this.renderCurrentView(); this.updateMobileNavState(this.currentView);;
   },
 
+  openRoomWorkspace(roomId) {
+    this.activeRoomId = roomId;
+    this.currentView = 'room_workspace';
+    this.renderCurrentView();
+  },
+
   switchProjectTab(tabName) {
     this.activeProjectTab = tabName;
     document.querySelectorAll('.project-tab-btn').forEach(btn => {
@@ -3839,6 +3845,13 @@ const App = {
           break;
         case 'new_room':
           await this.renderNewRoomView(mainContainer);
+          break;
+        case 'room_workspace':
+          if (typeof RoomEngineering !== 'undefined') {
+            await RoomEngineering.renderWorkspaceView(mainContainer, this.activeRoomId);
+          } else {
+            mainContainer.innerHTML = '<div class="p-8 text-center text-slate-400">جارٍ تحميل نظام إدارة الغرف...</div>';
+          }
           break;
         case 'new_expense':
           await this.renderNewExpenseView(mainContainer);
@@ -5377,6 +5390,9 @@ const App = {
                         <div>الأبعاد: ${rm.length}م × ${rm.width}م (H=${rm.height}م)</div>
                         <div class="text-blue-400 font-semibold">المساحة: ${(parseFloat(rm.length)*parseFloat(rm.width)).toFixed(2)} م²</div>
                       </div>
+                      <button onclick="App.openRoomWorkspace('${rm.id}')" class="mt-2 w-full px-2 py-1.5 rounded-lg bg-indigo-900/40 hover:bg-indigo-800/60 text-indigo-300 border border-indigo-500/30 font-bold text-[11px] transition flex items-center justify-center gap-1">
+                        📐 فتح ملف الغرفة
+                      </button>
                     </div>
                   `).join('')}
                 </div>

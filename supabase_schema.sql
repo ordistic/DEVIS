@@ -664,3 +664,105 @@ INSERT INTO partners (id, name, name_fr, phone, role, pin, color) VALUES
 ('USR-001', 'الشريك الأول (أمين)', 'Partenaire 1 (Amine)', '0550000001', 'admin', '1234', '#3B82F6'),
 ('USR-002', 'الشريك الثاني (ياسين)', 'Partenaire 2 (Yacine)', '0550000002', 'admin', '1234', '#10B981')
 ON CONFLICT (id) DO NOTHING;
+
+
+-- =====================================================
+-- 23. ROOM ENGINEERING & ARCHITECTURAL SYSTEM (Migration 04)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS project_buildings (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    building_name TEXT NOT NULL DEFAULT 'المبنى الرئيسي',
+    building_type TEXT DEFAULT 'villa',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE project_floors ADD COLUMN IF NOT EXISTS building_id TEXT REFERENCES project_buildings(id) ON DELETE SET NULL;
+ALTER TABLE project_rooms ADD COLUMN IF NOT EXISTS building_id TEXT REFERENCES project_buildings(id) ON DELETE SET NULL;
+ALTER TABLE project_rooms ADD COLUMN IF NOT EXISTS volume NUMERIC DEFAULT 0;
+ALTER TABLE project_rooms ADD COLUMN IF NOT EXISTS room_area NUMERIC DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS room_walls (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES project_rooms(id) ON DELETE CASCADE,
+    wall_name TEXT NOT NULL,
+    wall_position TEXT DEFAULT 'front',
+    length NUMERIC NOT NULL DEFAULT 4.0,
+    height NUMERIC NOT NULL DEFAULT 2.8,
+    area NUMERIC NOT NULL DEFAULT 11.2,
+    finish_type TEXT DEFAULT 'plaster',
+    paint_type TEXT DEFAULT 'vinyle',
+    needs_finish BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS wall_id TEXT REFERENCES room_walls(id) ON DELETE SET NULL;
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS size_category TEXT DEFAULT 'medium';
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS door_type TEXT DEFAULT 'chambre';
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS material TEXT DEFAULT 'bois';
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS color TEXT DEFAULT 'naturel';
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS door_price NUMERIC DEFAULT 0;
+ALTER TABLE room_doors ADD COLUMN IF NOT EXISTS installation_cost NUMERIC DEFAULT 0;
+
+ALTER TABLE room_windows ADD COLUMN IF NOT EXISTS wall_id TEXT REFERENCES room_walls(id) ON DELETE SET NULL;
+ALTER TABLE room_windows ADD COLUMN IF NOT EXISTS material TEXT DEFAULT 'aluminium';
+ALTER TABLE room_windows ADD COLUMN IF NOT EXISTS color TEXT DEFAULT 'blanc';
+ALTER TABLE room_windows ADD COLUMN IF NOT EXISTS window_price NUMERIC DEFAULT 0;
+ALTER TABLE room_windows ADD COLUMN IF NOT EXISTS installation_cost NUMERIC DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS room_lighting (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES project_rooms(id) ON DELETE CASCADE,
+    wall_id TEXT REFERENCES room_walls(id) ON DELETE SET NULL,
+    lighting_type TEXT NOT NULL DEFAULT 'spot',
+    model_name TEXT NOT NULL DEFAULT 'Spot LED Encastré',
+    quantity INTEGER NOT NULL DEFAULT 1,
+    power_watts NUMERIC DEFAULT 7,
+    unit_price NUMERIC DEFAULT 0,
+    installation_cost NUMERIC DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS room_electrical (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES project_rooms(id) ON DELETE CASCADE,
+    wall_id TEXT REFERENCES room_walls(id) ON DELETE SET NULL,
+    fixture_type TEXT NOT NULL DEFAULT 'prise',
+    name TEXT NOT NULL DEFAULT 'Prise de courant 16A',
+    quantity INTEGER NOT NULL DEFAULT 1,
+    height_from_floor NUMERIC DEFAULT 30,
+    unit_price NUMERIC DEFAULT 0,
+    installation_cost NUMERIC DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS room_decorations (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES project_rooms(id) ON DELETE CASCADE,
+    wall_id TEXT REFERENCES room_walls(id) ON DELETE SET NULL,
+    target_type TEXT NOT NULL DEFAULT 'wall',
+    decor_type TEXT NOT NULL DEFAULT 'ba13_ceiling',
+    title TEXT NOT NULL,
+    quantity_or_area NUMERIC DEFAULT 1,
+    unit TEXT DEFAULT 'm²',
+    material_cost NUMERIC DEFAULT 0,
+    labor_cost NUMERIC DEFAULT 0,
+    total_cost NUMERIC DEFAULT 0,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS room_attachments (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES project_rooms(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    url_or_data TEXT,
+    attachment_type TEXT DEFAULT 'image',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
