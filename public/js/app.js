@@ -726,7 +726,7 @@ const App = {
     this.playClickSound();
     this.showToast(`✓ تم بنجاح حفظ قياسات "${name}" وإضافتها لملف الورشة!`, 'success');
     this.activeProjectId = projId;
-    this.navigate('project_workspace', projId);
+    this.openRoomWorkspace(newRoom.id);
   },
 
 
@@ -3472,6 +3472,12 @@ const App = {
         title: isFr ? 'Bâtiments & Mesures' : 'الهيكل، الغرف والقياسات',
         sub: isFr ? 'Plans, métrés et surfaces' : 'حساب المساحات والمتر المربع لكل غرفة'
       },
+      room_workspace: {
+        icon: '📐',
+        hub: isFr ? 'Génie & Architecture' : 'الهندسة المعمارية',
+        title: isFr ? 'Fiche Technique de la Pièce' : 'ملف الغرفة والتفاصيل الهندسية',
+        sub: isFr ? 'Murs, électricité, éclairage, déco' : 'الجدران، الإنارة، الكهرباء، الديكورات والتكاليف'
+      },
       activities: {
         icon: '📋',
         hub: isFr ? 'Chantiers' : 'المشاريع والعمليات',
@@ -3715,6 +3721,12 @@ const App = {
     this.activeRoomId = roomId;
     this.currentView = 'room_workspace';
     this.renderCurrentView();
+  },
+
+  openEditRoomModal(roomId) {
+    if (typeof RoomEngineering !== 'undefined') {
+      RoomEngineering.openEditRoomModal(roomId);
+    }
   },
 
   switchProjectTab(tabName) {
@@ -5481,13 +5493,18 @@ const App = {
                   <th class="py-3 px-2 text-center text-amber-300 bg-amber-950/30">صبيغة الجدران الصافية</th>
                   <th class="py-3 px-2 text-center text-emerald-300 bg-emerald-950/30">إجمالي الصبيغة</th>
                   <th class="py-3 px-3 text-center">تجهيز تقني</th>
-                  <th class="py-3 px-2 text-center">تعديل</th>
+                  <th class="py-3 px-3 text-center">ملف الغرفة الهندسي</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-800">
                 ${roomRows.map(({ rm, metrics, rmDoors, rmWindows, rmEquip }) => `
                   <tr class="hover:bg-[#141418]/30 transition">
-                    <td class="py-2.5 px-3 font-bold text-white">${rm.room_name}</td>
+                    <td class="py-2.5 px-3 font-bold text-white">
+                      <button onclick="App.openRoomWorkspace('${rm.id}')" class="font-bold text-white hover:text-indigo-400 text-right flex items-center gap-1.5 transition">
+                        <span class="text-indigo-400">📐</span>
+                        <span>${rm.room_name}</span>
+                      </button>
+                    </td>
                     <td class="py-2.5 px-2 text-center">${rm.length}م</td>
                     <td class="py-2.5 px-2 text-center">${rm.width}م</td>
                     <td class="py-2.5 px-2 text-center">${rm.height}م</td>
@@ -5502,8 +5519,13 @@ const App = {
                       ${rmEquip.led_profile_len ? `<span class="px-1.5 py-0.5 rounded bg-[#141418] text-sky-300">${rmEquip.led_profile_len}م ليد</span> ` : ''}
                       ${rmEquip.curtains_enabled ? `<span class="px-1.5 py-0.5 rounded bg-[#141418] text-purple-300">ستائر</span>` : ''}
                     </td>
-                    <td class="py-2.5 px-2 text-center">
-                      <button onclick="App.openEditRoomModal('${rm.id}')" class="text-blue-400 hover:text-blue-300 p-1">✏️</button>
+                    <td class="py-2.5 px-3 text-center">
+                      <div class="flex items-center justify-center gap-1.5">
+                        <button onclick="App.openRoomWorkspace('${rm.id}')" class="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition shadow flex items-center gap-1">
+                          <span>📐</span><span>فتح الملف الهندسي</span>
+                        </button>
+                        <button onclick="App.openEditRoomModal('${rm.id}')" class="text-slate-400 hover:text-blue-300 p-1" title="تعديل القياسات">✏️</button>
+                      </div>
                     </td>
                   </tr>
                 `).join('')}
@@ -6688,18 +6710,56 @@ async renderBuildingStructureView(container) {
                     <h3 class="font-bold text-white text-base">${this.escapeHtml(p.name)}</h3>
                     <span class="text-xs text-slate-400">${p.ref} • ${prjFloors.length} طوابق • ${prjRooms.length} غرف ومساحات</span>
                   </div>
-                  <button onclick="App.openProjectWorkspace('${p.id}'); App.switchProjectTab('measurements');" class="px-3 py-1.5 bg-[#FF3B30] hover:bg-[#E0352B] text-white rounded-lg text-xs font-bold">
-                    فتح القياسات ↗
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button onclick="App.openProjectWorkspace('${p.id}'); App.switchProjectTab('structure');" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow">
+                      <span>📐</span><span>إدارة الغرف</span>
+                    </button>
+                    <button onclick="App.openProjectWorkspace('${p.id}'); App.switchProjectTab('measurements');" class="px-3 py-1.5 bg-[#FF3B30] hover:bg-[#E0352B] text-white rounded-lg text-xs font-bold">
+                      فتح القياسات ↗
+                    </button>
+                  </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="space-y-4">
                   ${prjFloors.map(fl => {
                     const flR = prjRooms.filter(r => String(r.floor_id) === String(fl.id));
                     return `
-                      <div class="p-3 rounded-xl bg-[#0E0E12]/60 border border-white/5">
-                        <span class="font-bold text-white block">${fl.floor_name}</span>
-                        <span class="text-slate-500 text-[11px]">${flR.length} غرف مسجلة</span>
+                      <div class="p-4 rounded-xl bg-[#0E0E12]/60 border border-white/5 space-y-3">
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 flex items-center justify-center font-bold text-xs">🏢</span>
+                            <span class="font-bold text-white text-sm">${fl.floor_name}</span>
+                            <span class="text-slate-400 text-xs">(${flR.length} غرف)</span>
+                          </div>
+                          <button onclick="App.openNewRoomModal('${p.id}', '${fl.id}')" class="px-2.5 py-1 rounded-lg bg-blue-900/40 hover:bg-blue-800 text-blue-300 text-xs font-bold border border-blue-500/30 transition">
+                            + إضافة غرفة
+                          </button>
+                        </div>
+
+                        ${flR.length === 0 ? `
+                          <div class="text-center py-4 text-slate-500 text-xs bg-[#111118]/50 rounded-lg">
+                            لا توجد غرف مضافة في هذا الطابق بعد
+                          </div>
+                        ` : `
+                          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+                            ${flR.map(rm => `
+                              <div class="p-3 rounded-xl bg-[#14141C] border border-white/8 hover:border-indigo-500/40 transition flex flex-col justify-between gap-2">
+                                <div>
+                                  <div class="flex items-start justify-between">
+                                    <span class="font-bold text-white text-sm">📐 ${rm.room_name}</span>
+                                    <span class="text-indigo-400 font-bold bg-indigo-950/40 px-2 py-0.5 rounded text-[11px]">${(parseFloat(rm.length || 0) * parseFloat(rm.width || 0)).toFixed(1)} م²</span>
+                                  </div>
+                                  <div class="text-[11px] text-slate-400 mt-1">
+                                    الأبعاد: ${rm.length}م × ${rm.width}م • ارتفاع ${rm.height}م
+                                  </div>
+                                </div>
+                                <button onclick="App.openRoomWorkspace('${rm.id}')" class="w-full mt-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5">
+                                  <span>📐</span><span>فتح ملف الغرفة الهندسية</span>
+                                </button>
+                              </div>
+                            `).join('')}
+                          </div>
+                        `}
                       </div>
                     `;
                   }).join('')}
