@@ -723,6 +723,19 @@ const App = {
       });
     }
 
+    // 4. Auto-generate the 4 base walls automatically from room dimensions
+    if (l > 0 && w > 0 && h > 0) {
+      const defaultWalls = [
+        { room_id: newRoom.id, wall_name: 'الجدار الأمامي (Mur Avant)', position: 'الجدار الأمامي', length: l, height: h, area: l * h, finish_type: 'دهان بلاستيك', paint_type: 'ساتيني أبيض', needs_finish: incWalls, is_corner: false, notes: 'تم توليده آلياً حسب طول الغرفة' },
+        { room_id: newRoom.id, wall_name: 'الجدار الخلفي (Mur Arrière)', position: 'الجدار الخلفي', length: l, height: h, area: l * h, finish_type: 'دهان بلاستيك', paint_type: 'ساتيني أبيض', needs_finish: incWalls, is_corner: false, notes: 'تم توليده آلياً حسب طول الغرفة' },
+        { room_id: newRoom.id, wall_name: 'الجدار الجانبي الأيمن (Mur Droit)', position: 'الجدار الجانبي الأيمن', length: w, height: h, area: w * h, finish_type: 'دهان بلاستيك', paint_type: 'ساتيني أبيض', needs_finish: incWalls, is_corner: false, notes: 'تم توليده آلياً حسب عرض الغرفة' },
+        { room_id: newRoom.id, wall_name: 'الجدار الجانبي الأيسر (Mur Gauche)', position: 'الجدار الجانبي الأيسر', length: w, height: h, area: w * h, finish_type: 'دهان بلاستيك', paint_type: 'ساتيني أبيض', needs_finish: incWalls, is_corner: false, notes: 'تم توليده آلياً حسب عرض الغرفة' }
+      ];
+      for (const dw of defaultWalls) {
+        await DB.add('room_walls', dw);
+      }
+    }
+
     this.playClickSound();
     this.showToast(`✓ تم بنجاح حفظ قياسات "${name}" وإضافتها لملف الورشة!`, 'success');
     this.activeProjectId = projId;

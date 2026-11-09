@@ -1,6 +1,6 @@
 /**
- * Room Engineering System — DARI LUXE ERP v30
- * Manages full room technical details: walls, lighting, electrical, doors, windows, decorations, costs
+ * Room Engineering System — DARI LUXE ERP v31
+ * Manages full room technical details: walls, protruding corners/pillars, lighting, electrical, doors, windows, decorations, costs
  * RTL Arabic/French bilingual — Algerian context
  */
 
@@ -13,6 +13,18 @@ const RoomEngineering = {
     'الجدار الأمامي', 'الجدار الخلفي', 'الجدار الجانبي الأيمن',
     'الجدار الجانبي الأيسر', 'الجدار الرئيسي', 'جدار التلفاز',
     'جدار الديكور', 'جدار آخر'
+  ],
+  CORNER_POSITIONS: [
+    'الزاوية الأمامية اليمنى',
+    'الزاوية الأمامية اليسرى',
+    'الزاوية الخلفية اليمنى',
+    'الزاوية الخلفية اليسرى',
+    'وسط الجدار الرئيسي',
+    'وسط الجدار الأمامي',
+    'وسط الجدار الخلفي',
+    'وسط الجدار الأيمن',
+    'وسط الجدار الأيسر',
+    'موقع مخصص'
   ],
   FINISH_TYPES: ['دهان عادي', 'دهان بلاستيك', 'ورق جدران', 'بلاط سيراميك', 'حجر طبيعي', 'خشب', 'جبس ديكوري', 'بدون تشطيب'],
   LIGHTING_TYPES: ['سبوت (Spot)', 'ثريا (Lustre)', 'إضاءة مخفية (Hidden)', 'شريط LED', 'LED Profile', 'إضاءة ديكورية', 'نجفة (Chandelier)', 'مصباح عادي'],
@@ -49,6 +61,96 @@ const RoomEngineering = {
   },
 
   // ─────────────────────────────────────────────────────────────────────
+  // AUTO-GENERATION OF 4 BASE WALLS
+  // ─────────────────────────────────────────────────────────────────────
+  async ensureDefaultWalls(room) {
+    if (!room || !room.id) return [];
+    let walls = await DB.query('room_walls', w => String(w.room_id) === String(room.id));
+    if (walls.length === 0) {
+      const L = parseFloat(room.length || 0);
+      const W = parseFloat(room.width || 0);
+      const H = parseFloat(room.height || 0);
+      if (L > 0 && W > 0 && H > 0) {
+        const defaultWalls = [
+          {
+            room_id: room.id,
+            wall_name: 'الجدار الأمامي (Mur Avant)',
+            position: 'الجدار الأمامي',
+            length: L,
+            height: H,
+            area: L * H,
+            finish_type: 'دهان بلاستيك',
+            paint_type: 'ساتيني أبيض',
+            needs_finish: room.include_walls_paint !== false,
+            is_corner: false,
+            notes: 'توليد تلقائي حسب طول الغرفة (' + L + 'م)'
+          },
+          {
+            room_id: room.id,
+            wall_name: 'الجدار الخلفي (Mur Arrière)',
+            position: 'الجدار الخلفي',
+            length: L,
+            height: H,
+            area: L * H,
+            finish_type: 'دهان بلاستيك',
+            paint_type: 'ساتيني أبيض',
+            needs_finish: room.include_walls_paint !== false,
+            is_corner: false,
+            notes: 'توليد تلقائي حسب طول الغرفة (' + L + 'م)'
+          },
+          {
+            room_id: room.id,
+            wall_name: 'الجدار الجانبي الأيمن (Mur Droit)',
+            position: 'الجدار الجانبي الأيمن',
+            length: W,
+            height: H,
+            area: W * H,
+            finish_type: 'دهان بلاستيك',
+            paint_type: 'ساتيني أبيض',
+            needs_finish: room.include_walls_paint !== false,
+            is_corner: false,
+            notes: 'توليد تلقائي حسب عرض الغرفة (' + W + 'م)'
+          },
+          {
+            room_id: room.id,
+            wall_name: 'الجدار الجانبي الأيسر (Mur Gauche)',
+            position: 'الجدار الجانبي الأيسر',
+            length: W,
+            height: H,
+            area: W * H,
+            finish_type: 'دهان بلاستيك',
+            paint_type: 'ساتيني أبيض',
+            needs_finish: room.include_walls_paint !== false,
+            is_corner: false,
+            notes: 'توليد تلقائي حسب عرض الغرفة (' + W + 'م)'
+          }
+        ];
+        for (const dw of defaultWalls) {
+          await DB.add('room_walls', dw);
+        }
+        walls = await DB.query('room_walls', w => String(w.room_id) === String(room.id));
+      }
+    }
+    return walls;
+  },
+
+  async resetDefaultWalls(roomId) {
+    this._confirm('إعادة ضبط الجدران الأربعة؟', 'سيتم إعادة توليد الجدران الأربعة الأساسية تلقائياً بحسب أبعاد الغرفة الحالية مع الاحتفاظ بالزوايا والأعمدة البارزة.', async () => {
+      const room = await DB.getById('project_rooms', roomId);
+      if (!room) return;
+      const walls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
+      for (const w of walls) {
+        if (!w.is_corner) {
+          await DB.delete('room_walls', w.id);
+        }
+      }
+      await this.ensureDefaultWalls(room);
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('تمت إعادة ضبط الجدران الأساسية تلقائياً ✅', 'success');
+      await this._refreshPane('walls', roomId);
+    });
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
   // MAIN WORKSPACE VIEW
   // ─────────────────────────────────────────────────────────────────────
   async renderWorkspaceView(container, roomId) {
@@ -68,6 +170,9 @@ const RoomEngineering = {
       container.innerHTML = this._errorHTML('الغرفة غير موجودة أو تم حذفها');
       return;
     }
+
+    // Auto-generate 4 base walls if not present
+    await this.ensureDefaultWalls(room);
 
     let project = null;
     let floor = null;
@@ -129,7 +234,7 @@ const RoomEngineering = {
         <div class="px-4 mt-4 overflow-x-auto">
           <div class="flex gap-1 min-w-max bg-[#111118] rounded-2xl p-1.5 border border-white/6" id="re-tabs-nav">
             ${[
-              ['walls', '🧱 الجدران'],
+              ['walls', '🧱 الجدران والزوايا البارزة'],
               ['ceiling', '🔲 السقف'],
               ['lighting', '💡 الإنارة'],
               ['doors', '🚪 الأبواب والنوافذ'],
@@ -176,63 +281,114 @@ const RoomEngineering = {
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // WALLS PANE
+  // WALLS & PROTRUDING CORNERS PANE
   // ─────────────────────────────────────────────────────────────────────
   async _renderWallsPane(roomId) {
-    const walls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
+    const room = await DB.getById('project_rooms', roomId);
+    if (room) {
+      await this.ensureDefaultWalls(room);
+    }
+
+    const allWalls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
     const doors = await DB.query('room_doors', d => String(d.room_id) === String(roomId));
     const windows = await DB.query('room_windows', w => String(w.room_id) === String(roomId));
 
-    const totalWallArea = walls.reduce((s, w) => {
+    const regularWalls = allWalls.filter(w => !w.is_corner);
+    const cornerWalls = allWalls.filter(w => !!w.is_corner);
+
+    // Compute regular walls net area
+    let regularNetArea = 0;
+    regularWalls.forEach(w => {
       let net = (parseFloat(w.length || 0) * parseFloat(w.height || 0));
-      const wallDoors = doors.filter(d => String(d.wall_id) === String(w.id));
-      const wallWindows = windows.filter(wn => String(wn.wall_id) === String(w.id));
-      wallDoors.forEach(d => net -= (parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1)));
-      wallWindows.forEach(wn => net -= (parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1)));
-      return s + Math.max(0, net);
-    }, 0);
+      doors.filter(d => String(d.wall_id) === String(w.id)).forEach(d => {
+        net -= (parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1));
+      });
+      windows.filter(wn => String(wn.wall_id) === String(w.id)).forEach(wn => {
+        net -= (parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1));
+      });
+      regularNetArea += Math.max(0, net);
+    });
+
+    // Compute protruding corners area & corner beads
+    let cornerTotalArea = 0;
+    let totalCornerBeadsMeters = 0;
+    cornerWalls.forEach(c => {
+      const depth = parseFloat(c.protrusion_depth || c.length || 0);
+      const width = parseFloat(c.protrusion_width || 0);
+      const h = parseFloat(c.height || room?.height || 0);
+      let a = parseFloat(c.area || 0);
+      if (!a || a === 0) {
+        if (c.corner_type === 'wall_pillar') {
+          a = (2 * depth + width) * h;
+        } else {
+          a = (depth + width) * h;
+        }
+      }
+      cornerTotalArea += a;
+      const beads = parseInt(c.corner_beads_count || 1);
+      totalCornerBeadsMeters += (beads * h);
+    });
+
+    const grandTotalWallArea = regularNetArea + cornerTotalArea;
 
     return `
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
+      <div class="space-y-6">
+        <!-- Top Stats Banner -->
+        <div class="kpi-card rounded-2xl p-4 border border-white/6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="font-black text-white text-sm">🧱 جدران الغرفة</h3>
-            <p class="text-xs text-slate-400 mt-0.5">${walls.length} جدران مسجلة • إجمالي المساحة الصافية: <strong class="text-green-400">${totalWallArea.toFixed(2)} م²</strong></p>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-black text-white">إجمالي مساحة الجدران والزوايا:</span>
+              <span class="text-base font-black text-green-400">${grandTotalWallArea.toFixed(2)} م²</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">
+              ${regularWalls.length} جدران أساسية (${regularNetArea.toFixed(2)} م²) • ${cornerWalls.length} زوايا/أعمدة بارزة (${cornerTotalArea.toFixed(2)} م²)${totalCornerBeadsMeters > 0 ? ' • ' + totalCornerBeadsMeters.toFixed(1) + 'م زوايا حماية' : ''}
+            </p>
           </div>
-          <button onclick="RoomEngineering.openAddWallModal('${roomId}')" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow flex items-center gap-1.5">
-            <span>+</span><span>إضافة جدار</span>
-          </button>
-        </div>
-
-        ${walls.length === 0 ? `
-          <div class="kpi-card text-center py-12 text-slate-400 text-sm rounded-2xl border border-white/6 space-y-3">
-            <div class="text-4xl">🧱</div>
-            <p class="font-bold text-white text-sm">لا توجد جدران مخصصة بعد</p>
-            <p class="text-xs text-slate-500">أضف جدران الغرفة (أمامي، خلفي، جانبي، جدار تلفاز...) مع تخصيص الأبعاد ونوع التشطيب</p>
-            <button onclick="RoomEngineering.openAddWallModal('${roomId}')" class="mt-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow">
-              + إضافة أول جدار
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="RoomEngineering.openAddCornerModal('${roomId}')" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-bold transition shadow flex items-center gap-1.5">
+              <span>🏛️</span><span>+ إضافة زاوية بارزة / عمود</span>
+            </button>
+            <button onclick="RoomEngineering.openAddWallModal('${roomId}')" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow flex items-center gap-1">
+              <span>+</span><span>جدار إضافي</span>
+            </button>
+            <button onclick="RoomEngineering.resetDefaultWalls('${roomId}')" class="px-3 py-2 rounded-xl bg-[#22222E] hover:bg-[#2A2A38] text-slate-300 text-xs font-bold border border-white/10 transition" title="إعادة توليد الجدران الأربعة بحسب طول وعرض الغرفة">
+              🔄 إعادة ضبط
             </button>
           </div>
-        ` : `
+        </div>
+
+        <!-- Section 1: Regular 4 Walls (Auto-generated) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🧱</span>
+              <h3 class="font-black text-white text-sm">الجدران الأساسية للغرفة (${regularWalls.length})</h3>
+              <span class="text-[11px] text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20 font-semibold">توليد آلي حسب الأبعاد</span>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            ${walls.map(w => {
+            ${regularWalls.map(w => {
               const gross = parseFloat(w.length || 0) * parseFloat(w.height || 0);
               const wallDoors = doors.filter(d => String(d.wall_id) === String(w.id));
               const wallWindows = windows.filter(wn => String(wn.wall_id) === String(w.id));
               let deduct = 0;
-              wallDoors.forEach(d => deduct += parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1));
-              wallWindows.forEach(wn => deduct += parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1));
+              wallDoors.forEach(d => { deduct += parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1); });
+              wallWindows.forEach(wn => { deduct += parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1); });
               const net = Math.max(0, gross - deduct);
               return `
                 <div class="kpi-card rounded-xl p-4 space-y-3 border border-white/6 hover:border-indigo-500/40 transition">
                   <div class="flex items-start justify-between">
                     <div>
-                      <h4 class="font-bold text-white text-sm">🧱 ${this.escapeHtml(w.wall_name)}</h4>
-                      <p class="text-[11px] text-slate-400">${this.escapeHtml(w.position || 'موقع عام')}</p>
+                      <h4 class="font-bold text-white text-sm flex items-center gap-1.5">
+                        <span class="text-indigo-400">🧱</span>
+                        <span>${this.escapeHtml(w.wall_name)}</span>
+                      </h4>
+                      <p class="text-[11px] text-slate-400 mt-0.5">${this.escapeHtml(w.position || 'جدار')}</p>
                     </div>
                     <div class="flex gap-1">
-                      <button onclick="RoomEngineering.openEditWallModal('${w.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-lg transition" title="تعديل">✏️</button>
-                      <button onclick="RoomEngineering.deleteWall('${w.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-900/20 rounded-lg transition" title="حذف">🗑️</button>
+                      <button onclick="RoomEngineering.openEditWallModal('${w.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-900/20 rounded-lg transition" title="تعديل هذا الجدار">✏️</button>
+                      <button onclick="RoomEngineering.deleteWall('${w.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-900/20 rounded-lg transition" title="حذف الجدار (مثلاً صالون مفتوح)">🗑️</button>
                     </div>
                   </div>
                   <div class="grid grid-cols-3 gap-2 text-center text-[11px]">
@@ -251,15 +407,314 @@ const RoomEngineering = {
                   </div>
                   ${w.finish_type ? `<div class="text-[11px] text-slate-400">نوع التشطيب: <span class="text-slate-200 font-semibold">${this.escapeHtml(w.finish_type)}</span></div>` : ''}
                   ${w.paint_type ? `<div class="text-[11px] text-slate-400">الدهان/الديكور: <span class="text-slate-200 font-semibold">${this.escapeHtml(w.paint_type)}</span></div>` : ''}
-                  ${deduct > 0 ? `<div class="text-[11px] text-amber-400">خصم أبواب ونوافذ: -${deduct.toFixed(2)} م²</div>` : ''}
+                  ${deduct > 0 ? `<div class="text-[11px] text-amber-400">خصم فتحات: -${deduct.toFixed(2)} م² (${wallDoors.length} باب، ${wallWindows.length} نافذة)</div>` : ''}
                   ${w.notes ? `<div class="text-[11px] text-slate-500 italic">${this.escapeHtml(w.notes)}</div>` : ''}
                 </div>
               `;
             }).join('')}
           </div>
-        `}
+        </div>
+
+        <!-- Section 2: Protruding Corners & Pillars (الزوايا والأعمدة البارزة) -->
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🏛️</span>
+              <h3 class="font-black text-white text-sm">الزوايا والأعمدة البارزة (Poteaux & Angles Saillants) (${cornerWalls.length})</h3>
+            </div>
+            <button onclick="RoomEngineering.openAddCornerModal('${roomId}')" class="px-3 py-1.5 rounded-xl bg-amber-600/30 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/30 text-xs font-bold transition flex items-center gap-1 shadow">
+              <span>+</span><span>إضافة زاوية بارزة</span>
+            </button>
+          </div>
+
+          ${cornerWalls.length === 0 ? `
+            <div class="kpi-card text-center py-7 px-4 text-slate-400 text-xs rounded-xl border border-white/6 space-y-2">
+              <div class="text-3xl">🏛️</div>
+              <p class="font-bold text-white text-sm">لا توجد زوايا أو أعمدة بارزة في هذه الغرفة</p>
+              <p class="text-slate-500 max-w-md mx-auto">
+                إذا كانت الغرفة تحتوي على أعمدة خرسانية (عرصات بارزة) أو زوايا ديكورية بارزة، أضفها هنا ليتم احتساب مساحة التشطيب الإضافية وأمتار زوايا الحماية (Baguettes d'angle) تلقائياً.
+              </p>
+              <button onclick="RoomEngineering.openAddCornerModal('${roomId}')" class="mt-2 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition shadow">
+                + إضافة زاوية بارزة / عمود
+              </button>
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${cornerWalls.map(c => {
+                const depth = parseFloat(c.protrusion_depth || c.length || 0);
+                const width = parseFloat(c.protrusion_width || 0);
+                const h = parseFloat(c.height || room?.height || 0);
+                let a = parseFloat(c.area || 0);
+                if (!a || a === 0) {
+                  a = c.corner_type === 'wall_pillar' ? (2 * depth + width) * h : (depth + width) * h;
+                }
+                const beads = parseInt(c.corner_beads_count || 1);
+                const beadsMeters = (beads * h).toFixed(1);
+
+                return `
+                  <div class="kpi-card rounded-xl p-4 space-y-3 border border-amber-500/30 bg-[#14141C]/80 hover:border-amber-400/50 transition">
+                    <div class="flex items-start justify-between">
+                      <div>
+                        <h4 class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                          <span>🏛️</span>
+                          <span>${this.escapeHtml(c.wall_name)}</span>
+                        </h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">${this.escapeHtml(c.position || 'زاوية بارزة')} • ${c.corner_type === 'wall_pillar' ? 'عمود وسطي (3 أوجه)' : 'عمود زاوية (وجهان)'}</p>
+                      </div>
+                      <div class="flex gap-1">
+                        <button onclick="RoomEngineering.openEditCornerModal('${c.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-amber-300 hover:bg-amber-900/20 rounded-lg transition" title="تعديل">✏️</button>
+                        <button onclick="RoomEngineering.deleteCorner('${c.id}', '${roomId}')" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-900/20 rounded-lg transition" title="حذف">🗑️</button>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+                      <div class="bg-[#111118] rounded-lg p-1.5">
+                        <div class="text-slate-400">البروز</div>
+                        <div class="font-bold text-white text-xs mt-0.5">${depth}م</div>
+                      </div>
+                      <div class="bg-[#111118] rounded-lg p-1.5">
+                        <div class="text-slate-400">عرض الوجه</div>
+                        <div class="font-bold text-white text-xs mt-0.5">${width}م</div>
+                      </div>
+                      <div class="bg-[#111118] rounded-lg p-1.5">
+                        <div class="text-slate-400">الارتفاع</div>
+                        <div class="font-bold text-white text-xs mt-0.5">${h}م</div>
+                      </div>
+                      <div class="bg-[#111118] rounded-lg p-1.5 border border-amber-500/20">
+                        <div class="text-slate-400">المساحة</div>
+                        <div class="font-bold text-amber-300 text-xs mt-0.5">${a.toFixed(2)}م²</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] bg-[#111118] p-2 rounded-lg">
+                      <span class="text-slate-400">زوايا الحماية (Baguettes d'angle):</span>
+                      <span class="text-amber-300 font-bold">${beads} زاوية (${beadsMeters} م طولي)</span>
+                    </div>
+
+                    ${c.finish_type ? `<div class="text-[11px] text-slate-400">التشطيب: <span class="text-slate-200 font-semibold">${this.escapeHtml(c.finish_type)}</span> ${c.paint_type ? '• ' + this.escapeHtml(c.paint_type) : ''}</div>` : ''}
+                    ${c.notes ? `<div class="text-[11px] text-slate-500 italic">${this.escapeHtml(c.notes)}</div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
       </div>
     `;
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // MODALS — PROTRUDING CORNERS / PILLARS (الزوايا البارزة)
+  // ─────────────────────────────────────────────────────────────────────
+  async openAddCornerModal(roomId, cornerData = null) {
+    const isEdit = !!cornerData;
+    const c = cornerData || {};
+    const room = await DB.getById('project_rooms', roomId);
+    const defaultH = room?.height || 3.0;
+
+    const posOptions = this.CORNER_POSITIONS.map(p =>
+      `<option value="${p}" ${c.position === p ? 'selected' : ''}>${p}</option>`
+    ).join('');
+    const finishOptions = this.FINISH_TYPES.map(f =>
+      `<option value="${f}" ${c.finish_type === f ? 'selected' : ''}>${f}</option>`
+    ).join('');
+
+    this._showModal(`
+      <h3 class="text-base font-black text-white mb-2 flex items-center gap-2">
+        <span>🏛️</span>
+        <span>${isEdit ? 'تعديل الزاوية أو العمود البارز' : 'إضافة زاوية أو عمود بارز (Poteau / Angle saillant)'}</span>
+      </h3>
+      <p class="text-xs text-slate-400 mb-4">يتم احتساب أوجه البروز الإضافية وزوايا الحماية المعدنية تلقائياً</p>
+
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">اسم/تعريف الزاوية البارزة *</label>
+            <input id="re-corner-name" type="text" value="${this.escapeHtml(c.wall_name || 'عمود بارز 1')}"
+              placeholder="مثل: عمود الزاوية اليمنى"
+              class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">الموقع داخل الغرفة</label>
+            <select id="re-corner-pos" class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none">
+              ${posOptions}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">شكل ونوع البروز *</label>
+          <select id="re-corner-type" onchange="RoomEngineering._recalcCornerPreview()" class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none">
+            <option value="angle_pillar" ${c.corner_type !== 'wall_pillar' ? 'selected' : ''}>عمود في زاوية (وجهان: عرض الواجهة + عمق البروز)</option>
+            <option value="wall_pillar" ${c.corner_type === 'wall_pillar' ? 'selected' : ''}>عمود بارز على جدار مسطح (3 أوجه: واجهة + عمقان جانبيان)</option>
+            <option value="custom">بروز ديكوري مخصص</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">عمق البروز (م) *</label>
+            <input id="re-corner-depth" type="number" step="0.01" min="0" value="${c.protrusion_depth || c.length || 0.25}"
+              oninput="RoomEngineering._recalcCornerPreview()"
+              placeholder="0.25"
+              class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">عرض الواجهة (م) *</label>
+            <input id="re-corner-width" type="number" step="0.01" min="0" value="${c.protrusion_width || 0.35}"
+              oninput="RoomEngineering._recalcCornerPreview()"
+              placeholder="0.35"
+              class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">الارتفاع (م) *</label>
+            <input id="re-corner-height" type="number" step="0.01" min="0" value="${c.height || defaultH}"
+              oninput="RoomEngineering._recalcCornerPreview()"
+              class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+          </div>
+        </div>
+
+        <!-- Live Calculation Preview -->
+        <div id="re-corner-preview-box" class="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex items-center justify-between text-xs">
+          <div>
+            <span class="text-slate-400 block">المساحة الإضافية للتشطيب:</span>
+            <strong id="re-corner-preview-area" class="text-amber-300 font-black text-sm">-- م²</strong>
+          </div>
+          <div class="text-left">
+            <span class="text-slate-400 block">زوايا الحماية (Baguettes d'angle):</span>
+            <strong id="re-corner-preview-beads" class="text-white font-bold text-xs">-- م طولي</strong>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">عدد زوايا الحماية (Baguettes)</label>
+            <input id="re-corner-beads" type="number" min="0" value="${c.corner_beads_count !== undefined ? c.corner_beads_count : 1}"
+              oninput="RoomEngineering._recalcCornerPreview()"
+              class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 block mb-1">نوع التشطيب</label>
+            <select id="re-corner-finish" class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none">
+              <option value="بلاكو BA13 ودهان">بلاكو بلاتر BA13 ودهان</option>
+              <option value="ملاط ودهان">ملاط إسمنتي ودهان</option>
+              <option value="تغليف خشبي">تغليف خشبي (Boiserie)</option>
+              <option value="حجر ديكوري">حجر ديكوري</option>
+              ${finishOptions}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">نوع الدهان أو الديكور</label>
+          <input id="re-corner-paint" type="text" value="${this.escapeHtml(c.paint_type || 'ساتيني أبيض')}"
+            class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none"/>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">ملاحظات</label>
+          <textarea id="re-corner-notes" rows="2" placeholder="ملاحظات حول هذا البروز..."
+            class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:outline-none resize-none">${this.escapeHtml(c.notes || '')}</textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-5">
+        <button onclick="RoomEngineering.saveCorner('${roomId}', '${c.id || ''}')"
+          class="flex-1 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-sm transition shadow">
+          ${isEdit ? '✅ حفظ التعديلات' : '+ إضافة الزاوية/العمود'}
+        </button>
+        <button onclick="RoomEngineering._closeModal()" class="px-5 py-3 rounded-xl bg-[#22222E] text-slate-300 font-bold text-sm border border-white/10 transition">إلغاء</button>
+      </div>
+    `);
+
+    setTimeout(() => this._recalcCornerPreview(), 50);
+  },
+
+  _recalcCornerPreview() {
+    const depth = parseFloat(document.getElementById('re-corner-depth')?.value || 0);
+    const width = parseFloat(document.getElementById('re-corner-width')?.value || 0);
+    const height = parseFloat(document.getElementById('re-corner-height')?.value || 0);
+    const type = document.getElementById('re-corner-type')?.value;
+    const beads = parseInt(document.getElementById('re-corner-beads')?.value || 0);
+
+    let area = 0;
+    if (type === 'wall_pillar') {
+      area = (2 * depth + width) * height;
+    } else {
+      area = (depth + width) * height;
+    }
+    const beadsMeters = beads * height;
+
+    const areaEl = document.getElementById('re-corner-preview-area');
+    const beadsEl = document.getElementById('re-corner-preview-beads');
+    if (areaEl) areaEl.innerText = area.toFixed(2) + ' م²';
+    if (beadsEl) beadsEl.innerText = beads + ' زاوية (' + beadsMeters.toFixed(1) + ' م طولي)';
+  },
+
+  async openEditCornerModal(cornerId, roomId) {
+    const c = await DB.getById('room_walls', cornerId);
+    if (c) this.openAddCornerModal(roomId, c);
+  },
+
+  async saveCorner(roomId, cornerId = '') {
+    const name = document.getElementById('re-corner-name')?.value?.trim();
+    const depth = parseFloat(document.getElementById('re-corner-depth')?.value || 0);
+    const width = parseFloat(document.getElementById('re-corner-width')?.value || 0);
+    const height = parseFloat(document.getElementById('re-corner-height')?.value || 0);
+    const type = document.getElementById('re-corner-type')?.value || 'angle_pillar';
+    const beads = parseInt(document.getElementById('re-corner-beads')?.value || 0);
+
+    if (!name) {
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('أدخل اسم الزاوية أو العمود البارز', 'error');
+      return;
+    }
+    if (!depth && !width) {
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('أدخل عمق أو عرض البروز', 'error');
+      return;
+    }
+
+    let calculatedArea = 0;
+    if (type === 'wall_pillar') {
+      calculatedArea = (2 * depth + width) * height;
+    } else {
+      calculatedArea = (depth + width) * height;
+    }
+
+    const payload = {
+      room_id: roomId,
+      wall_name: name,
+      position: document.getElementById('re-corner-pos')?.value || 'الزاوية الأمامية اليمنى',
+      is_corner: true,
+      corner_type: type,
+      protrusion_depth: depth,
+      protrusion_width: width,
+      length: depth, // For backward compatibility
+      height: height,
+      area: calculatedArea,
+      corner_beads_count: beads,
+      finish_type: document.getElementById('re-corner-finish')?.value || '',
+      paint_type: document.getElementById('re-corner-paint')?.value?.trim() || '',
+      needs_finish: true,
+      notes: document.getElementById('re-corner-notes')?.value?.trim() || ''
+    };
+
+    if (cornerId) {
+      await DB.update('room_walls', cornerId, payload);
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('تم تحديث الزاوية البارزة ✅', 'success');
+    } else {
+      await DB.add('room_walls', payload);
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('تمت إضافة الزاوية البارزة بنجاح ✅', 'success');
+    }
+    this._closeModal();
+    await this._refreshPane('walls', roomId);
+  },
+
+  async deleteCorner(cornerId, roomId) {
+    this._confirm('حذف هذه الزاوية أو العمود البارز؟', '', async () => {
+      await DB.delete('room_walls', cornerId);
+      if (typeof App !== 'undefined' && App.showToast) App.showToast('تم الحذف', 'success');
+      await this._refreshPane('walls', roomId);
+    });
   },
 
   // ─────────────────────────────────────────────────────────────────────
@@ -595,7 +1050,7 @@ const RoomEngineering = {
   // COSTS PANE
   // ─────────────────────────────────────────────────────────────────────
   async _renderCostsPane(roomId, room) {
-    const walls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
+    const allWalls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
     const doors = await DB.query('room_doors', d => String(d.room_id) === String(roomId));
     const windows = await DB.query('room_windows', w => String(w.room_id) === String(roomId));
     const lighting = await DB.query('room_lighting', l => String(l.room_id) === String(roomId));
@@ -604,13 +1059,36 @@ const RoomEngineering = {
 
     const area = parseFloat(room.length || 0) * parseFloat(room.width || 0);
 
-    let totalWallNetArea = 0;
-    walls.forEach(w => {
+    const regularWalls = allWalls.filter(w => !w.is_corner);
+    const cornerWalls = allWalls.filter(w => !!w.is_corner);
+
+    let regularNetArea = 0;
+    regularWalls.forEach(w => {
       let net = parseFloat(w.length || 0) * parseFloat(w.height || 0);
-      doors.filter(d => String(d.wall_id) === String(w.id)).forEach(d => { net -= parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1); });
-      windows.filter(wn => String(wn.wall_id) === String(w.id)).forEach(wn => { net -= parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1); });
-      totalWallNetArea += Math.max(0, net);
+      doors.filter(d => String(d.wall_id) === String(w.id)).forEach(d => {
+        net -= parseFloat(d.width || 0) * parseFloat(d.height || 0) * parseInt(d.quantity || 1);
+      });
+      windows.filter(wn => String(wn.wall_id) === String(w.id)).forEach(wn => {
+        net -= parseFloat(wn.width || 0) * parseFloat(wn.height || 0) * parseInt(wn.quantity || 1);
+      });
+      regularNetArea += Math.max(0, net);
     });
+
+    let cornerArea = 0;
+    let cornerBeadsMeters = 0;
+    cornerWalls.forEach(c => {
+      const depth = parseFloat(c.protrusion_depth || c.length || 0);
+      const width = parseFloat(c.protrusion_width || 0);
+      const h = parseFloat(c.height || room.height || 0);
+      let a = parseFloat(c.area || 0);
+      if (!a || a === 0) {
+        a = c.corner_type === 'wall_pillar' ? (2 * depth + width) * h : (depth + width) * h;
+      }
+      cornerArea += a;
+      cornerBeadsMeters += (parseInt(c.corner_beads_count || 1) * h);
+    });
+
+    const totalWallNetArea = regularNetArea + cornerArea;
 
     const costLighting = lighting.reduce((s, l) => s + ((parseFloat(l.unit_price || 0) + parseFloat(l.install_cost || 0)) * parseInt(l.quantity || 1)), 0);
     const costElectrical = electrical.reduce((s, e) => s + ((parseFloat(e.unit_price || 0) + parseFloat(e.install_cost || 0)) * parseInt(e.quantity || 1)), 0);
@@ -639,12 +1117,12 @@ const RoomEngineering = {
             <div class="bg-[#111118] rounded-xl p-3">
               <div class="text-slate-400">مجموع الجدران الصافية</div>
               <div class="font-black text-green-400 text-base mt-1">${totalWallNetArea.toFixed(2)}</div>
-              <div class="text-slate-500">م²</div>
+              <div class="text-slate-500">م² (يشمل الزوايا)</div>
             </div>
             <div class="bg-[#111118] rounded-xl p-3">
-              <div class="text-slate-400">الفتحات المستثناة</div>
-              <div class="font-black text-amber-400 text-base mt-1">${doors.length + windows.length}</div>
-              <div class="text-slate-500">أبواب ونوافذ</div>
+              <div class="text-slate-400">زوايا الحماية المعدنية</div>
+              <div class="font-black text-amber-400 text-base mt-1">${cornerBeadsMeters.toFixed(1)}</div>
+              <div class="text-slate-500">متر طولي (Baguettes)</div>
             </div>
           </div>
         </div>
@@ -679,14 +1157,17 @@ const RoomEngineering = {
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // VISUAL PLAN PANE (SVG Top-Down)
+  // VISUAL PLAN PANE (SVG Top-Down with Protruding Corners)
   // ─────────────────────────────────────────────────────────────────────
   async _renderVisualPane(roomId, room) {
-    const walls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
+    const allWalls = await DB.query('room_walls', w => String(w.room_id) === String(roomId));
     const doors = await DB.query('room_doors', d => String(d.room_id) === String(roomId));
     const windows = await DB.query('room_windows', w => String(w.room_id) === String(roomId));
     const electrical = await DB.query('room_electrical', e => String(e.room_id) === String(roomId));
     const lighting = await DB.query('room_lighting', l => String(l.room_id) === String(roomId));
+
+    const regularWalls = allWalls.filter(w => !w.is_corner);
+    const cornerWalls = allWalls.filter(w => !!w.is_corner);
 
     const W = parseFloat(room.width || 4);
     const L = parseFloat(room.length || 5);
@@ -710,8 +1191,8 @@ const RoomEngineering = {
                 fill="#161622" stroke="#6366f1" stroke-width="3" rx="4"/>
 
               <!-- Dimensions labels -->
-              <text x="${pad + L * scale / 2}" y="${pad - 12}" text-anchor="middle" font-size="13" fill="#94a3b8" font-family="Arial">${L}م</text>
-              <text x="${pad - 12}" y="${pad + W * scale / 2}" text-anchor="middle" font-size="13" fill="#94a3b8" font-family="Arial" transform="rotate(-90, ${pad - 12}, ${pad + W * scale / 2})">${W}م</text>
+              <text x="${pad + L * scale / 2}" y="${pad - 12}" text-anchor="middle" font-size="13" fill="#94a3b8" font-family="Arial">${L}م (طول)</text>
+              <text x="${pad - 12}" y="${pad + W * scale / 2}" text-anchor="middle" font-size="13" fill="#94a3b8" font-family="Arial" transform="rotate(-90, ${pad - 12}, ${pad + W * scale / 2})">${W}م (عرض)</text>
 
               <!-- Compass labels -->
               <text x="${pad + L * scale / 2}" y="${pad + W * scale + 24}" text-anchor="middle" font-size="12" fill="#64748b" font-family="Arial">الجدار الأمامي</text>
@@ -722,19 +1203,24 @@ const RoomEngineering = {
                 fill="none" stroke="#facc15" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.5"/>
               <text x="${pad + L * scale / 2}" y="${pad + W * scale / 2 + 5}" text-anchor="middle" font-size="14" fill="#facc15" font-family="Arial">💡</text>
 
-              <!-- Walls indicators -->
-              ${walls.map((w, i) => {
-                const side = i % 4;
-                const positions = [
-                  [pad + L * scale / 2, pad + 12],
-                  [pad + L * scale / 2, pad + W * scale - 12],
-                  [pad + 12, pad + W * scale / 2],
-                  [pad + L * scale - 12, pad + W * scale / 2]
-                ];
-                const [cx, cy] = positions[side] || [pad + L * scale / 2, pad + W * scale / 2];
+              <!-- Protruding Corners (Pillars) drawn on the 4 corners/walls -->
+              ${cornerWalls.map((c, idx) => {
+                const pos = c.position || '';
+                let cx = pad, cy = pad, pw = 16, ph = 16;
+                if (pos.includes('أمامية') && pos.includes('يمنى')) {
+                  cx = pad + L * scale - 18; cy = pad + W * scale - 18;
+                } else if (pos.includes('أمامية') && pos.includes('يسرى')) {
+                  cx = pad + 2; cy = pad + W * scale - 18;
+                } else if (pos.includes('خلفية') && pos.includes('يمنى')) {
+                  cx = pad + L * scale - 18; cy = pad + 2;
+                } else if (pos.includes('خلفية') && pos.includes('يسرى')) {
+                  cx = pad + 2; cy = pad + 2;
+                } else {
+                  cx = pad + 20 + idx * 30; cy = pad + 2;
+                }
                 return `
-                  <circle cx="${cx}" cy="${cy}" r="9" fill="#6366f1" opacity="0.8"/>
-                  <text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="9" fill="white" font-weight="bold" font-family="Arial">${i + 1}</text>
+                  <rect x="${cx}" y="${cy}" width="${pw}" height="${ph}" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.5" rx="2"/>
+                  <text x="${cx + pw / 2}" y="${cy + ph / 2 + 3}" text-anchor="middle" font-size="8" fill="#1e1b4b" font-weight="black" font-family="Arial">🏛️</text>
                 `;
               }).join('')}
 
@@ -762,19 +1248,24 @@ const RoomEngineering = {
 
           <!-- Legend -->
           <div class="mt-4 flex flex-wrap gap-4 text-xs justify-center border-t border-white/5 pt-3">
-            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-indigo-500"></div><span class="text-slate-400">جدار</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full bg-indigo-500"></div><span class="text-slate-400">جدار أساسي</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-sm bg-amber-500"></div><span class="text-slate-400">زاوية/عمود بارز</span></div>
             <div class="flex items-center gap-1.5"><span>🚪</span><span class="text-slate-400">باب</span></div>
             <div class="flex items-center gap-1.5"><span>🪟</span><span class="text-slate-400">نافذة</span></div>
             <div class="flex items-center gap-1.5"><span>💡</span><span class="text-slate-400">إنارة</span></div>
-            <div class="flex items-center gap-1.5"><span>⚡</span><span class="text-slate-400">كهرباء</span></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
           <div class="kpi-card rounded-xl p-3 border border-white/6">
             <div class="text-2xl">🧱</div>
-            <div class="font-black text-white text-xl mt-1">${walls.length}</div>
-            <div class="text-slate-400">جدران</div>
+            <div class="font-black text-white text-xl mt-1">${regularWalls.length}</div>
+            <div class="text-slate-400">جدران أساسية</div>
+          </div>
+          <div class="kpi-card rounded-xl p-3 border border-amber-500/30">
+            <div class="text-2xl">🏛️</div>
+            <div class="font-black text-amber-300 text-xl mt-1">${cornerWalls.length}</div>
+            <div class="text-slate-400">زوايا/أعمدة بارزة</div>
           </div>
           <div class="kpi-card rounded-xl p-3 border border-white/6">
             <div class="text-2xl">💡</div>
@@ -786,22 +1277,17 @@ const RoomEngineering = {
             <div class="font-black text-orange-400 text-xl mt-1">${totalOutlets}</div>
             <div class="text-slate-400">مقابس</div>
           </div>
-          <div class="kpi-card rounded-xl p-3 border border-white/6">
-            <div class="text-2xl">🔆</div>
-            <div class="font-black text-blue-400 text-xl mt-1">${totalSwitches}</div>
-            <div class="text-slate-400">مفاتيح</div>
-          </div>
         </div>
       </div>
     `;
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // MODALS — WALLS
+  // MODALS — REGULAR WALLS
   // ─────────────────────────────────────────────────────────────────────
   openAddWallModal(roomId, wallData = null) {
     const isEdit = !!wallData;
-    const title = isEdit ? 'تعديل الجدار' : 'إضافة جدار جديد';
+    const title = isEdit ? 'تعديل الجدار' : 'إضافة جدار مخصص';
     const w = wallData || {};
 
     const positionOptions = this.WALL_POSITIONS.map(p =>
@@ -818,7 +1304,7 @@ const RoomEngineering = {
           <div>
             <label class="text-xs text-slate-400 block mb-1">اسم الجدار *</label>
             <input id="re-wall-name" type="text" value="${this.escapeHtml(w.wall_name || '')}"
-              placeholder="مثل: الجدار الأمامي"
+              placeholder="مثل: جدار الديكور"
               class="w-full bg-[#111118] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-indigo-500 focus:outline-none"/>
           </div>
           <div>
@@ -887,8 +1373,8 @@ const RoomEngineering = {
     const name = document.getElementById('re-wall-name')?.value?.trim();
     const length = parseFloat(document.getElementById('re-wall-length')?.value || 0);
     const height = parseFloat(document.getElementById('re-wall-height')?.value || 0);
-    if (!name) { App.showToast ? App.showToast('أدخل اسم الجدار', 'error') : alert('أدخل اسم الجدار'); return; }
-    if (!length || !height) { App.showToast ? App.showToast('أدخل أبعاد الجدار', 'error') : alert('أدخل أبعاد الجدار'); return; }
+    if (!name) { if (typeof App !== 'undefined' && App.showToast) App.showToast('أدخل اسم الجدار', 'error'); return; }
+    if (!length || !height) { if (typeof App !== 'undefined' && App.showToast) App.showToast('أدخل أبعاد الجدار', 'error'); return; }
 
     const payload = {
       room_id: roomId,
@@ -897,6 +1383,7 @@ const RoomEngineering = {
       length,
       height,
       area: length * height,
+      is_corner: false,
       finish_type: document.getElementById('re-wall-finish')?.value || '',
       paint_type: document.getElementById('re-wall-paint')?.value?.trim() || '',
       needs_finish: document.getElementById('re-wall-needs-finish')?.checked !== false,
@@ -915,7 +1402,7 @@ const RoomEngineering = {
   },
 
   async deleteWall(wallId, roomId) {
-    this._confirm('حذف الجدار؟', 'سيتم حذف هذا الجدار نهائياً.', async () => {
+    this._confirm('حذف الجدار؟', 'سيتم حذف الجدار وجميع تفاصيله.', async () => {
       await DB.delete('room_walls', wallId);
       if (typeof App !== 'undefined' && App.showToast) App.showToast('تم حذف الجدار بنجاح', 'success');
       await this._refreshPane('walls', roomId);

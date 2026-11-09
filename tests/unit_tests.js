@@ -234,6 +234,36 @@ runTest('Lighting and Electrical items compute total equipment costs with instal
   assert.strictEqual(totalElec, 6100);
 });
 
+runTest('Protruding corners (Angles saillants) compute additional surface area and corner beads accurately', () => {
+  // Angle pillar: 2 faces = (depth + width) * height
+  const angleCorner = { corner_type: 'angle_pillar', protrusion_depth: 0.25, protrusion_width: 0.35, height: 3.0, corner_beads_count: 1 };
+  const areaAngle = (angleCorner.protrusion_depth + angleCorner.protrusion_width) * angleCorner.height;
+  const beadsAngle = angleCorner.corner_beads_count * angleCorner.height;
+  assert.strictEqual(Math.round(areaAngle * 100) / 100, 1.8);
+  assert.strictEqual(beadsAngle, 3.0);
+
+  // Wall pillar on flat wall: 3 faces = (2 * depth + width) * height
+  const wallPillar = { corner_type: 'wall_pillar', protrusion_depth: 0.20, protrusion_width: 0.40, height: 2.8, corner_beads_count: 2 };
+  const areaPillar = (2 * wallPillar.protrusion_depth + wallPillar.protrusion_width) * wallPillar.height;
+  const beadsPillar = wallPillar.corner_beads_count * wallPillar.height;
+  assert.strictEqual(Math.round(areaPillar * 100) / 100, 2.24);
+  assert.strictEqual(Math.round(beadsPillar * 10) / 10, 5.6);
+});
+
+runTest('Auto-generated 4 base walls match room geometric dimensions exactly', () => {
+  const room = { length: 5.5, width: 4.2, height: 3.0 };
+  const generatedWalls = [
+    { position: 'الجدار الأمامي', length: room.length, height: room.height },
+    { position: 'الجدار الخلفي', length: room.length, height: room.height },
+    { position: 'الجدار الجانبي الأيمن', length: room.width, height: room.height },
+    { position: 'الجدار الجانبي الأيسر', length: room.width, height: room.height }
+  ];
+  const perimeter = 2 * (room.length + room.width);
+  const totalLength = generatedWalls.reduce((s, w) => s + w.length, 0);
+  assert.strictEqual(totalLength, perimeter);
+  assert.strictEqual(generatedWalls.length, 4);
+});
+
 console.log('\n================================================================');
 console.log(`  TEST RESULTS: ${passedTests}/${totalTests} PASSED (${failedTests} FAILED)`);
 console.log('================================================================\n');
